@@ -15,12 +15,11 @@ namespace Hal
         // GPU-backed 2D explicit diffusion, mirroring
         // Hal::Internal::Diffusion2's no-boundary-condition path (see
         // shaders/Diffusion2D.comp) — one compute-shader invocation per
-        // grid cell. This is Phase 4's first compute kernel; Dirichlet
-        // boundaries and discontinuous rates remain deferred (see
-        // docs/PHASED_PORT.md).
+        // grid cell. Dirichlet boundaries and discontinuous rates remain
+        // deferred.
         //
-        // Buffers are VMA-allocated (docs/PHASED_PORT.md's Phase 9 VMA
-        // item): the field/delta SSBOs are device-local, with one
+        // Buffers are VMA-allocated: the field/delta SSBOs are
+        // device-local, with one
         // persistently mapped host staging buffer carrying uploads and
         // readbacks — no per-call vkMapMemory, and submissions wait on a
         // fence rather than vkQueueWaitIdle.

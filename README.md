@@ -8,7 +8,7 @@ mathematical oncology (tumor growth, drug/resource diffusion, population models)
 This port keeps HAL's library-not-an-engine design (your model owns `main()` and
 calls HAL each tick) while adding what the Java original lacks: a **GPU compute
 backend** for the per-tick agent and PDE loops, and a data-oriented layout chosen
-upfront for that purpose. See [`../docs/DESIGN.md`](../docs/DESIGN.md) for the
+upfront for that purpose. See [`docs/DESIGN.md`](docs/DESIGN.md) for the
 rationale behind each decision.
 
 ## Relationship to the original HAL
@@ -86,7 +86,7 @@ against its CPU reference, serialization, and rendering contexts.
 
 ## Documentation
 
-- [`../docs/DESIGN.md`](../docs/DESIGN.md) — design rationale, Java→C++ mapping,
+- [`docs/DESIGN.md`](docs/DESIGN.md) — design rationale, Java→C++ mapping,
   GPU-residency findings, open decisions
-- [`../docs/coding_standards.md`](../docs/coding_standards.md) — code style
+- [`docs/coding_standards.md`](docs/coding_standards.md) — code style
 - [`examples/README.md`](examples/README.md) — example catalog and GPU showcases

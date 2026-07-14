@@ -10,10 +10,9 @@ namespace Hal
     {
         // GPU implementation of IDiffusionBackend2D, wrapping
         // DiffusionKernel2D behind the same interface
-        // CpuDiffusionBackend2D implements — this is the
-        // docs/PHASED_PORT.md "IComputeBackend" milestone: model code can
-        // hold an Hal::IDiffusionBackend2D* and swap CPU/GPU without
-        // changing call sites.
+        // CpuDiffusionBackend2D implements — the IComputeBackend pattern:
+        // model code can hold an Hal::IDiffusionBackend2D* and swap
+        // CPU/GPU without changing call sites.
         //
         // Fixed-size: the wrapped DiffusionKernel2D's buffers are sized
         // once at construction (matching xDim/yDim given here), so

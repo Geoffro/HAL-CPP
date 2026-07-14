@@ -8,8 +8,8 @@
 
 namespace Hal
 {
-    // Free-function Save/Load pairs for the value grid family, part of
-    // Phase 5 (see docs/PHASED_PORT.md). Each Save writes dims, wrap
+    // Free-function Save/Load pairs for the value grid family. Each
+    // Save writes dims, wrap
     // flags, then the raw field array; each Load reconstructs a
     // matching grid and reads the field back into it. Kept outside the
     // grid classes themselves since they're generic over T and don't need

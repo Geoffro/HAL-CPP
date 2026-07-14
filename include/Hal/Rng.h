@@ -44,8 +44,7 @@ namespace Hal
 
         // Persists/restores the full generator state (the 4-word
         // xoshiro256** state), so a reloaded Rng continues the exact same
-        // output stream from where it left off — see docs/PHASED_PORT.md
-        // Phase 5.
+        // output stream from where it left off.
         void Save(BinaryWriter &writer) const;
         void Load(BinaryReader &reader);
 

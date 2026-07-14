@@ -13,10 +13,10 @@ namespace Hal
     namespace Gpu
     {
         // Vulkan graphics pipeline that presents a live, per-frame-
-        // updatable pixel-grid texture to a Window — Phase 6's
-        // `UIGrid`-equivalent live render surface (see
-        // docs/PHASED_PORT.md), built on top of the plain clear-and-
-        // present milestone that came before it. Replaces Java's
+        // updatable pixel-grid texture to a Window — the
+        // `UIGrid`-equivalent live render surface, built on top of the
+        // plain clear-and-present milestone that came before it.
+        // Replaces Java's
         // `UIWindow`/`OpenGL2DWindow`/`OpenGL3DWindow`.
         //
         // Owns its own instance/device (separate from

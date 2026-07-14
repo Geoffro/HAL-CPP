@@ -8,8 +8,8 @@
 
 namespace Hal
 {
-    // Minimal binary serialization writer, backing Phase 5's save/load
-    // support (see docs/PHASED_PORT.md). Writes raw little-endian-native
+    // Minimal binary serialization writer, backing HAL's save/load
+    // support. Writes raw little-endian-native
     // bytes with no cross-platform/cross-endianness translation — this is
     // a deliberate simplification for saving and reloading state on the
     // same machine, matching HAL's own scope, not an oversight.

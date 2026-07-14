@@ -6,8 +6,8 @@
 namespace Hal
 {
     // Strategy interface so model code can pick a CPU or GPU explicit-
-    // diffusion implementation without changing call sites, per
-    // docs/PHASED_PORT.md's Phase 4 IComputeBackend milestone. Operates on
+    // diffusion implementation without changing call sites (the
+    // IComputeBackend pattern). Operates on
     // flat, caller-owned field/delta arrays (matching
     // Hal::Internal::Diffusion2's raw-pointer signature and
     // Diffusion2D.comp's SSBO layout) rather than a PDEGrid2D directly, so

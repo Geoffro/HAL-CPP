@@ -52,9 +52,9 @@ namespace Hal
         };
 
         // Hardware Vulkan 3D renderer — the GPU successor to the software
-        // examples/common/Scene3D rasterizer (docs/PHASED_PORT.md Phase
-        // 9), replacing the painter's-algorithm CPU pixel loop with a
-        // real depth-tested pipeline. Mirrors Scene3D's per-frame usage
+        // examples/common/Scene3D rasterizer, replacing the
+        // painter's-algorithm CPU pixel loop with a real depth-tested
+        // pipeline. Mirrors Scene3D's per-frame usage
         // shape so models read the same against either renderer: an orbit
         // camera looks at the center of the domain box
         // [0,xDim]x[0,yDim]x[0,zDim]; each frame, HandleInput() (left-drag

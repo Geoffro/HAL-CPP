@@ -15,8 +15,7 @@ namespace Hal
         // AgentForceKernel2D behind the same interface
         // CpuAgentForceBackend2D implements — the agent-force analogue of
         // GpuDiffusionBackend2D, extending the IComputeBackend strategy
-        // pattern to the second compute path (docs/PHASED_PORT.md
-        // Phase 9).
+        // pattern to the second compute path.
         //
         // Fixed-size: the wrapped kernel's buffers are sized once at
         // construction (grid dimensions and agent capacity), so

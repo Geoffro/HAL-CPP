@@ -69,7 +69,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(volk)
 
 # VMA (Vulkan Memory Allocator) — buffer allocation for the compute
-# kernels (docs/PHASED_PORT.md Phase 9). Header-only; the single
+# kernels. Header-only; the single
 # implementation TU is src/Gpu/Internal/VmaImpl.cpp, built with dynamic
 # Vulkan functions since volk loads Vulkan at runtime.
 FetchContent_Declare(

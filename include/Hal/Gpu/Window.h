@@ -21,8 +21,8 @@ namespace Hal
         };
 
         // Thin RAII wrapper over a single GLFW window, the foundation
-        // Phase 6's Vulkan graphics pipeline is built on top of (see
-        // docs/PHASED_PORT.md) — replacing Java's Swing-based
+        // the Vulkan graphics pipeline is built on top of — replacing
+        // Java's Swing-based
         // `UIWindow`/`OpenGL2DWindow`/`OpenGL3DWindow`. Owns GLFW's global
         // init/terminate lifecycle via a process-wide reference count (so
         // multiple Window instances, though unusual for a HAL model, don't

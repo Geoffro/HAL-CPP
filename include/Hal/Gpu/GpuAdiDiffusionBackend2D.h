@@ -13,8 +13,7 @@ namespace Hal
     {
         // GPU implementation of IAdiDiffusionBackend2D, wrapping
         // AdiKernel2D behind the same interface CpuAdiDiffusionBackend2D
-        // implements — the last compute path to gain a GPU backend
-        // (docs/PHASED_PORT.md's Phase 9 GPU-ADI item).
+        // implements — the last compute path to gain a GPU backend.
         //
         // Fixed-size, throw-on-misuse, and double<->float converting,
         // same stance as GpuDiffusionBackend2D. Each DiffuseADI call runs

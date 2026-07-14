@@ -16,9 +16,8 @@ namespace Hal
         // force accumulation, mirroring AgentGrid2D::GetAgentsRadApprox's
         // bucket scan (see include/Hal/Grids/AgentGrid2D.h) and
         // SphericalAgent2D::SumForces' interactionRad overload (see
-        // include/Hal/Agents/SphericalAgent2D.h). This is Phase 4's
-        // second compute kernel; non-linear force laws remain deferred
-        // (see docs/PHASED_PORT.md). The IComputeBackend abstraction over
+        // include/Hal/Agents/SphericalAgent2D.h). Non-linear force laws
+        // remain deferred. The IComputeBackend abstraction over
         // this kernel is Hal::Gpu::GpuAgentForceBackend2D
         // (include/Hal/Gpu/GpuAgentForceBackend2D.h).
         //
@@ -37,8 +36,8 @@ namespace Hal
         // agent's index into its cell's slot range), AgentForceAccum.comp
         // (the actual neighbor scan + force sum).
         //
-        // Buffers are VMA-allocated (docs/PHASED_PORT.md's Phase 9 VMA
-        // item): every SSBO is device-local; one persistently mapped
+        // Buffers are VMA-allocated: every SSBO is device-local; one
+        // persistently mapped
         // staging buffer carries the per-step agent upload and the
         // velocity readback, partitioned so a repeated Dispatch after one
         // UploadAgents stays valid. UploadAgents only writes the staging

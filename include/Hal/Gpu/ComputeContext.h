@@ -16,9 +16,8 @@ namespace Hal
     {
         // Minimal headless Vulkan compute context: instance + physical
         // device + logical device + compute queue, no swapchain/surface.
-        // This is Phase 4's foundation that GPU compute kernels
-        // (diffusion, agent neighbor search) get built on top of in
-        // later sub-milestones — see docs/PHASED_PORT.md.
+        // This is the foundation GPU compute kernels (diffusion, agent
+        // neighbor search) get built on top of.
         //
         // Non-copyable: owns Vulkan handles with manual RAII cleanup in
         // the destructor (reverse creation order). This is the case
@@ -42,10 +41,10 @@ namespace Hal
             uint32_t ComputeQueueFamilyIndex() const;
 
             // The VMA allocator every compute kernel allocates its
-            // buffers through (docs/PHASED_PORT.md's Phase 9 VMA item —
-            // sub-allocation and mapping management replace the earlier
-            // manual vkAllocateMemory-per-buffer path). Owned by this
-            // context; kernels must be destroyed before it.
+            // buffers through (sub-allocation and mapping management
+            // replace the earlier manual vkAllocateMemory-per-buffer
+            // path). Owned by this context; kernels must be destroyed
+            // before it.
             VmaAllocator Allocator() const;
 
         private:

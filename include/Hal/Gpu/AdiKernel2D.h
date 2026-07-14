@@ -13,8 +13,8 @@ namespace Hal
     namespace Gpu
     {
         // GPU implicit (ADI / Crank-Nicolson) 2D diffusion — the
-        // tridiagonal-solve-on-GPU stretch goal from docs/PHASED_PORT.md,
-        // mirroring Hal::Internal::Diffusion2DADI: each step is two
+        // tridiagonal-solve-on-GPU stretch goal, mirroring
+        // Hal::Internal::Diffusion2DADI: each step is two
         // directional sweeps (solve along x per row with the explicit y
         // half-step as RHS, then along y per column), each line's
         // tridiagonal system solved by one workgroup with PCR (parallel

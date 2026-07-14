@@ -15,9 +15,8 @@
 
 // Exercises Hal::IDiffusionBackend2D as the strategy interface it's meant
 // to be: the same call site (RunEigenmodeCheck below) runs unmodified
-// against whichever concrete backend it's handed, confirming the
-// docs/PHASED_PORT.md "IComputeBackend" milestone's actual point — model
-// code doesn't need to know which backend it's using. Reuses the same
+// against whichever concrete backend it's handed — model code doesn't
+// need to know which backend it's using. Reuses the same
 // analytic eigenmode-decay ground truth as PDEGridTests.cpp/
 // DiffusionKernel2DTests.cpp rather than comparing backends to each
 // other, so a bug shared by both implementations wouldn't hide behind

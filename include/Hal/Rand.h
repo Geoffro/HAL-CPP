@@ -135,8 +135,7 @@ namespace Hal
 
         // Persists/restores the RNG stream state (Rng's 4-word state plus
         // GaussianSampler's cached companion value) so a reloaded Rand
-        // reproduces the exact same future output as the original —
-        // see docs/PHASED_PORT.md Phase 5.
+        // reproduces the exact same future output as the original.
         //
         // NOTE: deliberately doesn't persist BinomialSampler's cached
         // (n, p) memoized constants: unlike GaussianSampler's cache, they

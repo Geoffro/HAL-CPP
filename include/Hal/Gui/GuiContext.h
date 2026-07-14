@@ -19,7 +19,7 @@ namespace Hal
         // be built and its draw data inspected with no window (that path is
         // unit-tested headlessly). The GLFW input + Vulkan rendering
         // integration that turns this into an on-screen UI lives in
-        // HalWindow (see docs/PHASED_PORT.md).
+        // HalWindow.
         //
         // Usage per frame: BeginFrame -> build panels/controls/plots ->
         // EndFrame, then a renderer consumes DrawData(). The control helpers

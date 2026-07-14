@@ -44,7 +44,7 @@ namespace Hal
         // A software 3D scene rendered into a GridWindow's pixel buffer — the
         // analogue of HAL's Gui/OpenGL3DWindow, but CPU-rasterized so it
         // reuses the same pixel-buffer stack as the 2D examples (no Vulkan 3D
-        // pipeline; see docs/PHASED_PORT.md Phase 9 for the hardware version).
+        // pipeline; see Hal::Gpu::Scene3DRenderContext for the hardware version).
         //
         // An orbit camera looks at the center of the domain box
         // [0,xDim]x[0,yDim]x[0,zDim]. Queue spheres and line segments each

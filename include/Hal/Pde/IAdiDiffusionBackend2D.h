@@ -13,11 +13,11 @@ namespace Hal
     // Hal::Internal::Diffusion2DADI's raw-pointer signature) so one
     // interface covers a plain array and a PDEGrid2D's backing storage.
     //
-    // Currently one implementation exists — Hal::CpuAdiDiffusionBackend2D
-    // (include/Hal/Pde/CpuAdiDiffusionBackend2D.h). A GPU implementation
-    // (tridiagonal solve via cyclic reduction / PCR) is the deferred
-    // Phase 9 GPU-ADI item in docs/PHASED_PORT.md; it will slot in behind
-    // this same interface.
+    // Two implementations exist — Hal::CpuAdiDiffusionBackend2D
+    // (include/Hal/Pde/CpuAdiDiffusionBackend2D.h) and
+    // Hal::Gpu::GpuAdiDiffusionBackend2D
+    // (include/Hal/Gpu/GpuAdiDiffusionBackend2D.h), the tridiagonal
+    // solve via cyclic reduction / PCR on the GPU side.
     class IAdiDiffusionBackend2D
     {
     public:

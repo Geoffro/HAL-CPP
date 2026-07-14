@@ -8,8 +8,8 @@
 
 namespace Hal
 {
-    // Free-function Save/Load pairs for the PDE grid family, part of
-    // Phase 5 (see docs/PHASED_PORT.md). Unlike GridSerialization.h's
+    // Free-function Save/Load pairs for the PDE grid family. Unlike
+    // GridSerialization.h's
     // value grids, PDEGrid also persists the not-yet-committed deltas
     // buffer and the update counter, via each class's SetState() —
     // without deltas, a save taken between Set()/Add() calls and the

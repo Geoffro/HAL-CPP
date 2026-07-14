@@ -376,9 +376,8 @@ namespace Hal
 
         // Gets all agents within rad of (x,y) exactly, via the same
         // bucket-grid scan as GetAgentsRadApprox plus a true distance
-        // check per candidate — this is the cell-list neighbor search
-        // Phase 4's GPU compute path is expected to build on directly
-        // (see docs/PHASED_PORT.md).
+        // check per candidate — this is the same cell-list neighbor
+        // search the GPU compute path builds on directly.
         void GetAgentsRad(std::vector<TAgent *> &retAgentList,
                           double                 x,
                           double                 y,

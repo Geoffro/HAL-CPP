@@ -6,9 +6,8 @@ namespace Hal
 {
     namespace Gpu
     {
-        // Minimal 3D math for the hardware Scene3D renderer (see
-        // docs/PHASED_PORT.md Phase 9) — a hand-rolled alternative to
-        // pulling in GLM, matching the Phase 0 decision to keep small math
+        // Minimal 3D math for the hardware Scene3D renderer — a
+        // hand-rolled alternative to pulling in GLM, keeping small math
         // helpers in-tree. Only what the render path actually needs: a
         // float 3-vector and a column-major 4x4 float matrix with the
         // perspective/view constructors the model-view-projection uniform

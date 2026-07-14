@@ -63,7 +63,7 @@ namespace Hal
         }
 
         // Restores field/deltas/updateCt directly (e.g. after loading a
-        // saved simulation, see docs/PHASED_PORT.md Phase 5) — field and
+        // saved simulation) — field and
         // deltas must each already be Length()-sized, matching this
         // grid's own dimensions.
         void SetState(const std::vector<double> &field,

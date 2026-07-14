@@ -8,8 +8,7 @@ namespace Hal
     // Radix-2 complex Fast Fourier Transform, ported from
     // Tools/Lenia/FFTbase.java (Orlando Selenu's implementation of the
     // Brigham algorithm). Underpins the FFT-based kernel convolution the
-    // Lenia continuous-cellular-automata support is built on (see
-    // docs/PHASED_PORT.md).
+    // Lenia continuous-cellular-automata support is built on.
     //
     // Unitary normalization: both the forward and inverse transforms scale
     // by 1/sqrt(n), so Fft(Fft(x, true), false) == x. `direct` selects the

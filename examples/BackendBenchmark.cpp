@@ -1,7 +1,6 @@
-// CPU/GPU timing comparison on shared workloads — the Phase 4/9
-// measurement item from docs/PHASED_PORT.md (the correctness cross-check
-// between backends lives in the test suite; this adds the numbers).
-// Headless: needs a Vulkan compute device but no window/display.
+// CPU/GPU timing comparison on shared workloads (the correctness
+// cross-check between backends lives in the test suite; this adds the
+// numbers). Headless: needs a Vulkan compute device but no window/display.
 //
 // Four workloads:
 //   - explicit diffusion, ONE step per call through IDiffusionBackend2D
