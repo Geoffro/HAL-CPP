@@ -1,0 +1,55 @@
+#version 450
+
+// First pass of the GPU cell-bucket build: counts how many agents fall
+// into each grid cell (same cell size/indexing as AgentGrid2D's own
+// I(x,y) = x*yDim+y), via one atomicAdd per agent. AgentPrefixSum.comp
+// turns these counts into offsets; AgentScatter.comp then places each
+// agent's index into its cell's slot range.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer PositionBuffer
+{
+    vec2 positions[];
+};
+
+layout(std430, binding = 1) buffer CellCountBuffer
+{
+    int cellCounts[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    int numAgents;
+    int xDim;
+    int yDim;
+}
+pc;
+
+int CellCoord(float v, int dim)
+{
+    int c = int(floor(v));
+    if (c < 0)
+    {
+        c = 0;
+    }
+    else if (c >= dim)
+    {
+        c = dim - 1;
+    }
+    return c;
+}
+
+void main()
+{
+    int i = int(gl_GlobalInvocationID.x);
+    if (i >= pc.numAgents)
+    {
+        return;
+    }
+
+    int cellX = CellCoord(positions[i].x, pc.xDim);
+    int cellY = CellCoord(positions[i].y, pc.yDim);
+    int cell = cellX * pc.yDim + cellY;
+    atomicAdd(cellCounts[cell], 1);
+}

@@ -1,0 +1,146 @@
+#version 450
+
+// GPU port of SphericalAgent2D::SumForces' interactionRad overload (see
+// include/Hal/Agents/SphericalAgent2D.h) — one invocation per agent,
+// scanning the same bounding-box-of-cells pattern as
+// AgentGrid2D::GetAgentsRadApprox via the buckets built by
+// AgentCellCount/AgentPrefixSum/AgentScatter, using a linear spring force
+// law (force = springConstant * touchDist) in place of the CPU version's
+// arbitrary overlapFun callable — GLSL has no first-class function
+// values, so the force law is a shader parameter for now rather than a
+// caller-supplied callback. Non-linear force laws are a follow-up (either
+// a shader variant or an exponent push constant), not a design dead end.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer PositionBuffer
+{
+    vec2 positions[];
+};
+
+layout(std430, binding = 1) readonly buffer RadiusBuffer
+{
+    float radii[];
+};
+
+layout(std430, binding = 2) readonly buffer CellOffsetBuffer
+{
+    int cellOffsets[];
+};
+
+layout(std430, binding = 3) readonly buffer BucketAgentBuffer
+{
+    int bucketAgents[];
+};
+
+layout(std430, binding = 4) buffer VelocityDeltaBuffer
+{
+    vec2 velocityDeltas[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float interactionRad;
+    float springConstant;
+    int   numAgents;
+    int   xDim;
+    int   yDim;
+    int   wrapX;
+    int   wrapY;
+}
+pc;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+// Matches GridGeometry2D::DispX/DispY: the shortest signed displacement
+// from a to b, wrapping around the axis if that is closer.
+float Disp(float a, float b, int dim, bool wrap)
+{
+    float d = b - a;
+    if (wrap)
+    {
+        float dimF = float(dim);
+        if (abs(d) > (dimF * 0.5))
+        {
+            d = (a > b) ? (d + dimF) : (d - dimF);
+        }
+    }
+    return d;
+}
+
+void main()
+{
+    int i = int(gl_GlobalInvocationID.x);
+    if (i >= pc.numAgents)
+    {
+        return;
+    }
+
+    vec2  pos = positions[i];
+    float rad = radii[i];
+    float interactionRad = pc.interactionRad;
+
+    int xStart = int(floor(pos.x - interactionRad));
+    int xEnd   = int(ceil(pos.x + interactionRad));
+    int yStart = int(floor(pos.y - interactionRad));
+    int yEnd   = int(ceil(pos.y + interactionRad));
+
+    vec2 velDelta = vec2(0.0, 0.0);
+
+    for (int xSq = xStart; xSq < xEnd; xSq++)
+    {
+        int  retX = xSq;
+        bool inX  = (retX >= 0) && (retX < pc.xDim);
+        if ((pc.wrapX == 0) && !inX)
+        {
+            continue;
+        }
+        if ((pc.wrapX != 0) && !inX)
+        {
+            retX = WrapIndex(retX, pc.xDim);
+        }
+
+        for (int ySq = yStart; ySq < yEnd; ySq++)
+        {
+            int  retY = ySq;
+            bool inY  = (retY >= 0) && (retY < pc.yDim);
+            if ((pc.wrapY == 0) && !inY)
+            {
+                continue;
+            }
+            if ((pc.wrapY != 0) && !inY)
+            {
+                retY = WrapIndex(retY, pc.yDim);
+            }
+
+            int cell  = retX * pc.yDim + retY;
+            int start = cellOffsets[cell];
+            int end   = cellOffsets[cell + 1];
+            for (int k = start; k < end; k++)
+            {
+                int j = bucketAgents[k];
+                if (j == i)
+                {
+                    continue;
+                }
+
+                float xComp = Disp(pos.x, positions[j].x, pc.xDim, pc.wrapX != 0);
+                float yComp = Disp(pos.y, positions[j].y, pc.yDim, pc.wrapY != 0);
+                float dist  = sqrt(xComp * xComp + yComp * yComp);
+                if ((dist < interactionRad) && (dist > 0.0))
+                {
+                    float touchDist = (rad + radii[j]) - dist;
+                    float force = pc.springConstant * touchDist;
+                    velDelta.x -= (xComp / dist) * force;
+                    velDelta.y -= (yComp / dist) * force;
+                }
+            }
+        }
+    }
+
+    velocityDeltas[i] = velDelta;
+}

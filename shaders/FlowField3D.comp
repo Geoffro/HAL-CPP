@@ -1,0 +1,62 @@
+#version 450
+
+// GPU particle advection through a 3D Arnold-Beltrami-Childress (ABC) flow —
+// the steady, divergence-free velocity field
+//   v = ( A sin z + C cos y,  B sin x + A cos z,  C sin y + B cos x )
+// on the periodic domain [0, 2*pi)^3. ABC flow is a classic example of
+// Lagrangian chaos: massless tracers dropped into it weave through invariant
+// tubes and chaotic sheets, tracing a tangled luminous web. This is the
+// solver behind the GpuFlowField3D showcase, which renders the advected
+// particles as depth-tested spheres.
+//
+// Each invocation advances one particle by RK2 and wraps it back into the
+// domain; positions are stored as vec4 (xyz = position, w = current speed,
+// which the host uses to colour the particle). No cross-particle coupling,
+// so it is a pure map over the position buffer — the embarrassingly parallel
+// case the GPU eats for breakfast.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer Positions
+{
+    vec4 positions[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float coeffA;
+    float coeffB;
+    float coeffC;
+    float dt;
+    int count;
+}
+pc;
+
+const float TWO_PI = 6.28318530717958647692;
+
+vec3 AbcVelocity(vec3 p)
+{
+    return vec3(
+        pc.coeffA * sin(p.z) + pc.coeffC * cos(p.y),
+        pc.coeffB * sin(p.x) + pc.coeffA * cos(p.z),
+        pc.coeffC * sin(p.y) + pc.coeffB * cos(p.x));
+}
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= uint(pc.count))
+    {
+        return;
+    }
+
+    vec3 p = positions[i].xyz;
+    vec3 k1 = AbcVelocity(p);
+    vec3 k2 = AbcVelocity(p + 0.5 * pc.dt * k1);
+    p += pc.dt * k2;
+
+    // Wrap back into [0, 2*pi)^3.
+    p = mod(p, TWO_PI);
+
+    positions[i] = vec4(p, length(k2));
+}

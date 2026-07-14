@@ -1,0 +1,59 @@
+#version 450
+
+// Third pass of the GPU cell-bucket build: places each agent's index into
+// its cell's slot range (as computed by AgentPrefixSum.comp), by
+// atomically claiming the next free slot in that cell via cellCursors.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer PositionBuffer
+{
+    vec2 positions[];
+};
+
+layout(std430, binding = 1) buffer CellCursorBuffer
+{
+    int cellCursors[];
+};
+
+layout(std430, binding = 2) buffer BucketAgentBuffer
+{
+    int bucketAgents[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    int numAgents;
+    int xDim;
+    int yDim;
+}
+pc;
+
+int CellCoord(float v, int dim)
+{
+    int c = int(floor(v));
+    if (c < 0)
+    {
+        c = 0;
+    }
+    else if (c >= dim)
+    {
+        c = dim - 1;
+    }
+    return c;
+}
+
+void main()
+{
+    int i = int(gl_GlobalInvocationID.x);
+    if (i >= pc.numAgents)
+    {
+        return;
+    }
+
+    int cellX = CellCoord(positions[i].x, pc.xDim);
+    int cellY = CellCoord(positions[i].y, pc.yDim);
+    int cell = cellX * pc.yDim + cellY;
+    int slot = atomicAdd(cellCursors[cell], 1);
+    bucketAgents[slot] = i;
+}

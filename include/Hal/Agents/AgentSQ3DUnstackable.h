@@ -1,0 +1,241 @@
+#pragma once
+
+#include "Hal/Agents/AgentBase.h"
+#include "Hal/MathUtil.h"
+
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
+
+namespace Hal
+{
+    // On-lattice 3D agent with at most one agent per grid square, ported
+    // from GridsAndAgents/AgentSQ3Dunstackable.java. See
+    // AgentSQ2DUnstackable.h for the 2D version this mirrors; TGrid must
+    // expose `using AgentType = <derived agent type>;` (see AgentGrid3D.h).
+    template <typename TGrid>
+    class AgentSQ3DUnstackable : public AgentBase<TGrid>
+    {
+    public:
+        explicit AgentSQ3DUnstackable(TGrid *pGrid)
+            : AgentBase<TGrid>(pGrid),
+              m_xSq(0),
+              m_ySq(0),
+              m_zSq(0),
+              m_iSq(0)
+        {
+        }
+
+        ~AgentSQ3DUnstackable()
+        {
+        }
+
+        int32_t Xsq() const
+        {
+            return m_xSq;
+        }
+
+        int32_t Ysq() const
+        {
+            return m_ySq;
+        }
+
+        int32_t Zsq() const
+        {
+            return m_zSq;
+        }
+
+        double Xpt() const
+        {
+            return m_xSq + 0.5;
+        }
+
+        double Ypt() const
+        {
+            return m_ySq + 0.5;
+        }
+
+        double Zpt() const
+        {
+            return m_zSq + 0.5;
+        }
+
+        int32_t Isq() const
+        {
+            return m_iSq;
+        }
+
+        void Setup(int32_t i)
+        {
+            m_xSq = this->m_pGrid->ItoX(i);
+            m_ySq = this->m_pGrid->ItoY(i);
+            m_zSq = this->m_pGrid->ItoZ(i);
+            m_iSq = i;
+            AddSQ(i);
+        }
+
+        void Setup(int32_t x,
+                   int32_t y,
+                   int32_t z)
+        {
+            m_xSq = x;
+            m_ySq = y;
+            m_zSq = z;
+            m_iSq = this->m_pGrid->I(x, y, z);
+            AddSQ(m_iSq);
+        }
+
+        void MoveSQ(int32_t i)
+        {
+            if (!this->IsAlive())
+            {
+                throw std::runtime_error("attempting to move dead agent");
+            }
+            RemSQ();
+            m_xSq = this->m_pGrid->ItoX(i);
+            m_ySq = this->m_pGrid->ItoY(i);
+            m_zSq = this->m_pGrid->ItoZ(i);
+            m_iSq = i;
+            AddSQ(i);
+        }
+
+        void MoveSQ(int32_t x,
+                    int32_t y,
+                    int32_t z)
+        {
+            if (!this->IsAlive())
+            {
+                throw std::runtime_error("attempting to move dead agent");
+            }
+            int32_t iNewPos = this->m_pGrid->I(x, y, z);
+            RemSQ();
+            m_xSq = x;
+            m_ySq = y;
+            m_zSq = z;
+            m_iSq = iNewPos;
+            AddSQ(iNewPos);
+        }
+
+        void MoveSafeSQ(int32_t newX,
+                        int32_t newY,
+                        int32_t newZ)
+        {
+            if (!this->IsAlive())
+            {
+                throw std::runtime_error("attempting to move dead agent");
+            }
+            if (this->m_pGrid->In(newX, newY, newZ))
+            {
+                MoveSQ(newX, newY, newZ);
+                return;
+            }
+            if (this->m_pGrid->IsWrapX())
+            {
+                newX = Wrap(newX, this->m_pGrid->Xdim());
+            }
+            else if (!InDim(newX, this->m_pGrid->Xdim()))
+            {
+                newX = Xsq();
+            }
+            if (this->m_pGrid->IsWrapY())
+            {
+                newY = Wrap(newY, this->m_pGrid->Ydim());
+            }
+            else if (!InDim(newY, this->m_pGrid->Ydim()))
+            {
+                newY = Ysq();
+            }
+            if (this->m_pGrid->IsWrapZ())
+            {
+                newZ = Wrap(newZ, this->m_pGrid->Zdim());
+            }
+            else if (!InDim(newZ, this->m_pGrid->Zdim()))
+            {
+                newZ = Zsq();
+            }
+            MoveSQ(newX, newY, newZ);
+        }
+
+        void SwapPosition(AgentSQ3DUnstackable<TGrid> &other)
+        {
+            if (!this->IsAlive() || !other.IsAlive())
+            {
+                throw std::runtime_error("attempting to move dead agent");
+            }
+            if (other.m_pGrid != this->m_pGrid)
+            {
+                throw std::runtime_error("can't swap positions between agents on different grids");
+            }
+            other.RemSQ();
+            RemSQ();
+            int32_t xThis = m_xSq;
+            int32_t yThis = m_ySq;
+            int32_t zThis = m_zSq;
+            int32_t iThis = m_iSq;
+            m_xSq = other.m_xSq;
+            m_ySq = other.m_ySq;
+            m_zSq = other.m_zSq;
+            m_iSq = other.m_iSq;
+            other.m_xSq = xThis;
+            other.m_ySq = yThis;
+            other.m_zSq = zThis;
+            other.m_iSq = iThis;
+            other.AddSQ(other.m_iSq);
+            AddSQ(m_iSq);
+        }
+
+        void Dispose()
+        {
+            RemSQ();
+            this->m_pGrid->RemoveAgent(*static_cast<typename TGrid::AgentType *>(this));
+        }
+
+        template <typename EvalFn>
+        int32_t MapHood(int32_t *pHood,
+                        int32_t  hoodLength,
+                        EvalFn   eval) const
+        {
+            return this->m_pGrid->MapHood(pHood, hoodLength, m_xSq, m_ySq, m_zSq, eval);
+        }
+
+        int32_t MapHood(int32_t *pHood,
+                        int32_t  hoodLength) const
+        {
+            return this->m_pGrid->MapHood(pHood, hoodLength, m_xSq, m_ySq, m_zSq);
+        }
+
+        // Duck-typed to match AgentPT3D's linked-list walk — see
+        // AgentSQ2DUnstackable.h for why this is templated on the pointer
+        // type rather than spelling `TGrid::AgentType*` directly.
+        template <typename TPtr>
+        void GetAllOnSquare(std::vector<TPtr *> &putHere)
+        {
+            putHere.push_back(static_cast<TPtr *>(this));
+        }
+
+        int32_t GetCountOnSquare() const
+        {
+            return 1;
+        }
+
+    private:
+        void AddSQ(int32_t i)
+        {
+            if (this->m_pGrid->GridArray()[i] != nullptr)
+            {
+                throw std::runtime_error("adding multiple unstackable agents to the same square");
+            }
+            this->m_pGrid->GridArray()[i] = static_cast<typename TGrid::AgentType *>(this);
+        }
+
+        void RemSQ()
+        {
+            this->m_pGrid->GridArray()[m_iSq] = nullptr;
+        }
+
+        int32_t m_xSq;
+        int32_t m_ySq;
+        int32_t m_zSq;
+        int32_t m_iSq;
+    };
+}

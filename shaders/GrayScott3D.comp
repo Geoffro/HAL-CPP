@@ -1,0 +1,79 @@
+#version 450
+
+// GPU-resident VOLUMETRIC Gray-Scott reaction-diffusion — the 3D
+// counterpart of GrayScott2D.comp. Two chemicals U and V diffuse and react
+// on a toroidal 3D grid; the Turing instability grows the sponge / coral /
+// gyroid morphologies the Gpu3DReactionDiffusion showcase renders as a
+// cloud of depth-tested spheres. One invocation per voxel, ping-ponged
+// between two vec2 buffers (x = U, y = V).
+//
+// The reaction is identical to the 2D kernel; only the Laplacian changes to
+// a 7-point 3D stencil (six face neighbours minus six times the centre),
+// which is isotropic enough for the volumetric patterns while staying cheap.
+// The grid is always toroidal so the structure tiles in every direction.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(std430, binding = 0) readonly buffer SrcBuffer
+{
+    vec2 src[];
+};
+
+layout(std430, binding = 1) buffer DstBuffer
+{
+    vec2 dst[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float feed;
+    float kill;
+    float diffU;
+    float diffV;
+    int xDim;
+    int yDim;
+    int zDim;
+}
+pc;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+    if ((x >= pc.xDim) || (y >= pc.yDim) || (z >= pc.zDim))
+    {
+        return;
+    }
+
+    int xm = WrapIndex(x - 1, pc.xDim);
+    int xp = WrapIndex(x + 1, pc.xDim);
+    int ym = WrapIndex(y - 1, pc.yDim);
+    int yp = WrapIndex(y + 1, pc.yDim);
+    int zm = WrapIndex(z - 1, pc.zDim);
+    int zp = WrapIndex(z + 1, pc.zDim);
+
+    vec2 c = src[Flatten(x, y, z)];
+    vec2 neighbors = src[Flatten(xm, y, z)] + src[Flatten(xp, y, z)] + src[Flatten(x, ym, z)] + src[Flatten(x, yp, z)] + src[Flatten(x, y, zm)] + src[Flatten(x, y, zp)];
+    vec2 lap = neighbors - 6.0 * c;
+
+    float u = c.x;
+    float v = c.y;
+    float reaction = u * v * v;
+
+    float uNext = u + (pc.diffU * lap.x - reaction + pc.feed * (1.0 - u));
+    float vNext = v + (pc.diffV * lap.y + reaction - (pc.feed + pc.kill) * v);
+
+    dst[Flatten(x, y, z)] = vec2(clamp(uNext, 0.0, 1.0), clamp(vNext, 0.0, 1.0));
+}

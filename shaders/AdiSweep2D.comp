@@ -1,0 +1,215 @@
+#version 450
+
+// One ADI directional sweep (half of Hal::Internal::Diffusion2DADI's
+// step), solved per line with PCR — parallel cyclic reduction — in
+// shared memory: the GPU tridiagonal solve that was Phase 4's original
+// stretch goal (docs/PHASED_PORT.md Phase 9).
+//
+// One workgroup per line. axis == 0: for each row y, solve along x
+// (the RHS is the explicit half-step in y, matching
+// ExplicitDiffusionY2ADI); axis == 1: for each column x, solve along y
+// (RHS from ExplicitDiffusionX2ADI). Coefficients match ADISolveRow's
+// no-BC path exactly: interior diagonal 1 + r, off-diagonals -r/2,
+// non-wrap end diagonals 1 + r/2; a wrapped solve axis goes through the
+// same Sherman-Morrison rank-1 decomposition TdmaSolver::TDMAperiodic
+// uses (gamma = -b0), with both right-hand sides (the data and the
+// correction vector u = [gamma, 0, ..., alpha]) sharing one PCR
+// reduction — the a/b/c eliminations are RHS-independent.
+//
+// PCR: log2(n) rounds; each round eliminates every equation's coupling
+// at the current stride using its two strided neighbors, so after the
+// last round every equation is diagonal (x_i = d_i / b_i). Out-of-range
+// neighbors read as identity rows (a = c = 0, b = 1, d = 0), which
+// handles arbitrary (non-power-of-two) lengths. The whole line lives in
+// shared memory, so the line length is capped at MAX_LINE (checked
+// host-side against the device's workgroup limits at kernel creation).
+
+layout(local_size_x = 1024) in;
+
+const int MAX_LINE = 1024;
+
+layout(std430, binding = 0) readonly buffer InBuffer
+{
+    float inField[];
+};
+
+layout(std430, binding = 1) writeonly buffer OutBuffer
+{
+    float outField[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float diffRate;
+    int   xDim;
+    int   yDim;
+    int   axis;
+    int   wrapSolve;
+    int   wrapRhs;
+}
+pc;
+
+shared float aa[MAX_LINE];
+shared float bb[MAX_LINE];
+shared float cc[MAX_LINE];
+shared float d1[MAX_LINE]; // data RHS -> solution
+shared float d2[MAX_LINE]; // Sherman-Morrison correction RHS (wrap only)
+
+// Flat index of element t of this line (line = the fixed cross
+// coordinate), matching the row-major i = x * yDim + y layout.
+int CellIndex(int t, int line)
+{
+    return (pc.axis == 0) ? (t * pc.yDim + line) : (line * pc.yDim + t);
+}
+
+// Explicit half-step RHS across the OTHER axis at element t of this
+// line: center + (r/2) * (deltaPlus + deltaMinus), zero-flux (delta 0)
+// off-grid unless that axis wraps — ExplicitDiffusionX2ADI/Y2ADI.
+float RhsAt(int t, int line, int crossDim)
+{
+    float centerVal = inField[CellIndex(t, line)];
+    float deltaSum = 0.0;
+
+    int plus = line + 1;
+    if (plus >= crossDim)
+    {
+        plus = (pc.wrapRhs != 0) ? 0 : -1;
+    }
+    if (plus >= 0)
+    {
+        int i = (pc.axis == 0) ? (t * pc.yDim + plus) : (plus * pc.yDim + t);
+        deltaSum += inField[i] - centerVal;
+    }
+
+    int minus = line - 1;
+    if (minus < 0)
+    {
+        minus = (pc.wrapRhs != 0) ? (crossDim - 1) : -1;
+    }
+    if (minus >= 0)
+    {
+        int i = (pc.axis == 0) ? (t * pc.yDim + minus) : (minus * pc.yDim + t);
+        deltaSum += inField[i] - centerVal;
+    }
+
+    return centerVal + (deltaSum * pc.diffRate) * 0.5;
+}
+
+void main()
+{
+    int t = int(gl_LocalInvocationID.x);
+    int line = int(gl_WorkGroupID.x);
+    int n = (pc.axis == 0) ? pc.xDim : pc.yDim;
+    int crossDim = (pc.axis == 0) ? pc.yDim : pc.xDim;
+    bool wrap = pc.wrapSolve != 0;
+
+    float r = pc.diffRate;
+    float offDiag = -r * 0.5;
+    float bInterior = 1.0 + r;
+
+    // Sherman-Morrison corner terms for the wrapped (cyclic) system,
+    // mirroring TdmaSolver::TDMAperiodic: gamma = -b0, alpha = a0,
+    // beta = c_{n-1}; the modified plain system gets
+    // b'0 = b0 - gamma and b'_{n-1} = b_{n-1} - alpha*beta/gamma.
+    float gamma = -bInterior;
+    float alpha = offDiag;
+    float beta = offDiag;
+
+    if (t < n)
+    {
+        if (wrap)
+        {
+            aa[t] = (t == 0) ? 0.0 : offDiag;
+            cc[t] = (t == (n - 1)) ? 0.0 : offDiag;
+            if (t == 0)
+            {
+                bb[t] = bInterior - gamma;
+            }
+            else if (t == (n - 1))
+            {
+                bb[t] = bInterior - (alpha * beta) / gamma;
+            }
+            else
+            {
+                bb[t] = bInterior;
+            }
+            d2[t] = (t == 0) ? gamma : ((t == (n - 1)) ? alpha : 0.0);
+        }
+        else
+        {
+            aa[t] = (t == 0) ? 0.0 : offDiag;
+            cc[t] = (t == (n - 1)) ? 0.0 : offDiag;
+            bb[t] = ((t == 0) || (t == (n - 1))) ? (1.0 + r * 0.5) : bInterior;
+            d2[t] = 0.0;
+        }
+        d1[t] = RhsAt(t, line, crossDim);
+    }
+    barrier();
+
+    // PCR rounds. Every invocation must reach every barrier, so idle
+    // threads (t >= n) run the loop with guarded loads/stores.
+    for (int stride = 1; stride < n; stride *= 2)
+    {
+        float newA = 0.0;
+        float newB = 1.0;
+        float newC = 0.0;
+        float newD1 = 0.0;
+        float newD2 = 0.0;
+        if (t < n)
+        {
+            int im = t - stride;
+            int ip = t + stride;
+            float am = (im >= 0) ? aa[im] : 0.0;
+            float bm = (im >= 0) ? bb[im] : 1.0;
+            float cm = (im >= 0) ? cc[im] : 0.0;
+            float d1m = (im >= 0) ? d1[im] : 0.0;
+            float d2m = (im >= 0) ? d2[im] : 0.0;
+            float ap = (ip < n) ? aa[ip] : 0.0;
+            float bp = (ip < n) ? bb[ip] : 1.0;
+            float cp = (ip < n) ? cc[ip] : 0.0;
+            float d1p = (ip < n) ? d1[ip] : 0.0;
+            float d2p = (ip < n) ? d2[ip] : 0.0;
+
+            float k1 = -aa[t] / bm;
+            float k2 = -cc[t] / bp;
+            newA = k1 * am;
+            newB = bb[t] + k1 * cm + k2 * ap;
+            newC = k2 * cp;
+            newD1 = d1[t] + k1 * d1m + k2 * d1p;
+            newD2 = d2[t] + k1 * d2m + k2 * d2p;
+        }
+        barrier();
+        if (t < n)
+        {
+            aa[t] = newA;
+            bb[t] = newB;
+            cc[t] = newC;
+            d1[t] = newD1;
+            d2[t] = newD2;
+        }
+        barrier();
+    }
+
+    // Diagonalized: the two solutions land back in d1/d2 so the
+    // Sherman-Morrison combination can read the end elements.
+    if (t < n)
+    {
+        d1[t] = d1[t] / bb[t];
+        d2[t] = d2[t] / bb[t];
+    }
+    barrier();
+
+    if (t < n)
+    {
+        float x = d1[t];
+        if (wrap)
+        {
+            float vEnd = beta / gamma;
+            float vy = d1[0] + d1[n - 1] * vEnd;
+            float vz = d2[0] + d2[n - 1] * vEnd;
+            float factor = vy / (1.0 + vz);
+            x = d1[t] - factor * d2[t];
+        }
+        outField[CellIndex(t, line)] = x;
+    }
+}

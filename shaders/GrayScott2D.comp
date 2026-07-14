@@ -1,0 +1,76 @@
+#version 450
+
+// GPU-resident Gray-Scott reaction-diffusion, the coupled two-chemical
+// system whose Turing instability grows the coral / maze / spot / mitosis
+// patterns this showcase animates (examples/GpuReactionDiffusion.cpp).
+// One invocation per cell, ping-ponged between two vec2 buffers (x = U,
+// y = V) so a whole step is a single dispatch; GrayScottKernel2D chains
+// many steps into one submission (see include/Hal/Gpu/GrayScottKernel2D.h).
+//
+// This is a reaction ADDED to the same explicit Laplacian diffusion the
+// plain Diffusion2D.comp kernel uses; the two chemicals just diffuse at
+// different rates and feed each other through the u*v*v reaction term.
+// The grid is always toroidal (seamless wrap) so the art tiles.
+//
+// The Laplacian is the 9-point weighted stencil (orthogonal 0.2, diagonal
+// 0.05, center -1) popularized by Karl Sims' reaction-diffusion tutorial —
+// it is far more isotropic than the 5-point stencil, which keeps the
+// patterns from locking onto the grid axes.
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) readonly buffer SrcBuffer
+{
+    vec2 src[];
+};
+
+layout(std430, binding = 1) buffer DstBuffer
+{
+    vec2 dst[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float feed;
+    float kill;
+    float diffU;
+    float diffV;
+    int xDim;
+    int yDim;
+}
+pc;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    if ((x >= pc.xDim) || (y >= pc.yDim))
+    {
+        return;
+    }
+
+    int xm = WrapIndex(x - 1, pc.xDim);
+    int xp = WrapIndex(x + 1, pc.xDim);
+    int ym = WrapIndex(y - 1, pc.yDim);
+    int yp = WrapIndex(y + 1, pc.yDim);
+
+    vec2 c = src[x * pc.yDim + y];
+    vec2 orthogonal = src[xm * pc.yDim + y] + src[xp * pc.yDim + y] + src[x * pc.yDim + ym] + src[x * pc.yDim + yp];
+    vec2 diagonal = src[xm * pc.yDim + ym] + src[xm * pc.yDim + yp] + src[xp * pc.yDim + ym] + src[xp * pc.yDim + yp];
+    vec2 lap = 0.2 * orthogonal + 0.05 * diagonal - c;
+
+    float u = c.x;
+    float v = c.y;
+    float reaction = u * v * v;
+
+    float uNext = u + (pc.diffU * lap.x - reaction + pc.feed * (1.0 - u));
+    float vNext = v + (pc.diffV * lap.y + reaction - (pc.feed + pc.kill) * v);
+
+    dst[x * pc.yDim + y] = vec2(clamp(uNext, 0.0, 1.0), clamp(vNext, 0.0, 1.0));
+}

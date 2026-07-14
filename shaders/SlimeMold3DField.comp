@@ -1,0 +1,82 @@
+#version 450
+
+// GPU field pass of the volumetric Physarum (GpuSlimeMold3D). The chemical
+// field the agents deposit into is blurred and faded here so nearby agents
+// reinforce each other's trails and unused ones evaporate — the coupling
+// that turns local agent rules into a coherent 3D network. One invocation
+// per voxel: a 7-point 3D Laplacian diffusion (six face neighbours), a
+// multiplicative decay, and then this step's fresh deposit folded in.
+//
+// The deposit buffer is the uint fixed-point accumulator the agent pass
+// (SlimeMold3DAgents.comp) atomically adds into; this pass divides it back
+// to float, adds it, and clears it to zero for the next step. The field
+// ping-pongs between two buffers (src -> dst) and stays resident on the GPU
+// across frames — only the agents round-trip to the host to be rendered.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(std430, binding = 0) readonly buffer SrcBuffer
+{
+    float src[];
+};
+
+layout(std430, binding = 1) buffer DstBuffer
+{
+    float dst[];
+};
+
+layout(std430, binding = 2) buffer Deposit
+{
+    uint deposit[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float diffuse;
+    float decay;
+    int xDim;
+    int yDim;
+    int zDim;
+}
+pc;
+
+// Must match SlimeMold3DAgents.comp's deposit fixed-point scale.
+const float DEPOSIT_FIXED = 256.0;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+    if ((x >= pc.xDim) || (y >= pc.yDim) || (z >= pc.zDim))
+    {
+        return;
+    }
+
+    int xm = WrapIndex(x - 1, pc.xDim);
+    int xp = WrapIndex(x + 1, pc.xDim);
+    int ym = WrapIndex(y - 1, pc.yDim);
+    int yp = WrapIndex(y + 1, pc.yDim);
+    int zm = WrapIndex(z - 1, pc.zDim);
+    int zp = WrapIndex(z + 1, pc.zDim);
+
+    int idx = Flatten(x, y, z);
+    float c = src[idx];
+    float neighbors = src[Flatten(xm, y, z)] + src[Flatten(xp, y, z)] + src[Flatten(x, ym, z)] + src[Flatten(x, yp, z)] + src[Flatten(x, y, zm)] + src[Flatten(x, y, zp)];
+    float diffused = c + pc.diffuse * (neighbors - 6.0 * c);
+    float dep = float(deposit[idx]) * (1.0 / DEPOSIT_FIXED);
+
+    dst[idx] = max(diffused * pc.decay + dep, 0.0);
+    deposit[idx] = 0u;
+}

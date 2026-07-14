@@ -1,0 +1,173 @@
+#version 450
+
+// GPU agent pass of a VOLUMETRIC Physarum ("slime mold") — the 3D
+// counterpart of the 2D GpuSlimeMold showcase, but with the agents living on
+// the GPU too, not just the trail field. Each invocation is one agent: it
+// senses the chemical field in a forward cone (a forward sample plus four
+// samples tilted by sensorAngle around the heading), steers toward whichever
+// direction is strongest, adds a little random wander, steps forward, and
+// deposits a bit of chemical at its new voxel. Out of those trivial local
+// rules a living 3D transport network organizes itself. This is the agent
+// half of the GpuSlimeMold3D hybrid; the field half (diffuse/decay) is
+// SlimeMold3DField.comp.
+//
+// The field is read-only here (agents only sense it); deposits go into a
+// separate uint buffer via atomicAdd (fixed-point, since GLSL storage-image
+// float atomics are not universally available on MoltenVK), which the field
+// pass consumes and clears. No inter-agent buffer coupling beyond the shared
+// field, so this is a near-embarrassingly-parallel map over the agent array.
+
+layout(local_size_x = 256) in;
+
+// One agent: posC.xyz = position in grid coordinates [0, dim), posC.w = the
+// field concentration the agent sits in (written for the host to colour by);
+// dir.xyz = unit heading, dir.w unused.
+struct Agent
+{
+    vec4 posC;
+    vec4 dir;
+};
+
+layout(std430, binding = 0) buffer Agents
+{
+    Agent agents[];
+};
+
+layout(std430, binding = 1) readonly buffer Field
+{
+    float field[];
+};
+
+layout(std430, binding = 2) buffer Deposit
+{
+    uint deposit[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float stepSize;
+    float sensorAngle;
+    float sensorDist;
+    float turnRate;
+    float depositAmount;
+    float jitter;
+    int xDim;
+    int yDim;
+    int zDim;
+    int agentCount;
+    uint seed;
+}
+pc;
+
+// Deposits are accumulated as fixed-point uints; the field pass divides by
+// the same constant. Must match SlimeMold3DField.comp.
+const float DEPOSIT_FIXED = 256.0;
+const float TWO_PI = 6.28318530717958647692;
+const float HALF_PI = 1.57079632679489661923;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+int VoxelIndex(vec3 p)
+{
+    int x = WrapIndex(int(floor(p.x)), pc.xDim);
+    int y = WrapIndex(int(floor(p.y)), pc.yDim);
+    int z = WrapIndex(int(floor(p.z)), pc.zDim);
+    return Flatten(x, y, z);
+}
+
+float SampleField(vec3 p)
+{
+    return field[VoxelIndex(p)];
+}
+
+// PCG-style per-agent hash + stream, seeded from the agent index and a
+// per-step seed so wander is different every step yet reproducible.
+uint HashU(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+float NextRand(inout uint state)
+{
+    state = state * 747796405u + 2891336453u;
+    uint r = ((state >> ((state >> 28) + 4u)) ^ state) * 277803737u;
+    r = (r >> 22) ^ r;
+    return float(r) * (1.0 / 4294967296.0);
+}
+
+vec3 RandUnit(inout uint state)
+{
+    float z = 2.0 * NextRand(state) - 1.0;
+    float phi = TWO_PI * NextRand(state);
+    float r = sqrt(max(0.0, 1.0 - z * z));
+    return vec3(r * cos(phi), r * sin(phi), z);
+}
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= uint(pc.agentCount))
+    {
+        return;
+    }
+
+    vec3 p = agents[i].posC.xyz;
+    vec3 dir = normalize(agents[i].dir.xyz);
+
+    // Orthonormal basis (dir, u, v) so the sensor cone can be built around
+    // the heading in 3D.
+    vec3 helper = (abs(dir.y) < 0.99) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 u = normalize(cross(dir, helper));
+    vec3 v = cross(dir, u);
+
+    float ca = cos(pc.sensorAngle);
+    float sa = sin(pc.sensorAngle);
+
+    // Forward sample first, so a tie keeps the current heading (strict > on
+    // the ring samples below).
+    vec3 bestDir = dir;
+    float bestVal = SampleField(p + dir * pc.sensorDist);
+
+    // Four sensors tilted by sensorAngle around the heading (a 3D cone).
+    for (int k = 0; k < 4; k++)
+    {
+        float phi = float(k) * HALF_PI;
+        vec3 sdir = ca * dir + sa * (cos(phi) * u + sin(phi) * v);
+        float val = SampleField(p + sdir * pc.sensorDist);
+        if (val > bestVal)
+        {
+            bestVal = val;
+            bestDir = sdir;
+        }
+    }
+
+    vec3 newDir = normalize(mix(dir, bestDir, pc.turnRate));
+
+    uint state = HashU(i ^ pc.seed);
+    newDir = normalize(newDir + pc.jitter * RandUnit(state));
+
+    vec3 np = p + newDir * pc.stepSize;
+    np.x = mod(np.x, float(pc.xDim));
+    np.y = mod(np.y, float(pc.yDim));
+    np.z = mod(np.z, float(pc.zDim));
+
+    int idx = VoxelIndex(np);
+    atomicAdd(deposit[idx], uint(pc.depositAmount * DEPOSIT_FIXED));
+
+    agents[i].posC = vec4(np, field[idx]);
+    agents[i].dir = vec4(newDir, 0.0);
+}

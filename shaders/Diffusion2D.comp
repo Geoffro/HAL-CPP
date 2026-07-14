@@ -1,0 +1,87 @@
+#version 450
+
+// GPU port of Hal::Internal::Diffusion2's no-boundary-condition (zero-
+// flux/wraparound) explicit stencil — see
+// hal-cpp/include/Hal/Pde/PDEequations.h for the CPU original this
+// mirrors one invocation per cell. Dirichlet boundary conditions and the
+// discontinuous-rate variant are deferred, matching the CPU port's scope.
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) readonly buffer FieldBuffer
+{
+    float field[];
+};
+
+layout(std430, binding = 1) buffer DeltaBuffer
+{
+    float deltas[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    float diffRate;
+    int xDim;
+    int yDim;
+    int wrapX;
+    int wrapY;
+}
+pc;
+
+int WrapIndex(int v, int dim)
+{
+    int m = v % dim;
+    return (m < 0) ? (m + dim) : m;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    if ((x >= pc.xDim) || (y >= pc.yDim))
+    {
+        return;
+    }
+
+    int i = x * pc.yDim + y;
+    float centerVal = field[i];
+    float deltaSum = 0.0;
+
+    if ((x + 1) < pc.xDim)
+    {
+        deltaSum += field[(x + 1) * pc.yDim + y] - centerVal;
+    }
+    else if (pc.wrapX != 0)
+    {
+        deltaSum += field[WrapIndex(x + 1, pc.xDim) * pc.yDim + y] - centerVal;
+    }
+
+    if ((x - 1) >= 0)
+    {
+        deltaSum += field[(x - 1) * pc.yDim + y] - centerVal;
+    }
+    else if (pc.wrapX != 0)
+    {
+        deltaSum += field[WrapIndex(x - 1, pc.xDim) * pc.yDim + y] - centerVal;
+    }
+
+    if ((y + 1) < pc.yDim)
+    {
+        deltaSum += field[x * pc.yDim + (y + 1)] - centerVal;
+    }
+    else if (pc.wrapY != 0)
+    {
+        deltaSum += field[x * pc.yDim + WrapIndex(y + 1, pc.yDim)] - centerVal;
+    }
+
+    if ((y - 1) >= 0)
+    {
+        deltaSum += field[x * pc.yDim + (y - 1)] - centerVal;
+    }
+    else if (pc.wrapY != 0)
+    {
+        deltaSum += field[x * pc.yDim + WrapIndex(y - 1, pc.yDim)] - centerVal;
+    }
+
+    deltas[i] += deltaSum * pc.diffRate;
+}
