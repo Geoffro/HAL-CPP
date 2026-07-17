@@ -1,0 +1,72 @@
+#version 450
+
+// Stable-fluids divergence pass — measures the divergence of the freshly
+// advected velocity field (central differences, clamped at the box walls)
+// as the right-hand side of the pressure Poisson solve
+// (FluidJacobi3D.comp). An analytic spherical source term is subtracted
+// inside sourceRadius of the source point: the projection then leaves
+// exactly that much outflow behind, which is how FluidKernel3D models an
+// explosion's radial blast wind without uploading a velocity field.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(std430, binding = 0) readonly buffer VelocityIn
+{
+    vec4 velIn[];
+};
+
+layout(std430, binding = 1) buffer DivergenceOut
+{
+    float divOut[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    int xDim;
+    int yDim;
+    int zDim;
+    float sourceX;
+    float sourceY;
+    float sourceZ;
+    float sourceRadius;
+    float sourceStrength;
+}
+pc;
+
+int ClampIndex(int v, int dim)
+{
+    return clamp(v, 0, dim - 1);
+}
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+    if ((x >= pc.xDim) || (y >= pc.yDim) || (z >= pc.zDim))
+    {
+        return;
+    }
+
+    float dx = velIn[Flatten(ClampIndex(x + 1, pc.xDim), y, z)].x - velIn[Flatten(ClampIndex(x - 1, pc.xDim), y, z)].x;
+    float dy = velIn[Flatten(x, ClampIndex(y + 1, pc.yDim), z)].y - velIn[Flatten(x, ClampIndex(y - 1, pc.yDim), z)].y;
+    float dz = velIn[Flatten(x, y, ClampIndex(z + 1, pc.zDim))].z - velIn[Flatten(x, y, ClampIndex(z - 1, pc.zDim))].z;
+    float divergence = 0.5 * (dx + dy + dz);
+
+    if (pc.sourceStrength != 0.0)
+    {
+        vec3 delta = vec3(float(x), float(y), float(z)) - vec3(pc.sourceX, pc.sourceY, pc.sourceZ);
+        float dist = length(delta);
+        if (dist < pc.sourceRadius)
+        {
+            divergence -= pc.sourceStrength * (1.0 - dist / pc.sourceRadius);
+        }
+    }
+
+    divOut[Flatten(x, y, z)] = divergence;
+}

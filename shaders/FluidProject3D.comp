@@ -1,0 +1,73 @@
+#version 450
+
+// Stable-fluids projection pass — subtracts the pressure gradient from
+// the velocity field (in place: only the voxel's own velocity is
+// written, and pressure is a separate read-only buffer), leaving the flow
+// divergence-free except for the deliberate source term injected by
+// FluidDivergence3D.comp. This is the pass that turns raw injected motion
+// into the swirling, billowing behavior smoke is known for. Velocity
+// components normal to the box walls are zeroed — the closed-box
+// condition matching the clamped stencils everywhere else.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(std430, binding = 0) readonly buffer PressureIn
+{
+    float pIn[];
+};
+
+layout(std430, binding = 1) buffer VelocityInOut
+{
+    vec4 vel[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    int xDim;
+    int yDim;
+    int zDim;
+}
+pc;
+
+int ClampIndex(int v, int dim)
+{
+    return clamp(v, 0, dim - 1);
+}
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+    if ((x >= pc.xDim) || (y >= pc.yDim) || (z >= pc.zDim))
+    {
+        return;
+    }
+    int idx = Flatten(x, y, z);
+
+    float gx = pIn[Flatten(ClampIndex(x + 1, pc.xDim), y, z)] - pIn[Flatten(ClampIndex(x - 1, pc.xDim), y, z)];
+    float gy = pIn[Flatten(x, ClampIndex(y + 1, pc.yDim), z)] - pIn[Flatten(x, ClampIndex(y - 1, pc.yDim), z)];
+    float gz = pIn[Flatten(x, y, ClampIndex(z + 1, pc.zDim))] - pIn[Flatten(x, y, ClampIndex(z - 1, pc.zDim))];
+
+    vec3 v = vel[idx].xyz - 0.5 * vec3(gx, gy, gz);
+
+    if ((x == 0) || (x == (pc.xDim - 1)))
+    {
+        v.x = 0.0;
+    }
+    if ((y == 0) || (y == (pc.yDim - 1)))
+    {
+        v.y = 0.0;
+    }
+    if ((z == 0) || (z == (pc.zDim - 1)))
+    {
+        v.z = 0.0;
+    }
+
+    vel[idx] = vec4(v, 0.0);
+}

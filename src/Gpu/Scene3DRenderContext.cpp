@@ -85,13 +85,18 @@ namespace Hal
               m_lineBuffer(VK_NULL_HANDLE),
               m_lineMemory(VK_NULL_HANDLE),
               m_lineCapacity(0),
+              m_glowInstanceBuffer(VK_NULL_HANDLE),
+              m_glowInstanceMemory(VK_NULL_HANDLE),
+              m_glowInstanceCapacity(0),
               m_sphereVertModule(VK_NULL_HANDLE),
               m_sphereFragModule(VK_NULL_HANDLE),
               m_lineVertModule(VK_NULL_HANDLE),
               m_lineFragModule(VK_NULL_HANDLE),
+              m_glowFragModule(VK_NULL_HANDLE),
               m_pipelineLayout(VK_NULL_HANDLE),
               m_spherePipeline(VK_NULL_HANDLE),
               m_linePipeline(VK_NULL_HANDLE),
+              m_glowPipeline(VK_NULL_HANDLE),
               m_commandPool(VK_NULL_HANDLE),
               m_imageAvailableSemaphore(VK_NULL_HANDLE),
               m_renderFinishedSemaphore(VK_NULL_HANDLE),
@@ -121,6 +126,7 @@ namespace Hal
             CreateSphereMesh();
             EnsureSphereCapacity(g_initialSphereCapacity);
             EnsureLineCapacity(g_initialLineVertexCapacity);
+            EnsureGlowCapacity(g_initialSphereCapacity);
             CreatePipelines();
             CreateCommandObjects();
             CreateSyncObjects();
@@ -158,6 +164,10 @@ namespace Hal
             {
                 vkDestroyPipeline(m_device, m_linePipeline, nullptr);
             }
+            if (m_glowPipeline != VK_NULL_HANDLE)
+            {
+                vkDestroyPipeline(m_device, m_glowPipeline, nullptr);
+            }
             if (m_pipelineLayout != VK_NULL_HANDLE)
             {
                 vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
@@ -177,6 +187,18 @@ namespace Hal
             if (m_lineFragModule != VK_NULL_HANDLE)
             {
                 vkDestroyShaderModule(m_device, m_lineFragModule, nullptr);
+            }
+            if (m_glowFragModule != VK_NULL_HANDLE)
+            {
+                vkDestroyShaderModule(m_device, m_glowFragModule, nullptr);
+            }
+            if (m_glowInstanceBuffer != VK_NULL_HANDLE)
+            {
+                vkDestroyBuffer(m_device, m_glowInstanceBuffer, nullptr);
+            }
+            if (m_glowInstanceMemory != VK_NULL_HANDLE)
+            {
+                vkFreeMemory(m_device, m_glowInstanceMemory, nullptr);
             }
             if (m_lineBuffer != VK_NULL_HANDLE)
             {
@@ -344,6 +366,25 @@ namespace Hal
             instance.b = static_cast<float>(GetBlue(color));
             instance.a = 1.0f;
             m_sphereQueue.push_back(instance);
+        }
+
+        void Scene3DRenderContext::SphereGlow(double  x,
+                                              double  y,
+                                              double  z,
+                                              double  radius,
+                                              int32_t color,
+                                              double  intensity)
+        {
+            SphereInstance instance;
+            instance.centerX = static_cast<float>(x);
+            instance.centerY = static_cast<float>(y);
+            instance.centerZ = static_cast<float>(z);
+            instance.radius = static_cast<float>(radius);
+            instance.r = static_cast<float>(GetRed(color));
+            instance.g = static_cast<float>(GetGreen(color));
+            instance.b = static_cast<float>(GetBlue(color));
+            instance.a = static_cast<float>(intensity);
+            m_glowQueue.push_back(instance);
         }
 
         void Scene3DRenderContext::Line(double  x1,
@@ -840,6 +881,29 @@ namespace Hal
             m_lineCapacity = newCapacity;
         }
 
+        void Scene3DRenderContext::EnsureGlowCapacity(uint32_t instanceCount)
+        {
+            if ((instanceCount <= m_glowInstanceCapacity) || (instanceCount == 0))
+            {
+                return;
+            }
+            if (m_glowInstanceBuffer != VK_NULL_HANDLE)
+            {
+                vkDeviceWaitIdle(m_device);
+                vkDestroyBuffer(m_device, m_glowInstanceBuffer, nullptr);
+                vkFreeMemory(m_device, m_glowInstanceMemory, nullptr);
+            }
+            uint32_t newCapacity = std::max(instanceCount, m_glowInstanceCapacity * 2);
+            m_glowInstanceBuffer = Internal::CreateBuffer(
+                m_physicalDevice,
+                m_device,
+                sizeof(SphereInstance) * static_cast<VkDeviceSize>(newCapacity),
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_glowInstanceMemory);
+            m_glowInstanceCapacity = newCapacity;
+        }
+
         VkShaderModule Scene3DRenderContext::CreateShaderModule(const char *pShaderName)
         {
             std::vector<char> code = Internal::ReadFile(ShaderPath(pShaderName));
@@ -858,6 +922,7 @@ namespace Hal
             m_sphereFragModule = CreateShaderModule("SphereLambert.frag");
             m_lineVertModule = CreateShaderModule("Line3D.vert");
             m_lineFragModule = CreateShaderModule("Line3D.frag");
+            m_glowFragModule = CreateShaderModule("SphereGlow.frag");
 
             // One layout for both pipelines: the shared push-constant
             // block (mvp + lightDir), no descriptor sets. SphereLambert
@@ -1032,6 +1097,49 @@ namespace Hal
             linePipelineInfo.subpass = 0;
 
             Internal::CheckResult(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &linePipelineInfo, nullptr, &m_linePipeline), "vkCreateGraphicsPipelines (lines) failed");
+
+            // Glow pipeline: the sphere geometry with SphereGlow.frag,
+            // additive blending, and depth WRITES off (test stays on, so
+            // opaque geometry still occludes the glow). Additive blending
+            // is order-independent, which is what lets the glow queue
+            // skip any depth sorting.
+            VkPipelineDepthStencilStateCreateInfo glowDepthStencil = {};
+            glowDepthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            glowDepthStencil.depthTestEnable = VK_TRUE;
+            glowDepthStencil.depthWriteEnable = VK_FALSE;
+            glowDepthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+
+            VkPipelineColorBlendAttachmentState glowBlendAttachment = {};
+            glowBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            glowBlendAttachment.blendEnable = VK_TRUE;
+            glowBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+            glowBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+            glowBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            glowBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            glowBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            glowBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+            VkPipelineColorBlendStateCreateInfo glowBlending = {};
+            glowBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            glowBlending.attachmentCount = 1;
+            glowBlending.pAttachments = &glowBlendAttachment;
+
+            VkPipelineShaderStageCreateInfo glowStages[2] = {};
+            glowStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            glowStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+            glowStages[0].module = m_sphereVertModule;
+            glowStages[0].pName = "main";
+            glowStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            glowStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            glowStages[1].module = m_glowFragModule;
+            glowStages[1].pName = "main";
+
+            VkGraphicsPipelineCreateInfo glowPipelineInfo = spherePipelineInfo;
+            glowPipelineInfo.pStages = glowStages;
+            glowPipelineInfo.pDepthStencilState = &glowDepthStencil;
+            glowPipelineInfo.pColorBlendState = &glowBlending;
+
+            Internal::CheckResult(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &glowPipelineInfo, nullptr, &m_glowPipeline), "vkCreateGraphicsPipelines (glow) failed");
         }
 
         void Scene3DRenderContext::CreateCommandObjects()
@@ -1255,6 +1363,7 @@ namespace Hal
         {
             uint32_t sphereCount = static_cast<uint32_t>(m_sphereQueue.size());
             uint32_t lineVertexCount = static_cast<uint32_t>(m_lineQueue.size());
+            uint32_t glowCount = static_cast<uint32_t>(m_glowQueue.size());
 
             if (m_window.ConsumeFramebufferResized())
             {
@@ -1262,12 +1371,14 @@ namespace Hal
                 {
                     m_sphereQueue.clear();
                     m_lineQueue.clear();
+                    m_glowQueue.clear();
                     return false;
                 }
             }
 
             EnsureSphereCapacity(sphereCount);
             EnsureLineCapacity(lineVertexCount);
+            EnsureGlowCapacity(glowCount);
 
             vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 
@@ -1287,11 +1398,20 @@ namespace Hal
                 std::memcpy(pMapped, m_lineQueue.data(), static_cast<size_t>(copySize));
                 vkUnmapMemory(m_device, m_lineMemory);
             }
+            if (glowCount > 0)
+            {
+                VkDeviceSize copySize = sizeof(SphereInstance) * static_cast<VkDeviceSize>(glowCount);
+                void *pMapped = nullptr;
+                Internal::CheckResult(vkMapMemory(m_device, m_glowInstanceMemory, 0, copySize, 0, &pMapped), "vkMapMemory (glow instances) failed");
+                std::memcpy(pMapped, m_glowQueue.data(), static_cast<size_t>(copySize));
+                vkUnmapMemory(m_device, m_glowInstanceMemory);
+            }
 
             // The frame's geometry is uploaded; the queues are consumed
             // whether or not the present below succeeds.
             m_sphereQueue.clear();
             m_lineQueue.clear();
+            m_glowQueue.clear();
 
             uint32_t imageIndex = 0;
             VkResult acquireResult = vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -1373,6 +1493,19 @@ namespace Hal
                 VkDeviceSize offset = 0;
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_lineBuffer, &offset);
                 vkCmdDraw(commandBuffer, lineVertexCount, 1, 0, 0);
+            }
+
+            // Glow last: the translucent additive pass reads the depth
+            // the opaque passes wrote (so solids occlude it) but never
+            // writes depth itself.
+            if (glowCount > 0)
+            {
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_glowPipeline);
+                VkBuffer     glowVertexBuffers[] = {m_meshVertexBuffer, m_glowInstanceBuffer};
+                VkDeviceSize glowOffsets[] = {0, 0};
+                vkCmdBindVertexBuffers(commandBuffer, 0, 2, glowVertexBuffers, glowOffsets);
+                vkCmdBindIndexBuffer(commandBuffer, m_meshIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(commandBuffer, m_meshIndexCount, glowCount, 0, 0, 0);
             }
 
             vkCmdEndRenderPass(commandBuffer);

@@ -1,0 +1,108 @@
+#version 450
+
+// Stable-fluids advection pass (Stam 1999) — the first of the four passes
+// behind Hal::Gpu::FluidKernel3D (see also FluidDivergence3D.comp,
+// FluidJacobi3D.comp, FluidProject3D.comp). Semi-Lagrangian: each voxel
+// backtraces its position through the velocity field and takes a
+// trilinear sample of the previous velocity and scalar (density,
+// temperature) fields there — unconditionally stable for any dt, which is
+// the whole point of the scheme. Buoyancy from the sampled temperature
+// and per-field dissipation are folded into this pass so one dispatch
+// advances everything except the pressure projection.
+//
+// The domain is a closed box: backtraced samples clamp to the interior
+// (no wrap), matching the projection passes' clamped stencils.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(std430, binding = 0) readonly buffer VelocityIn
+{
+    vec4 velIn[];
+};
+
+layout(std430, binding = 1) buffer VelocityOut
+{
+    vec4 velOut[];
+};
+
+layout(std430, binding = 2) readonly buffer ScalarIn
+{
+    vec2 scalIn[];
+};
+
+layout(std430, binding = 3) buffer ScalarOut
+{
+    vec2 scalOut[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    int xDim;
+    int yDim;
+    int zDim;
+    float dt;
+    float velocityDissipation;
+    float densityDissipation;
+    float temperatureDissipation;
+    float buoyancy;
+    float ambientTemperature;
+}
+pc;
+
+int Flatten(int x, int y, int z)
+{
+    return (x * pc.yDim + y) * pc.zDim + z;
+}
+
+// Trilinear sample of both fields at a (clamped) continuous position in
+// voxel coordinates. Returns velocity in xyz and the scalars via out.
+vec3 SampleFields(vec3 pos, out vec2 scal)
+{
+    vec3 clamped = clamp(pos, vec3(0.0), vec3(float(pc.xDim - 1), float(pc.yDim - 1), float(pc.zDim - 1)));
+    ivec3 i0 = ivec3(floor(clamped));
+    ivec3 i1 = min(i0 + ivec3(1), ivec3(pc.xDim - 1, pc.yDim - 1, pc.zDim - 1));
+    vec3 f = clamped - vec3(i0);
+
+    int c000 = Flatten(i0.x, i0.y, i0.z);
+    int c100 = Flatten(i1.x, i0.y, i0.z);
+    int c010 = Flatten(i0.x, i1.y, i0.z);
+    int c110 = Flatten(i1.x, i1.y, i0.z);
+    int c001 = Flatten(i0.x, i0.y, i1.z);
+    int c101 = Flatten(i1.x, i0.y, i1.z);
+    int c011 = Flatten(i0.x, i1.y, i1.z);
+    int c111 = Flatten(i1.x, i1.y, i1.z);
+
+    vec3 vel =
+        mix(mix(mix(velIn[c000].xyz, velIn[c100].xyz, f.x), mix(velIn[c010].xyz, velIn[c110].xyz, f.x), f.y),
+            mix(mix(velIn[c001].xyz, velIn[c101].xyz, f.x), mix(velIn[c011].xyz, velIn[c111].xyz, f.x), f.y),
+            f.z);
+    scal =
+        mix(mix(mix(scalIn[c000], scalIn[c100], f.x), mix(scalIn[c010], scalIn[c110], f.x), f.y),
+            mix(mix(scalIn[c001], scalIn[c101], f.x), mix(scalIn[c011], scalIn[c111], f.x), f.y),
+            f.z);
+    return vel;
+}
+
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+    if ((x >= pc.xDim) || (y >= pc.yDim) || (z >= pc.zDim))
+    {
+        return;
+    }
+    int idx = Flatten(x, y, z);
+
+    vec3 pos = vec3(float(x), float(y), float(z)) - velIn[idx].xyz * pc.dt;
+    vec2 scal;
+    vec3 vel = SampleFields(pos, scal) * pc.velocityDissipation;
+
+    // Buoyancy: hot fluid rises along +y.
+    vel.y += pc.buoyancy * (scal.y - pc.ambientTemperature) * pc.dt;
+
+    scal *= vec2(pc.densityDissipation, pc.temperatureDissipation);
+
+    velOut[idx] = vec4(vel, 0.0);
+    scalOut[idx] = scal;
+}

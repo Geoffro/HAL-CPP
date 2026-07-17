@@ -86,6 +86,9 @@ hal_add_example(GpuAttractor3D GpuAttractor3D.cpp WINDOWED)
 hal_add_example(Gpu3DReactionDiffusion Gpu3DReactionDiffusion.cpp WINDOWED)
 hal_add_example(GpuFlowField3D GpuFlowField3D.cpp WINDOWED)
 hal_add_example(GpuSlimeMold3D GpuSlimeMold3D.cpp WINDOWED)
+hal_add_example(GpuPlasmaVortex GpuPlasmaVortex.cpp WINDOWED)
+hal_add_example(GpuTempest GpuTempest.cpp WINDOWED)
+hal_add_example(GpuSupernova GpuSupernova.cpp WINDOWED)
 
 # --- Headless demos ---
 hal_add_example(Gradient2D Gradient2D.cpp)

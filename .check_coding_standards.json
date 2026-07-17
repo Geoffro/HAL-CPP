@@ -575,6 +575,24 @@
       "file": "tests/FftGridTests.cpp",
       "line": 52,
       "reason": "False positive: 'puts' is a substring of the TEST_CASE name string literal (\"...puts the total sum...\"), not a call to the puts() function. The check doesn't mask string literals for this rule."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuPlasmaVortex.cpp",
+      "line": 110,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuSupernova.cpp",
+      "line": 153,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuTempest.cpp",
+      "line": 168,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     }
   ]
 }

@@ -120,13 +120,18 @@ lives there.**
 
 The same principle drives `AdiKernel2D::RunSteps`, `GrayScottKernel2D::RunSteps`
 (reaction-diffusion), `WaveKernel2D::RunSteps` (leapfrog wave equation), and the
-3D siblings `GrayScott3DKernel` and `FlowFieldKernel3D`. These back a set of
+3D siblings `GrayScott3DKernel`, `FlowFieldKernel3D`, and `FluidKernel3D` — the
+last an incompressible stable-fluids smoke/fire solver (Stam 1999:
+semi-Lagrangian advection, buoyancy, Jacobi pressure projection) whose velocity
+and pressure fields never leave the device across calls; only the density/
+temperature scalars round-trip for seeding and rendering. These back a set of
 visual showcases (`GpuReactionDiffusion`, `GpuInkFlow`, `GpuSwarm`,
 `GpuSlimeMold`, `GpuWaveField`, and hardware-rendered `GpuAttractor3D`,
-`Gpu3DReactionDiffusion`, `GpuFlowField3D`; see `examples/README.md`) — the first
-examples designed around the GPU rather than ported from Java, leaning on
-residency for compute and, for 3D, on tens of thousands of depth-tested instanced
-spheres.
+`Gpu3DReactionDiffusion`, `GpuFlowField3D`, `GpuSupernova`; see
+`examples/README.md`) — the first examples designed around the GPU rather than
+ported from Java, leaning on residency for compute and, for 3D, on tens of
+thousands of depth-tested instanced spheres plus an additive depth-read-only
+glow pipeline (`Scene3DRenderContext::SphereGlow`) for volumetric fog and fire.
 
 ## RNG
 

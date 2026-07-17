@@ -26,7 +26,7 @@ agent-force workloads.
 
 ## GPU showcases
 
-Nine examples exist to *show off* the GPU rather than to port a Java model —
+Twelve examples exist to *show off* the GPU rather than to port a Java model —
 large, deliberately artistic pieces. Most are GPU compute, where the whole
 time-stepped loop stays resident on the device (the shape that actually
 makes the GPU pay off; see `docs/DESIGN.md`); several also drive the hardware
@@ -49,6 +49,9 @@ renderer's opt-in frame capture.
 | Gpu3DReactionDiffusion | `GrayScott3DKernel` + 3D render | VOLUMETRIC Gray-Scott: a 64³ reaction-diffusion evolved on the GPU, its V iso-surface drawn as tens of thousands of depth-tested spheres — a living 3D coral that slowly turns. Presets `coral`, `sponge`, `bubbles`, `maze`. |
 | GpuFlowField3D | `FlowFieldKernel3D` + 3D render | A 120k-particle nebula advected through a chaotic 3D ABC flow on the GPU, drawn as depth-tested spheres tinted by speed — swirling luminous tubes and sheets. |
 | GpuSlimeMold3D | `SlimeMold3DKernel` + 3D render | VOLUMETRIC Physarum — the 3D hybrid: 200k agents sense a diffusible chemical field in a 3D cone, steer up it, step, and deposit; the field diffuses/decays on the GPU and stays resident, so both the agents *and* the field live on the device. Grows a living 3D branching transport network. Palettes `gold`, `ember`, `spore`, `ice`. |
+| GpuPlasmaVortex | `AgentForceKernel2D` + `DiffusionKernel2D` | Abstract electric-plasma storm, not biological: 200k charged sparks torn between four counter-spinning neon vortices (magenta/cyan/gold/violet), GPU neighbor repulsion for texture, three independent GPU-resident color fields blooming and fading where filaments cross into white-hot cores. The 2D hybrid pushed hardest — both agents *and* field (x3 channels) are GPU-resident every frame. |
+| GpuTempest | `WaveKernel2D` + `AgentForceKernel2D` + `DiffusionKernel2D` | A three-kernel hybrid flipped from the others: the PDE drives the agents, not the reverse. A real 2D wave equation is driven by point sources that spawn and die at random (unseeded RNG, no preset, no two runs alike) into wild concentric/maze interference; 150k amber motes climb the local wave gradient on the GPU-spaced host loop, each firing a decaying white flash — chains of lightning — whenever a wavefront sweeps past. |
+| GpuSupernova | `FlowFieldKernel3D` + `FluidKernel3D` + 3D render | A planet-killer explosion: blinding core flash with star-filter spikes, a soft blue-white shock shell, the signature flat blast ring on a randomly tilted plane, and 200k star-like debris sparks fracturing outward in clustered fiery plumes — churned by GPU ABC turbulence, streaking flame licks, cooling white → orange → ember. The smoke/fire is a real GPU Navier-Stokes fluid (`FluidKernel3D`, Stam's stable fluids: semi-Lagrangian advection + Jacobi pressure projection) rendered as additive soft-glow fog (the renderer's `SphereGlow` pipeline), and every subsystem's radius rides one shared drag-decelerated ballistic front so the whole blast expands as one object. Camera shake on detonation; re-detonates on a cycle, differently every time (unseeded RNG). |
 
 ```sh
 ./build/examples/GpuReactionDiffusion coral        # live window, one preset
@@ -64,6 +67,12 @@ renderer's opt-in frame capture.
 ./build/examples/GpuFlowField3D 300                 # 3D nebula, records gpu_flow_field_3d.mp4 + .png
 ./build/examples/GpuSlimeMold3D spore               # live 3D volumetric Physarum network
 ./build/examples/GpuSlimeMold3D spore 300           # + records gpu_slime_mold_3d.mp4 + .png
+./build/examples/GpuPlasmaVortex                    # live window
+./build/examples/GpuPlasmaVortex 300000             # live window, 300k sparks
+./build/examples/GpuTempest                         # live window
+./build/examples/GpuTempest headless                # gpu_tempest.mp4 + .png
+./build/examples/GpuSupernova                       # live 3D window (re-detonates forever)
+./build/examples/GpuSupernova 430                   # one full blast, records gpu_supernova.mp4 + .png
 ```
 
 ## Porting status

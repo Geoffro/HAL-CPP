@@ -126,6 +126,20 @@ namespace Hal
                         double  radius,
                         int32_t color);
 
+            // Queue a soft additive glow puff: no hard silhouette (the
+            // glow fades to nothing at the sphere's edge), drawn with
+            // depth writes off and additive blending AFTER the opaque
+            // primitives, so overlapping puffs accumulate like fog or
+            // fire glow in any order. intensity scales the added light
+            // (keep it small when many puffs overlap). This is the
+            // volumetric-media answer to Sphere()'s hard surfaces.
+            void SphereGlow(double  x,
+                            double  y,
+                            double  z,
+                            double  radius,
+                            int32_t color,
+                            double  intensity);
+
             void Line(double  x1,
                       double  y1,
                       double  z1,
@@ -190,6 +204,7 @@ namespace Hal
             // idle, then recreates at least doubled).
             void EnsureSphereCapacity(uint32_t instanceCount);
             void EnsureLineCapacity(uint32_t vertexCount);
+            void EnsureGlowCapacity(uint32_t instanceCount);
 
             // (Re)allocate / free the host-visible capture buffer at the
             // current swapchain extent. No-ops when capture is disabled.
@@ -217,6 +232,7 @@ namespace Hal
 
             std::vector<SphereInstance> m_sphereQueue;
             std::vector<LineVertex>     m_lineQueue;
+            std::vector<SphereInstance> m_glowQueue;
 
             VkInstance       m_instance;
             VkSurfaceKHR     m_surface;
@@ -253,14 +269,19 @@ namespace Hal
             VkBuffer       m_lineBuffer;
             VkDeviceMemory m_lineMemory;
             uint32_t       m_lineCapacity;
+            VkBuffer       m_glowInstanceBuffer;
+            VkDeviceMemory m_glowInstanceMemory;
+            uint32_t       m_glowInstanceCapacity;
 
             VkShaderModule   m_sphereVertModule;
             VkShaderModule   m_sphereFragModule;
             VkShaderModule   m_lineVertModule;
             VkShaderModule   m_lineFragModule;
+            VkShaderModule   m_glowFragModule;
             VkPipelineLayout m_pipelineLayout;
             VkPipeline       m_spherePipeline;
             VkPipeline       m_linePipeline;
+            VkPipeline       m_glowPipeline;
 
             VkCommandPool                m_commandPool;
             std::vector<VkCommandBuffer> m_commandBuffers;

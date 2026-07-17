@@ -103,6 +103,10 @@ set(HAL_SHADER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FlowField3D.comp
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SlimeMold3DAgents.comp
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SlimeMold3DField.comp
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FluidAdvect3D.comp
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FluidDivergence3D.comp
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FluidJacobi3D.comp
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FluidProject3D.comp
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/AgentCellCount.comp
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/AgentPrefixSum.comp
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/AgentScatter.comp
@@ -111,6 +115,7 @@ set(HAL_SHADER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/FullscreenQuad.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SphereLambert.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SphereLambert.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SphereGlow.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Line3D.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Line3D.frag
 )
@@ -151,6 +156,7 @@ add_library(HalGpu
     src/Gpu/WaveKernel2D.cpp
     src/Gpu/FlowFieldKernel3D.cpp
     src/Gpu/SlimeMold3DKernel.cpp
+    src/Gpu/FluidKernel3D.cpp
     src/Gpu/GpuDiffusionBackend2D.cpp
     src/Gpu/GpuAgentForceBackend2D.cpp
     src/Gpu/GpuAdiDiffusionBackend2D.cpp
