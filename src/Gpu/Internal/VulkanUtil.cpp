@@ -51,7 +51,7 @@ namespace Hal
                                   VkMemoryPropertyFlags  properties,
                                   VkDeviceMemory        &outMemory)
             {
-                VkBufferCreateInfo bufferInfo{};
+                VkBufferCreateInfo bufferInfo = {};
                 bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
                 bufferInfo.size = size;
                 bufferInfo.usage = usage;
@@ -63,7 +63,7 @@ namespace Hal
                 VkMemoryRequirements memRequirements;
                 vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
-                VkMemoryAllocateInfo allocInfo{};
+                VkMemoryAllocateInfo allocInfo = {};
                 allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
                 allocInfo.allocationSize = memRequirements.size;
                 allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);

@@ -46,7 +46,7 @@
 #include <thread>
 #include <vector>
 
-namespace
+namespace Gpu3DReactionDiffusionInternal
 {
     struct Preset
     {
@@ -138,6 +138,8 @@ namespace
         }
     }
 }
+
+using namespace Gpu3DReactionDiffusionInternal;
 
 int main(int argc, char **argv)
 {

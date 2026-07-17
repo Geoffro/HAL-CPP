@@ -28,7 +28,7 @@ TEST_CASE("Hal::Gui::GuiContext builds a frame of controls and produces draw dat
     int32_t intValue = 5;
     double doubleValue = 0.5;
 
-    ImDrawData *drawData = nullptr;
+    ImDrawData *pDrawData = nullptr;
     for (int32_t frame = 0; frame < 3; frame++)
     {
         gui.BeginFrame(800, 600, 1.0 / 60.0);
@@ -42,14 +42,14 @@ TEST_CASE("Hal::Gui::GuiContext builds a frame of controls and produces draw dat
         }
         gui.EndPanel();
         gui.EndFrame();
-        drawData = gui.DrawData();
+        pDrawData = gui.DrawData();
     }
 
-    REQUIRE(drawData != nullptr);
-    CHECK(drawData->Valid);
-    CHECK(drawData->CmdListsCount > 0);
-    CHECK(drawData->TotalVtxCount > 0);
-    CHECK(drawData->TotalIdxCount > 0);
+    REQUIRE(pDrawData != nullptr);
+    CHECK(pDrawData->Valid);
+    CHECK(pDrawData->CmdListsCount > 0);
+    CHECK(pDrawData->TotalVtxCount > 0);
+    CHECK(pDrawData->TotalIdxCount > 0);
 
     // With no simulated input the bound values are unchanged.
     CHECK(boolValue == true);
@@ -66,7 +66,7 @@ TEST_CASE("Hal::Gui::GuiContext ImPlot line and scatter plots produce geometry")
     std::vector<double> ysScatter = {1.0, 0.5, 0.25, 0.125, 0.0625};
     int32_t count = static_cast<int32_t>(xs.size());
 
-    ImDrawData *drawData = nullptr;
+    ImDrawData *pDrawData = nullptr;
     for (int32_t frame = 0; frame < 3; frame++)
     {
         gui.BeginFrame(1024, 768, 1.0 / 60.0);
@@ -81,12 +81,12 @@ TEST_CASE("Hal::Gui::GuiContext ImPlot line and scatter plots produce geometry")
         }
         gui.EndPanel();
         gui.EndFrame();
-        drawData = gui.DrawData();
+        pDrawData = gui.DrawData();
     }
 
-    REQUIRE(drawData != nullptr);
-    CHECK(drawData->Valid);
-    CHECK(drawData->TotalVtxCount > 0);
+    REQUIRE(pDrawData != nullptr);
+    CHECK(pDrawData->Valid);
+    CHECK(pDrawData->TotalVtxCount > 0);
 }
 
 TEST_CASE("Hal::Gui::GuiContext supports repeated frames and a fresh context each time")
@@ -94,7 +94,7 @@ TEST_CASE("Hal::Gui::GuiContext supports repeated frames and a fresh context eac
     for (int32_t iteration = 0; iteration < 3; iteration++)
     {
         Hal::Gui::GuiContext gui;
-        ImDrawData *drawData = nullptr;
+        ImDrawData *pDrawData = nullptr;
         for (int32_t frame = 0; frame < 5; frame++)
         {
             gui.BeginFrame(640, 480, 1.0 / 60.0);
@@ -105,11 +105,11 @@ TEST_CASE("Hal::Gui::GuiContext supports repeated frames and a fresh context eac
             }
             gui.EndPanel();
             gui.EndFrame();
-            drawData = gui.DrawData();
-            REQUIRE(drawData != nullptr);
-            CHECK(drawData->Valid);
+            pDrawData = gui.DrawData();
+            REQUIRE(pDrawData != nullptr);
+            CHECK(pDrawData->Valid);
         }
         // By the last frame the window is measured and visible.
-        CHECK(drawData->TotalVtxCount > 0);
+        CHECK(pDrawData->TotalVtxCount > 0);
     }
 }

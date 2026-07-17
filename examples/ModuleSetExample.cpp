@@ -307,14 +307,14 @@ public:
     {
     }
 
-    void OnDiv(CellEx *, CellEx *c) override { Draw(c); }
-    void OnMut(CellEx *c) override { Draw(c); }
-    void OnDeath(CellEx *c) override { m_vis.SetPix(c->Isq(), Hal::BLACK); }
+    void OnDiv(CellEx *, CellEx *pC) override { Draw(pC); }
+    void OnMut(CellEx *pC) override { Draw(pC); }
+    void OnDeath(CellEx *pC) override { m_vis.SetPix(pC->Isq(), Hal::BLACK); }
 
 private:
-    void Draw(CellEx *c)
+    void Draw(CellEx *pC)
     {
-        m_vis.SetPix(c->Isq(), Hal::CategoricalColor(c->NumMutations()));
+        m_vis.SetPix(pC->Isq(), Hal::CategoricalColor(pC->NumMutations()));
     }
 
     Hal::Examples::GridWindow &m_vis;

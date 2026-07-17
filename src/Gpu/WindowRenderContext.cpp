@@ -227,7 +227,7 @@ namespace Hal
                 createFlags |= 0x00000001; // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
             }
 
-            VkApplicationInfo appInfo{};
+            VkApplicationInfo appInfo = {};
             appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
             appInfo.pApplicationName = "HalCpp";
             appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
@@ -235,7 +235,7 @@ namespace Hal
             appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
             appInfo.apiVersion = VK_API_VERSION_1_0;
 
-            VkInstanceCreateInfo createInfo{};
+            VkInstanceCreateInfo createInfo = {};
             createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
             createInfo.pApplicationInfo = &appInfo;
             createInfo.flags = createFlags;
@@ -311,7 +311,7 @@ namespace Hal
             std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
             for (uint32_t family : uniqueFamilies)
             {
-                VkDeviceQueueCreateInfo queueCreateInfo{};
+                VkDeviceQueueCreateInfo queueCreateInfo = {};
                 queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 queueCreateInfo.queueFamilyIndex = family;
                 queueCreateInfo.queueCount = 1;
@@ -330,7 +330,7 @@ namespace Hal
                 enabledExtensions.push_back("VK_KHR_portability_subset");
             }
 
-            VkDeviceCreateInfo deviceCreateInfo{};
+            VkDeviceCreateInfo deviceCreateInfo = {};
             deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
             deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
             deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -373,7 +373,7 @@ namespace Hal
                 imageCount = capabilities.maxImageCount;
             }
 
-            VkSwapchainCreateInfoKHR createInfo{};
+            VkSwapchainCreateInfoKHR createInfo = {};
             createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             createInfo.surface = m_surface;
             createInfo.minImageCount = imageCount;
@@ -413,7 +413,7 @@ namespace Hal
             m_swapchainImageViews.resize(actualImageCount);
             for (uint32_t i = 0; i < actualImageCount; i++)
             {
-                VkImageViewCreateInfo viewInfo{};
+                VkImageViewCreateInfo viewInfo = {};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                 viewInfo.image = m_swapchainImages[i];
                 viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -427,7 +427,7 @@ namespace Hal
 
         void WindowRenderContext::CreateRenderPass()
         {
-            VkAttachmentDescription colorAttachment{};
+            VkAttachmentDescription colorAttachment = {};
             colorAttachment.format = m_swapchainFormat;
             colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -437,16 +437,16 @@ namespace Hal
             colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-            VkAttachmentReference colorAttachmentRef{};
+            VkAttachmentReference colorAttachmentRef = {};
             colorAttachmentRef.attachment = 0;
             colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkSubpassDescription subpass{};
+            VkSubpassDescription subpass = {};
             subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpass.colorAttachmentCount = 1;
             subpass.pColorAttachments = &colorAttachmentRef;
 
-            VkSubpassDependency dependency{};
+            VkSubpassDependency dependency = {};
             dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
             dependency.dstSubpass = 0;
             dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -454,7 +454,7 @@ namespace Hal
             dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-            VkRenderPassCreateInfo renderPassInfo{};
+            VkRenderPassCreateInfo renderPassInfo = {};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
             renderPassInfo.attachmentCount = 1;
             renderPassInfo.pAttachments = &colorAttachment;
@@ -471,7 +471,7 @@ namespace Hal
             m_framebuffers.resize(m_swapchainImageViews.size());
             for (size_t i = 0; i < m_swapchainImageViews.size(); i++)
             {
-                VkFramebufferCreateInfo framebufferInfo{};
+                VkFramebufferCreateInfo framebufferInfo = {};
                 framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
                 framebufferInfo.renderPass = m_renderPass;
                 framebufferInfo.attachmentCount = 1;
@@ -485,14 +485,14 @@ namespace Hal
 
         void WindowRenderContext::CreateCommandObjects()
         {
-            VkCommandPoolCreateInfo poolInfo{};
+            VkCommandPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             poolInfo.queueFamilyIndex = m_graphicsQueueFamilyIndex;
             Internal::CheckResult(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool), "vkCreateCommandPool failed");
 
             m_commandBuffers.resize(1);
-            VkCommandBufferAllocateInfo allocInfo{};
+            VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.commandPool = m_commandPool;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -502,7 +502,7 @@ namespace Hal
 
         VkCommandBuffer WindowRenderContext::BeginSingleTimeCommands()
         {
-            VkCommandBufferAllocateInfo allocInfo{};
+            VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.commandPool = m_commandPool;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -511,7 +511,7 @@ namespace Hal
             VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
             Internal::CheckResult(vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer), "vkAllocateCommandBuffers failed");
 
-            VkCommandBufferBeginInfo beginInfo{};
+            VkCommandBufferBeginInfo beginInfo = {};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             Internal::CheckResult(vkBeginCommandBuffer(commandBuffer, &beginInfo), "vkBeginCommandBuffer failed");
@@ -523,7 +523,7 @@ namespace Hal
         {
             Internal::CheckResult(vkEndCommandBuffer(commandBuffer), "vkEndCommandBuffer failed");
 
-            VkSubmitInfo submitInfo{};
+            VkSubmitInfo submitInfo = {};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &commandBuffer;
@@ -546,7 +546,7 @@ namespace Hal
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 m_stagingMemory);
 
-            VkImageCreateInfo imageInfo{};
+            VkImageCreateInfo imageInfo = {};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             imageInfo.imageType = VK_IMAGE_TYPE_2D;
             imageInfo.extent.width = static_cast<uint32_t>(m_textureWidth);
@@ -565,7 +565,7 @@ namespace Hal
             VkMemoryRequirements memRequirements;
             vkGetImageMemoryRequirements(m_device, m_textureImage, &memRequirements);
 
-            VkMemoryAllocateInfo allocInfo{};
+            VkMemoryAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             allocInfo.allocationSize = memRequirements.size;
             allocInfo.memoryTypeIndex = Internal::FindMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -578,7 +578,7 @@ namespace Hal
             // so the pipeline can always assume SHADER_READ_ONLY_OPTIMAL
             // between frames.
             VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
-            VkImageMemoryBarrier barrier{};
+            VkImageMemoryBarrier barrier = {};
             barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -593,7 +593,7 @@ namespace Hal
             vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
             EndSingleTimeCommands(commandBuffer);
 
-            VkImageViewCreateInfo viewInfo{};
+            VkImageViewCreateInfo viewInfo = {};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             viewInfo.image = m_textureImage;
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -607,7 +607,7 @@ namespace Hal
             // visualization (matching HAL's own UIGrid), not a photo — linear
             // filtering would blur cell boundaries rather than showing them
             // crisply.
-            VkSamplerCreateInfo samplerInfo{};
+            VkSamplerCreateInfo samplerInfo = {};
             samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
             samplerInfo.minFilter = VK_FILTER_NEAREST;
@@ -621,41 +621,41 @@ namespace Hal
 
         void WindowRenderContext::CreateGraphicsPipeline()
         {
-            VkDescriptorSetLayoutBinding samplerBinding{};
+            VkDescriptorSetLayoutBinding samplerBinding = {};
             samplerBinding.binding = 0;
             samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             samplerBinding.descriptorCount = 1;
             samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.bindingCount = 1;
             layoutInfo.pBindings = &samplerBinding;
             Internal::CheckResult(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout), "vkCreateDescriptorSetLayout failed");
 
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             poolSize.descriptorCount = 1;
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = 1;
             poolInfo.pPoolSizes = &poolSize;
             poolInfo.maxSets = 1;
             Internal::CheckResult(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool), "vkCreateDescriptorPool failed");
 
-            VkDescriptorSetAllocateInfo setAllocInfo{};
+            VkDescriptorSetAllocateInfo setAllocInfo = {};
             setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             setAllocInfo.descriptorPool = m_descriptorPool;
             setAllocInfo.descriptorSetCount = 1;
             setAllocInfo.pSetLayouts = &m_descriptorSetLayout;
             Internal::CheckResult(vkAllocateDescriptorSets(m_device, &setAllocInfo, &m_descriptorSet), "vkAllocateDescriptorSets failed");
 
-            VkDescriptorImageInfo imageInfo{};
+            VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = m_textureImageView;
             imageInfo.sampler = m_textureSampler;
 
-            VkWriteDescriptorSet write{};
+            VkWriteDescriptorSet write = {};
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.dstSet = m_descriptorSet;
             write.dstBinding = 0;
@@ -667,13 +667,13 @@ namespace Hal
             std::vector<char> vertCode = Internal::ReadFile(ShaderPath("FullscreenQuad.vert"));
             std::vector<char> fragCode = Internal::ReadFile(ShaderPath("FullscreenQuad.frag"));
 
-            VkShaderModuleCreateInfo vertInfo{};
+            VkShaderModuleCreateInfo vertInfo = {};
             vertInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             vertInfo.codeSize = vertCode.size();
             vertInfo.pCode = reinterpret_cast<const uint32_t *>(vertCode.data());
             Internal::CheckResult(vkCreateShaderModule(m_device, &vertInfo, nullptr, &m_vertShaderModule), "vkCreateShaderModule failed");
 
-            VkShaderModuleCreateInfo fragInfo{};
+            VkShaderModuleCreateInfo fragInfo = {};
             fragInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             fragInfo.codeSize = fragCode.size();
             fragInfo.pCode = reinterpret_cast<const uint32_t *>(fragCode.data());
@@ -689,10 +689,10 @@ namespace Hal
             stages[1].module = m_fragShaderModule;
             stages[1].pName = "main";
 
-            VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
             vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-            VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
             inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
@@ -700,7 +700,7 @@ namespace Hal
             // the current swapchain extent) so a window resize only
             // recreates the swapchain-sized resources, never this
             // pipeline.
-            VkPipelineViewportStateCreateInfo viewportState{};
+            VkPipelineViewportStateCreateInfo viewportState = {};
             viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
             viewportState.viewportCount = 1;
             viewportState.scissorCount = 1;
@@ -711,32 +711,32 @@ namespace Hal
             dynamicState.dynamicStateCount = 2;
             dynamicState.pDynamicStates = dynamicStates;
 
-            VkPipelineRasterizationStateCreateInfo rasterizer{};
+            VkPipelineRasterizationStateCreateInfo rasterizer = {};
             rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
             rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
             rasterizer.cullMode = VK_CULL_MODE_NONE;
             rasterizer.lineWidth = 1.0f;
 
-            VkPipelineMultisampleStateCreateInfo multisampling{};
+            VkPipelineMultisampleStateCreateInfo multisampling = {};
             multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
             multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-            VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+            VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
             colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachment.blendEnable = VK_FALSE;
 
-            VkPipelineColorBlendStateCreateInfo colorBlending{};
+            VkPipelineColorBlendStateCreateInfo colorBlending = {};
             colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
             colorBlending.attachmentCount = 1;
             colorBlending.pAttachments = &colorBlendAttachment;
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 1;
             pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
             Internal::CheckResult(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout), "vkCreatePipelineLayout failed");
 
-            VkGraphicsPipelineCreateInfo pipelineInfo{};
+            VkGraphicsPipelineCreateInfo pipelineInfo = {};
             pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
             pipelineInfo.stageCount = 2;
             pipelineInfo.pStages = stages;
@@ -765,7 +765,7 @@ namespace Hal
 
             VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 
-            VkImageMemoryBarrier toTransferDst{};
+            VkImageMemoryBarrier toTransferDst = {};
             toTransferDst.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             toTransferDst.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -779,7 +779,7 @@ namespace Hal
             toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &toTransferDst);
 
-            VkBufferImageCopy region{};
+            VkBufferImageCopy region = {};
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             region.imageSubresource.layerCount = 1;
             region.imageExtent.width = static_cast<uint32_t>(m_textureWidth);
@@ -787,7 +787,7 @@ namespace Hal
             region.imageExtent.depth = 1;
             vkCmdCopyBufferToImage(commandBuffer, m_stagingBuffer, m_textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-            VkImageMemoryBarrier toShaderRead{};
+            VkImageMemoryBarrier toShaderRead = {};
             toShaderRead.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -806,12 +806,12 @@ namespace Hal
 
         void WindowRenderContext::CreateSyncObjects()
         {
-            VkSemaphoreCreateInfo semaphoreInfo{};
+            VkSemaphoreCreateInfo semaphoreInfo = {};
             semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
             Internal::CheckResult(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore), "vkCreateSemaphore failed");
             Internal::CheckResult(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphore), "vkCreateSemaphore failed");
 
-            VkFenceCreateInfo fenceInfo{};
+            VkFenceCreateInfo fenceInfo = {};
             fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
             fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
             Internal::CheckResult(vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFence), "vkCreateFence failed");
@@ -890,17 +890,17 @@ namespace Hal
             VkCommandBuffer commandBuffer = m_commandBuffers[0];
             Internal::CheckResult(vkResetCommandBuffer(commandBuffer, 0), "vkResetCommandBuffer failed");
 
-            VkCommandBufferBeginInfo beginInfo{};
+            VkCommandBufferBeginInfo beginInfo = {};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             Internal::CheckResult(vkBeginCommandBuffer(commandBuffer, &beginInfo), "vkBeginCommandBuffer failed");
 
             // Never actually visible — the fullscreen triangle below
             // overdraws every pixel — but a render pass with a CLEAR
             // loadOp still needs a value to clear to.
-            VkClearValue clearValue{};
+            VkClearValue clearValue = {};
             clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
-            VkRenderPassBeginInfo renderPassInfo{};
+            VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = m_renderPass;
             renderPassInfo.framebuffer = m_framebuffers[imageIndex];
@@ -933,7 +933,7 @@ namespace Hal
             Internal::CheckResult(vkEndCommandBuffer(commandBuffer), "vkEndCommandBuffer failed");
 
             VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo submitInfo{};
+            VkSubmitInfo submitInfo = {};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submitInfo.waitSemaphoreCount = 1;
             submitInfo.pWaitSemaphores = &m_imageAvailableSemaphore;
@@ -945,7 +945,7 @@ namespace Hal
 
             Internal::CheckResult(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence), "vkQueueSubmit failed");
 
-            VkPresentInfoKHR presentInfo{};
+            VkPresentInfoKHR presentInfo = {};
             presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             presentInfo.waitSemaphoreCount = 1;
             presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore;

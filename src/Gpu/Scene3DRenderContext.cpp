@@ -1381,8 +1381,10 @@ namespace Hal
             // PRESENT_SRC_KHR; transition it to a transfer source, copy it
             // into the host-visible capture buffer, then transition it back
             // so it can still be presented below.
-            if (m_captureEnabled && (m_captureBuffer != VK_NULL_HANDLE) &&
-                (m_captureWidth == m_swapchainExtent.width) && (m_captureHeight == m_swapchainExtent.height))
+            if (m_captureEnabled &&
+                (m_captureBuffer != VK_NULL_HANDLE) &&
+                (m_captureWidth == m_swapchainExtent.width) &&
+                (m_captureHeight == m_swapchainExtent.height))
             {
                 VkImageMemoryBarrier toTransfer = {};
                 toTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

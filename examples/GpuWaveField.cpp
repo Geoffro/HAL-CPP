@@ -37,7 +37,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GpuWaveFieldInternal
 {
     // A driven oscillator on the surface: position, temporal frequency,
     // and how it drifts over time (so the fringes never quite settle).
@@ -191,6 +191,8 @@ namespace
     const char *g_patterns[] = {"duet", "orbit", "grid", "chaos"};
     const int32_t g_patternCount = 4;
 }
+
+using namespace GpuWaveFieldInternal;
 
 int main(int argc, char **argv)
 {

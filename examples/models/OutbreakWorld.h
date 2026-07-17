@@ -197,14 +197,14 @@ namespace Hal
 
         inline void Person::IncrementCounters()
         {
-            OutbreakWorld *G = this->Grid();
+            OutbreakWorld *pG = this->Grid();
             m_dayCounter++;
-            if ((m_type == ASYMPTOMATIC_INFECTED) && (m_dayCounter >= G->TIME_UNTIL_SYMPTOMATIC))
+            if ((m_type == ASYMPTOMATIC_INFECTED) && (m_dayCounter >= pG->TIME_UNTIL_SYMPTOMATIC))
             {
                 m_futureType = SYMPTOMATIC_INFECTED;
                 m_dayCounter = 0;
             }
-            if ((m_type == SYMPTOMATIC_INFECTED) && (m_dayCounter >= G->TIME_UNTIL_RECOVERED))
+            if ((m_type == SYMPTOMATIC_INFECTED) && (m_dayCounter >= pG->TIME_UNTIL_RECOVERED))
             {
                 m_futureType = RECOVERED;
                 m_dayCounter = 0;
@@ -213,18 +213,18 @@ namespace Hal
 
         inline void Person::InfectOthers()
         {
-            OutbreakWorld *G = this->Grid();
-            int32_t        nNeighbors = G->MapOccupiedHood(G->HoodData(), G->HoodSize(), Isq());
+            OutbreakWorld *pG = this->Grid();
+            int32_t        nNeighbors = pG->MapOccupiedHood(pG->HoodData(), pG->HoodSize(), Isq());
             if (nNeighbors == 0)
             {
                 return;
             }
-            for (int32_t i = 0; i < G->ENCOUNTERS_PER_DAY; i++)
+            for (int32_t i = 0; i < pG->ENCOUNTERS_PER_DAY; i++)
             {
-                Person *pNeighbor = G->GetAgent(G->HoodData()[G->Rng().Int(nNeighbors)]);
+                Person *pNeighbor = pG->GetAgent(pG->HoodData()[pG->Rng().Int(nNeighbors)]);
                 if ((pNeighbor->Type() == SUSCEPTIBLE) && !pNeighbor->Quarantined())
                 {
-                    if (G->Rng().Double() < G->TRANSMISSION)
+                    if (pG->Rng().Double() < pG->TRANSMISSION)
                     {
                         pNeighbor->SetFutureType(Person::ASYMPTOMATIC_INFECTED);
                     }

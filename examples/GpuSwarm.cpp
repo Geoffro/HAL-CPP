@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GpuSwarmInternal
 {
     // A slowly orbiting point of gravity the particles are drawn toward.
     struct Attractor
@@ -84,6 +84,8 @@ namespace
         return Hal::Rgb(r, g, b);
     }
 }
+
+using namespace GpuSwarmInternal;
 
 int main(int argc, char **argv)
 {

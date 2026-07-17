@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     {
         bool headless = (argc > 1) && (std::strcmp(argv[1], "headless") == 0);
 
-        TumorGrowth model{std::sqrt(2.0), 0.5, 0.001, 0.001};
+        TumorGrowth model = {std::sqrt(2.0), 0.5, 0.001, 0.001};
 
         std::vector<std::vector<double>> states = {{100.0, 10.0}};
         std::vector<double>              ts = {0.0};

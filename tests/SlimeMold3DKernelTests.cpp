@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace SlimeMold3DKernelTestsInternal
 {
     int32_t WrapIndex(int32_t v,
                       int32_t dim)
@@ -26,6 +26,8 @@ namespace
         return (x * ny + y) * nz + z;
     }
 }
+
+using namespace SlimeMold3DKernelTestsInternal;
 
 // With a flat (zero) field and no deposit and no wander, an agent has nothing
 // to sense or be pushed by, so every step is a deterministic straight move

@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GpuReactionDiffusionInternal
 {
     // A named Gray-Scott regime: the feed/kill pair that selects a pattern
     // family, plus a display name for the CLI.
@@ -140,6 +140,8 @@ namespace
         }
     }
 }
+
+using namespace GpuReactionDiffusionInternal;
 
 int main(int argc, char **argv)
 {

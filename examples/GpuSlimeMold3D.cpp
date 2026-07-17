@@ -54,7 +54,7 @@
 #include <thread>
 #include <vector>
 
-namespace
+namespace GpuSlimeMold3DInternal
 {
     // A named color ramp for the chemical concentration (5 anchor stops, near
     // black first so the empty void stays dark). t in [0, 1].
@@ -98,6 +98,8 @@ namespace
         return Hal::Rgb(r, g, b);
     }
 }
+
+using namespace GpuSlimeMold3DInternal;
 
 int main(int argc, char **argv)
 {

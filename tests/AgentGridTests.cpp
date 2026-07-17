@@ -120,7 +120,7 @@ TEST_CASE("AgentGrid2D: agents born during iteration are not visited in the same
     for (PoolTestAgent &agent : grid)
     {
         visited++;
-        if (agent.Xsq() == 0 && agent.Ysq() == 0)
+        if ((agent.Xsq() == 0) && (agent.Ysq() == 0))
         {
             grid.NewAgentSQ(2, 2);
         }

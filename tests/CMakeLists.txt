@@ -81,3 +81,68 @@ if (HAL_BUILD_GUI)
 endif()
 
 add_test(NAME HalTests COMMAND HalTests)
+
+# --- Coding standards checks -----------------------------------------------
+# Encodes docs/coding_standards.md: the heuristic Python linter for rules
+# clang-format/clang-tidy can't express (see tools/check_coding_standards.py's
+# module docstring), plus clang-format/clang-tidy themselves where available.
+# Registered as ctest tests so `ctest` surfaces standards violations the same
+# way it surfaces a failing unit test.
+set(HAL_STYLE_CHECK_DIRS
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/examples
+)
+
+find_package(Python3 COMPONENTS Interpreter)
+
+if (Python3_Interpreter_FOUND)
+    add_test(NAME CodingStandardsCheck
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/tools/check_coding_standards.py
+                check ${HAL_STYLE_CHECK_DIRS}
+                --root ${CMAKE_SOURCE_DIR}
+    )
+else()
+    message(STATUS "python3 interpreter not found - CodingStandardsCheck test will not be registered")
+endif()
+
+find_program(CLANG_FORMAT_EXE NAMES clang-format)
+find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+
+if (CLANG_FORMAT_EXE)
+    file(GLOB_RECURSE HAL_CLANG_FORMAT_SOURCES CONFIGURE_DEPENDS
+        ${CMAKE_SOURCE_DIR}/src/*.cpp ${CMAKE_SOURCE_DIR}/src/*.h
+        ${CMAKE_SOURCE_DIR}/include/*.h
+        ${CMAKE_SOURCE_DIR}/tests/*.cpp ${CMAKE_SOURCE_DIR}/tests/*.h
+        ${CMAKE_SOURCE_DIR}/examples/*.cpp ${CMAKE_SOURCE_DIR}/examples/*.h
+    )
+
+    add_test(NAME ClangFormatCheck
+        COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror -style=file
+                ${HAL_CLANG_FORMAT_SOURCES}
+    )
+    # The codebase hasn't been through a full clang-format pass yet, so this
+    # currently fails almost everywhere. Disabled from the default `ctest`
+    # run until that dedicated reformatting pass happens; run it explicitly
+    # with `ctest -R ClangFormatCheck --test-action Test` (or just invoke
+    # clang-format --dry-run directly on a path you're touching).
+    set_tests_properties(ClangFormatCheck PROPERTIES DISABLED TRUE)
+else()
+    message(STATUS "clang-format not found - ClangFormatCheck test will not be registered")
+endif()
+
+if (CLANG_TIDY_EXE)
+    add_test(NAME ClangTidyCheck
+        COMMAND ${CLANG_TIDY_EXE} -p ${CMAKE_BINARY_DIR}
+                ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
+    )
+    # Needs a compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS) from a
+    # Makefile/Ninja configure, and hasn't been triaged against the current
+    # codebase yet. Disabled from the default `ctest` run for the same
+    # reason as ClangFormatCheck above; run explicitly once ready.
+    set_tests_properties(ClangTidyCheck PROPERTIES DISABLED TRUE)
+else()
+    message(STATUS "clang-tidy not found - ClangTidyCheck test will not be registered")
+endif()

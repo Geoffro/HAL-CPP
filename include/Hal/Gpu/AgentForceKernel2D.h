@@ -49,6 +49,22 @@ namespace Hal
         // between steps, so unlike diffusion (see
         // DiffusionKernel2D::RunSteps) there is no GPU-resident
         // multi-step form to batch.
+
+        // Handles for one AgentForceKernel2D compute pipeline (shader
+        // module, its descriptor set layout/pool/set, and its pipeline
+        // layout/pipeline) — a plain grouping of related Vulkan objects,
+        // not a polymorphic abstraction; each of the class's four passes
+        // builds and owns one of these.
+        struct PipelineObjects
+        {
+            VkShaderModule        shaderModule;
+            VkDescriptorSetLayout descriptorSetLayout;
+            VkPipelineLayout      pipelineLayout;
+            VkPipeline            pipeline;
+            VkDescriptorPool      descriptorPool;
+            VkDescriptorSet       descriptorSet;
+        };
+
         class AgentForceKernel2D
         {
         public:
@@ -79,21 +95,6 @@ namespace Hal
             std::vector<float> DownloadVelocityDeltas() const;
 
         private:
-            // Handles for one compute pipeline (shader module, its
-            // descriptor set layout/pool/set, and its pipeline
-            // layout/pipeline) — a plain grouping of related Vulkan
-            // objects, not a polymorphic abstraction; each of the four
-            // passes below builds and owns one of these.
-            struct PipelineObjects
-            {
-                VkShaderModule        shaderModule;
-                VkDescriptorSetLayout descriptorSetLayout;
-                VkPipelineLayout      pipelineLayout;
-                VkPipeline            pipeline;
-                VkDescriptorPool      descriptorPool;
-                VkDescriptorSet       descriptorSet;
-            };
-
             void CreateBuffers();
             void CreateCellCountPipeline();
             void CreatePrefixSumPipeline();

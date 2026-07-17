@@ -37,7 +37,7 @@ TEST_CASE("Hal::MultiThread never exceeds the requested concurrency and actually
     {
         int32_t nowActive = active.fetch_add(1) + 1;
         int32_t observedMax = maxActive.load();
-        while (nowActive > observedMax && !maxActive.compare_exchange_weak(observedMax, nowActive))
+        while ((nowActive > observedMax) && !maxActive.compare_exchange_weak(observedMax, nowActive))
         {
             // observedMax refreshed by compare_exchange_weak on failure.
         }
@@ -60,7 +60,7 @@ TEST_CASE("Hal::MultiThread with a single thread runs serially (no overlap)")
     {
         int32_t nowActive = active.fetch_add(1) + 1;
         int32_t observedMax = maxActive.load();
-        while (nowActive > observedMax && !maxActive.compare_exchange_weak(observedMax, nowActive))
+        while ((nowActive > observedMax) && !maxActive.compare_exchange_weak(observedMax, nowActive))
         {
         }
         active.fetch_sub(1);

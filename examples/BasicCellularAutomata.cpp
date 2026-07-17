@@ -84,13 +84,13 @@ const int32_t BasicCellularAutomata::WHITE = Hal::WHITE;
 int32_t BasicCell::DetermineNeighbors()
 {
     BasicCellularAutomata *pGrid = this->Grid();
-    BasicCell *aboveLeft = (Xsq() - 1 >= 0) ? pGrid->GetAgent(Xsq() - 1, Ysq() + 1) : nullptr;
-    BasicCell *aboveCenter = pGrid->GetAgent(Xsq(), Ysq() + 1);
-    BasicCell *aboveRight = (Xsq() + 1 <= pGrid->Xdim() - 1) ? pGrid->GetAgent(Xsq() + 1, Ysq() + 1) : nullptr;
+    BasicCell *pAboveLeft = (Xsq() - 1 >= 0) ? pGrid->GetAgent(Xsq() - 1, Ysq() + 1) : nullptr;
+    BasicCell *pAboveCenter = pGrid->GetAgent(Xsq(), Ysq() + 1);
+    BasicCell *pAboveRight = (Xsq() + 1 <= pGrid->Xdim() - 1) ? pGrid->GetAgent(Xsq() + 1, Ysq() + 1) : nullptr;
 
-    bool l = (aboveLeft != nullptr);
-    bool c = (aboveCenter != nullptr);
-    bool r = (aboveRight != nullptr);
+    bool l = (pAboveLeft != nullptr);
+    bool c = (pAboveCenter != nullptr);
+    bool r = (pAboveRight != nullptr);
     // Encode the (left,center,right) occupancy triple as 0..7, MSB = left.
     return (l ? 0 : 4) + (c ? 0 : 2) + (r ? 0 : 1);
 }

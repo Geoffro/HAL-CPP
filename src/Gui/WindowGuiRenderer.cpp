@@ -26,11 +26,11 @@ namespace Hal
             // ImGui's Vulkan backend needs a descriptor pool it can allocate
             // its font (and any user-added) textures from; it must allow
             // freeing individual sets.
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             poolSize.descriptorCount = 64;
 
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
             poolInfo.maxSets = 64;
@@ -40,7 +40,7 @@ namespace Hal
 
             ImGui_ImplGlfw_InitForVulkan(m_window.Handle(), true);
 
-            ImGui_ImplVulkan_InitInfo initInfo{};
+            ImGui_ImplVulkan_InitInfo initInfo = {};
             initInfo.Instance = m_renderContext.Instance();
             initInfo.PhysicalDevice = m_renderContext.PhysicalDevice();
             initInfo.Device = m_renderContext.Device();

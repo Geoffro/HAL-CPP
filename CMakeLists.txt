@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# compile_commands.json for clang-tidy (tests/CMakeLists.txt's ClangTidyCheck).
+# Generators that don't support it (e.g. Xcode) silently ignore this.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 option(HAL_BUILD_TESTS "Build the Hal unit test suite" ON)
 option(HAL_BUILD_WINDOW "Build the GLFW + Vulkan windowed rendering backend" ON)
 option(HAL_BUILD_GUI "Build the Dear ImGui + ImPlot GUI layer" ON)

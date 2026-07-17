@@ -46,7 +46,7 @@
 #include <thread>
 #include <vector>
 
-namespace
+namespace GpuFlowField3DInternal
 {
     // Electric speed palette: deep blue -> cyan -> white -> warm gold.
     int32_t SpeedColor(double t)
@@ -81,6 +81,8 @@ namespace
         return Hal::Rgb(r, g, b);
     }
 }
+
+using namespace GpuFlowField3DInternal;
 
 int main(int argc, char **argv)
 {

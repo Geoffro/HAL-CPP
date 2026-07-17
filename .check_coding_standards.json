@@ -1,0 +1,580 @@
+{
+  "ignore": [
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 276,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 280,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 281,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 282,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 293,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 296,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 297,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 298,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 299,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 310,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 314,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 315,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 316,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 317,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 328,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 332,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 333,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 334,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 335,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BackendBenchmark.cpp",
+      "line": 348,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/BasicCellularAutomata.cpp",
+      "line": 98,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/BinomialTest.cpp",
+      "line": 14,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/BirthDeath.cpp",
+      "line": 35,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/BirthDeathOffLattice.cpp",
+      "line": 102,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Chemotaxis.cpp",
+      "line": 130,
+      "identifier": "overlap",
+      "reason": "False positive: 'ChemotaxisModel::FORCE_SCALER * overlap' is a multiplication expression, not a pointer declaration."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Chemotaxis.cpp",
+      "line": 136,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/ClinicianSim.cpp",
+      "line": 190,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ClinicianSim.cpp",
+      "line": 222,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/ColorBarGenerator.cpp",
+      "line": 21,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/ColorInterpolation.cpp",
+      "line": 32,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ColorTest.cpp",
+      "line": 11,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ColorTest.cpp",
+      "line": 13,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ColorTest.cpp",
+      "line": 15,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ColorTest.cpp",
+      "line": 17,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/ColorTest.cpp",
+      "line": 19,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/CompetitiveRelease.cpp",
+      "line": 133,
+      "identifier": "SPACE_STEP",
+      "reason": "False positive: 'SPACE_STEP * SPACE_STEP' is a multiplication expression, not a pointer declaration."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/CompetitiveRelease.cpp",
+      "line": 176,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/DiffusionAdvection3D.cpp",
+      "line": 20,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/DivisionDeathMutation.cpp",
+      "line": 144,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Example3D.cpp",
+      "line": 249,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/FileIOTest.cpp",
+      "line": 31,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/GOLSweepEx.cpp",
+      "line": 101,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GameOfLife.cpp",
+      "line": 125,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Gas.cpp",
+      "line": 68,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Gpu3DReactionDiffusion.cpp",
+      "line": 144,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuAttractor3D.cpp",
+      "line": 196,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuFlowField3D.cpp",
+      "line": 87,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuInkFlow.cpp",
+      "line": 104,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuReactionDiffusion.cpp",
+      "line": 146,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuSlimeMold.cpp",
+      "line": 111,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuSlimeMold3D.cpp",
+      "line": 104,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuSwarm.cpp",
+      "line": 90,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/GpuWaveField.cpp",
+      "line": 197,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient2D.cpp",
+      "line": 25,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient2D.cpp",
+      "line": 26,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient3D.cpp",
+      "line": 29,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient3D.cpp",
+      "line": 30,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient3D.cpp",
+      "line": 31,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/HeatMaps.cpp",
+      "line": 18,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/LineSegmentTest.cpp",
+      "line": 18,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/LockExample.cpp",
+      "line": 46,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/ModuleSetExample.cpp",
+      "line": 323,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Mover3D.cpp",
+      "line": 46,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Mover3DoffLattice.cpp",
+      "line": 45,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/MultiOutbreak.cpp",
+      "line": 26,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/MultiwellExample.cpp",
+      "line": 27,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/NonSpatialABM.cpp",
+      "line": 82,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/NonSpatialABM.cpp",
+      "line": 84,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/OffLatticeExample.cpp",
+      "line": 154,
+      "identifier": "overlap",
+      "reason": "False positive: 'ExampleOffLattice::FORCE_SCALER * overlap' is a multiplication expression, not a pointer declaration."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/OffLatticeExample.cpp",
+      "line": 184,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Orbium.cpp",
+      "line": 42,
+      "identifier": "SIGMA",
+      "reason": "False positive: 'SIGMA * SIGMA' is a multiplication expression, not a pointer declaration."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Orbium.cpp",
+      "line": 82,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/OrbiumNPlayer.cpp",
+      "line": 60,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/OutbreakWorld.cpp",
+      "line": 25,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PDEexample.cpp",
+      "line": 133,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PersianCarpets.cpp",
+      "line": 173,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PhylogenyModel.cpp",
+      "line": 194,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PlotExample.cpp",
+      "line": 17,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PopGrid.cpp",
+      "line": 25,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/PopTumor.cpp",
+      "line": 192,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/PopTumor.cpp",
+      "line": 212,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/ReactionDiffusion2D.cpp",
+      "line": 22,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/SaveLoadModel.cpp",
+      "line": 75,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/SaveLoadModel.cpp",
+      "line": 104,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/StemCellExample.cpp",
+      "line": 169,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/TemplateMultiGrid.cpp",
+      "line": 151,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/TemplateOffLattice2D.cpp",
+      "line": 66,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/TemplateOnLattice2D.cpp",
+      "line": 73,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/TumorGrowth.cpp",
+      "line": 41,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/Vis3Dtest.cpp",
+      "line": 18,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/YCbCrTest.cpp",
+      "line": 16,
+      "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/models/OutbreakWorld.h",
+      "line": 90,
+      "identifier": "DIMENSION",
+      "reason": "False positive: 'DIMENSION * DIMENSION' is a multiplication expression, not a 'Type *name' pointer declaration; the heuristic regex can't tell them apart on this shape."
+    },
+    {
+      "check": "pointer-naming",
+      "file": "examples/models/OutbreakWorld.h",
+      "line": 96,
+      "identifier": "FATALITY_MULTIPLIER_OVER_CAPACITY",
+      "reason": "False positive: 'FATALITY_RATE * FATALITY_MULTIPLIER_OVER_CAPACITY' is a multiplication expression, not a pointer declaration."
+    },
+    {
+      "check": "raw-output",
+      "file": "src/Log/Logger.cpp",
+      "line": 35,
+      "reason": "This is the Logger's own implementation -- std::cout/std::cerr here IS the logging backend, not something bypassing it."
+    },
+    {
+      "check": "raw-output",
+      "file": "tests/FftGridTests.cpp",
+      "line": 52,
+      "reason": "False positive: 'puts' is a substring of the TEST_CASE name string literal (\"...puts the total sum...\"), not a call to the puts() function. The check doesn't mask string literals for this rule."
+    }
+  ]
+}

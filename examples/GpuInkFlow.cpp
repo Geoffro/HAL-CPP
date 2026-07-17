@@ -35,7 +35,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GpuInkFlowInternal
 {
     // An orbiting dye source: it circles a center at its own radius and
     // angular speed, depositing a Gaussian blob tinted by (r, g, b).
@@ -98,6 +98,8 @@ namespace
         return 1.0 - std::exp(-x);
     }
 }
+
+using namespace GpuInkFlowInternal;
 
 int main(int argc, char **argv)
 {

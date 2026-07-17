@@ -49,7 +49,7 @@
 #include <thread>
 #include <vector>
 
-namespace
+namespace GpuAttractor3DInternal
 {
     struct Vec3d
     {
@@ -190,6 +190,8 @@ namespace
         return Hal::Rgb(r, g, b);
     }
 }
+
+using namespace GpuAttractor3DInternal;
 
 int main(int argc, char **argv)
 {

@@ -177,8 +177,8 @@ namespace Hal
                        bool    wrapY,
                        bool    wrapZ);
 
-    double DistSquared(const double *p1,
-                       const double *p2,
+    double DistSquared(const double *pP1,
+                       const double *pP2,
                        int32_t       numDims);
 
     double Norm(double v1,

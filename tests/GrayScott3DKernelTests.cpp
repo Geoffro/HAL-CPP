@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GrayScott3DKernelTestsInternal
 {
     int32_t Wrap3(int32_t v,
                   int32_t dim)
@@ -86,6 +86,8 @@ namespace
         }
     }
 }
+
+using namespace GrayScott3DKernelTestsInternal;
 
 TEST_CASE("Hal::Gpu::GrayScott3DKernel leaves the (U=1, V=0) fixed point unchanged")
 {

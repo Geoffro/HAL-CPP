@@ -1,0 +1,70 @@
+# Encodes the checkable subset of docs/coding_standards.md. This is
+# intentionally a small, high-confidence starting set rather than `Checks: '*'`
+# with exclusions - expand it deliberately rather than blanket-enabling
+# checks the codebase hasn't been vetted against.
+#
+# Not covered here because clang-tidy has no matching check (left as
+# review-time rules in docs/coding_standards.md):
+#   - "Pointers ... use the p / m_p prefix" - readability-identifier-naming
+#     classifies by canonical (desugared) type, so Vulkan/VMA opaque handles
+#     (VkCommandBuffer, VmaAllocator, VkBuffer, ...), which are typedef'd as
+#     pointers but conventionally treated as value-like handles with no
+#     prefix throughout this codebase, are indistinguishable from real
+#     pointers to the check. A full sweep of src/ (2026-07-15) found this
+#     rule flagged 99/99 "violations" and every single one was a Vulkan/VMA
+#     handle, spread across every directory that touches the renderer
+#     (Render, Effects, Modes, Core, UI) - there's no directory boundary to
+#     scope around, and zero genuine object pointers (GLFWwindow*,
+#     _freenect_device*) were flagged since they already follow the
+#     convention. So LocalPointerCase/PointerParameterCase are intentionally
+#     left unset here; the p-prefix stays a manual-review-only rule.
+#   - Avoiding anonymous namespaces/lambdas, struct-in-class placement,
+#     "don't use = default", comment/documentation expectations, and
+#     "don't reformat unrelated code" are all judgment calls with no
+#     reliable automated check.
+
+Checks: >
+  -*,
+  readability-identifier-naming,
+  readability-braces-around-statements,
+  cppcoreguidelines-prefer-member-initializer,
+  google-runtime-int
+
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.LocalVariableCase
+    value: camelBack
+
+  # Plain data structs (e.g. AudioFeatures, SynthModeParams) keep public
+  # fields unprefixed; encapsulated class state gets the m_ prefix. Split on
+  # access rather than a blanket MemberCase/MemberPrefix so both match.
+  - key: readability-identifier-naming.PublicMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
+
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '0'
+
+HeaderFilterRegex: '^src/.*\.h$'
+WarningsAsErrors: ''

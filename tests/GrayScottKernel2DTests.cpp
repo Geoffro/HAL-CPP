@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GrayScottKernel2DTestsInternal
 {
     int32_t WrapIndex(int32_t v,
                       int32_t dim)
@@ -68,6 +68,8 @@ namespace
         }
     }
 }
+
+using namespace GrayScottKernel2DTestsInternal;
 
 // (U=1, V=0) everywhere is an exact fixed point of Gray-Scott: the
 // reaction term u*v*v is zero, the Laplacian of a constant is zero, and

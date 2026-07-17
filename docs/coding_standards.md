@@ -6,7 +6,7 @@ This document captures the project-specific coding expectations that should guid
 
 ## Language and Style
 
-- Use C++17.
+- Use C++20.
 - Prefer straightforward, explicit code over abstract frameworks or clever metaprogramming.
 - Keep implementation style consistent with the current codebase unless there is a strong reason to refactor a whole area.
 - Avoid anonymous functions unless there is a significant advantage to using them.
@@ -34,6 +34,15 @@ This document captures the project-specific coding expectations that should guid
 - Avoid defining structs inside classes
 - Class constructors/methods should not have a space between the name and the (). MyClass().
 - Align variables where posible. Types should be aligned, then variables.
+- When zero-initializing a struct and then assigning its fields on the following lines (`Type var = {};` then `var.field = value;`), align every `=` in the block to the same column, including the initial declaration line — pad the shorter names, don't leave the declaration's `=` off on its own. Example:
+
+```cpp
+VkBufferCreateInfo bufferInfo = {};
+bufferInfo.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+bufferInfo.size               = size;
+bufferInfo.usage              = usage;
+bufferInfo.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
+```
 
 ## Functions
 -- Align args and then their variables
@@ -56,6 +65,17 @@ void Foo(Type      arg0,
 
 ```cpp
 if ((index >= 0) && (index < count) && (pointer != nullptr))
+{
+    // ...
+}
+```
+
+- When a compound condition doesn't fit on one line and has to wrap, put each `&&`/`||` operand on its own line, with the operator trailing at the end of the previous line (not leading the next). Don't pack two operands onto one line just because they happen to fit. Example:
+
+```cpp
+if ((averageFlux > 0.0f) &&
+    (flux > averageFlux * m_thresholdMultiplier) &&
+    (m_framesSinceLastBeat >= kRefractoryFrames))
 {
     // ...
 }

@@ -182,15 +182,15 @@ namespace Hal
                 int32_t xDim;
                 int32_t yDim;
             };
-            GridPushConstants gridConstants{m_numAgents, m_xDim, m_yDim};
+            GridPushConstants gridConstants = {m_numAgents, m_xDim, m_yDim};
 
             struct PrefixSumPushConstants
             {
                 int32_t numCells;
             };
-            PrefixSumPushConstants prefixConstants{m_numCells};
+            PrefixSumPushConstants prefixConstants = {m_numCells};
 
-            AgentPushConstants forceConstants{};
+            AgentPushConstants forceConstants = {};
             forceConstants.interactionRad = interactionRad;
             forceConstants.springConstant = springConstant;
             forceConstants.numAgents = m_numAgents;
@@ -284,7 +284,7 @@ namespace Hal
             PipelineObjects &objects = m_cellCountPipeline;
 
             std::vector<char> shaderCode = Internal::ReadFile(ShaderPath("AgentCellCount.comp"));
-            VkShaderModuleCreateInfo shaderInfo{};
+            VkShaderModuleCreateInfo shaderInfo = {};
             shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             shaderInfo.codeSize = shaderCode.size();
             shaderInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
@@ -300,33 +300,33 @@ namespace Hal
             bindings[1].descriptorCount = 1;
             bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.bindingCount = 2;
             layoutInfo.pBindings = bindings;
             Internal::CheckResult(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &objects.descriptorSetLayout), "vkCreateDescriptorSetLayout failed");
 
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             poolSize.descriptorCount = 2;
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = 1;
             poolInfo.pPoolSizes = &poolSize;
             poolInfo.maxSets = 1;
             Internal::CheckResult(vkCreateDescriptorPool(device, &poolInfo, nullptr, &objects.descriptorPool), "vkCreateDescriptorPool failed");
 
-            VkDescriptorSetAllocateInfo setAllocInfo{};
+            VkDescriptorSetAllocateInfo setAllocInfo = {};
             setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             setAllocInfo.descriptorPool = objects.descriptorPool;
             setAllocInfo.descriptorSetCount = 1;
             setAllocInfo.pSetLayouts = &objects.descriptorSetLayout;
             Internal::CheckResult(vkAllocateDescriptorSets(device, &setAllocInfo, &objects.descriptorSet), "vkAllocateDescriptorSets failed");
 
-            VkDescriptorBufferInfo positionInfo{};
+            VkDescriptorBufferInfo positionInfo = {};
             positionInfo.buffer = m_positionBuffer;
             positionInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo cellCountInfo{};
+            VkDescriptorBufferInfo cellCountInfo = {};
             cellCountInfo.buffer = m_cellCountBuffer;
             cellCountInfo.range = VK_WHOLE_SIZE;
 
@@ -345,11 +345,11 @@ namespace Hal
             writes[1].pBufferInfo = &cellCountInfo;
             vkUpdateDescriptorSets(device, 2, writes, 0, nullptr);
 
-            VkPushConstantRange pushConstantRange{};
+            VkPushConstantRange pushConstantRange = {};
             pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             pushConstantRange.size = 3 * sizeof(int32_t);
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 1;
             pipelineLayoutInfo.pSetLayouts = &objects.descriptorSetLayout;
@@ -357,13 +357,13 @@ namespace Hal
             pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
             Internal::CheckResult(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &objects.pipelineLayout), "vkCreatePipelineLayout failed");
 
-            VkPipelineShaderStageCreateInfo stageInfo{};
+            VkPipelineShaderStageCreateInfo stageInfo = {};
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
             stageInfo.module = objects.shaderModule;
             stageInfo.pName = "main";
 
-            VkComputePipelineCreateInfo pipelineInfo{};
+            VkComputePipelineCreateInfo pipelineInfo = {};
             pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
             pipelineInfo.stage = stageInfo;
             pipelineInfo.layout = objects.pipelineLayout;
@@ -376,7 +376,7 @@ namespace Hal
             PipelineObjects &objects = m_prefixSumPipeline;
 
             std::vector<char> shaderCode = Internal::ReadFile(ShaderPath("AgentPrefixSum.comp"));
-            VkShaderModuleCreateInfo shaderInfo{};
+            VkShaderModuleCreateInfo shaderInfo = {};
             shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             shaderInfo.codeSize = shaderCode.size();
             shaderInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
@@ -391,36 +391,36 @@ namespace Hal
                 bindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             }
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.bindingCount = 3;
             layoutInfo.pBindings = bindings;
             Internal::CheckResult(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &objects.descriptorSetLayout), "vkCreateDescriptorSetLayout failed");
 
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             poolSize.descriptorCount = 3;
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = 1;
             poolInfo.pPoolSizes = &poolSize;
             poolInfo.maxSets = 1;
             Internal::CheckResult(vkCreateDescriptorPool(device, &poolInfo, nullptr, &objects.descriptorPool), "vkCreateDescriptorPool failed");
 
-            VkDescriptorSetAllocateInfo setAllocInfo{};
+            VkDescriptorSetAllocateInfo setAllocInfo = {};
             setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             setAllocInfo.descriptorPool = objects.descriptorPool;
             setAllocInfo.descriptorSetCount = 1;
             setAllocInfo.pSetLayouts = &objects.descriptorSetLayout;
             Internal::CheckResult(vkAllocateDescriptorSets(device, &setAllocInfo, &objects.descriptorSet), "vkAllocateDescriptorSets failed");
 
-            VkDescriptorBufferInfo cellCountInfo{};
+            VkDescriptorBufferInfo cellCountInfo = {};
             cellCountInfo.buffer = m_cellCountBuffer;
             cellCountInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo cellOffsetInfo{};
+            VkDescriptorBufferInfo cellOffsetInfo = {};
             cellOffsetInfo.buffer = m_cellOffsetBuffer;
             cellOffsetInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo cellCursorInfo{};
+            VkDescriptorBufferInfo cellCursorInfo = {};
             cellCursorInfo.buffer = m_cellCursorBuffer;
             cellCursorInfo.range = VK_WHOLE_SIZE;
 
@@ -437,11 +437,11 @@ namespace Hal
             }
             vkUpdateDescriptorSets(device, 3, writes, 0, nullptr);
 
-            VkPushConstantRange pushConstantRange{};
+            VkPushConstantRange pushConstantRange = {};
             pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             pushConstantRange.size = sizeof(int32_t);
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 1;
             pipelineLayoutInfo.pSetLayouts = &objects.descriptorSetLayout;
@@ -449,13 +449,13 @@ namespace Hal
             pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
             Internal::CheckResult(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &objects.pipelineLayout), "vkCreatePipelineLayout failed");
 
-            VkPipelineShaderStageCreateInfo stageInfo{};
+            VkPipelineShaderStageCreateInfo stageInfo = {};
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
             stageInfo.module = objects.shaderModule;
             stageInfo.pName = "main";
 
-            VkComputePipelineCreateInfo pipelineInfo{};
+            VkComputePipelineCreateInfo pipelineInfo = {};
             pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
             pipelineInfo.stage = stageInfo;
             pipelineInfo.layout = objects.pipelineLayout;
@@ -468,7 +468,7 @@ namespace Hal
             PipelineObjects &objects = m_scatterPipeline;
 
             std::vector<char> shaderCode = Internal::ReadFile(ShaderPath("AgentScatter.comp"));
-            VkShaderModuleCreateInfo shaderInfo{};
+            VkShaderModuleCreateInfo shaderInfo = {};
             shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             shaderInfo.codeSize = shaderCode.size();
             shaderInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
@@ -483,36 +483,36 @@ namespace Hal
                 bindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             }
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.bindingCount = 3;
             layoutInfo.pBindings = bindings;
             Internal::CheckResult(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &objects.descriptorSetLayout), "vkCreateDescriptorSetLayout failed");
 
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             poolSize.descriptorCount = 3;
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = 1;
             poolInfo.pPoolSizes = &poolSize;
             poolInfo.maxSets = 1;
             Internal::CheckResult(vkCreateDescriptorPool(device, &poolInfo, nullptr, &objects.descriptorPool), "vkCreateDescriptorPool failed");
 
-            VkDescriptorSetAllocateInfo setAllocInfo{};
+            VkDescriptorSetAllocateInfo setAllocInfo = {};
             setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             setAllocInfo.descriptorPool = objects.descriptorPool;
             setAllocInfo.descriptorSetCount = 1;
             setAllocInfo.pSetLayouts = &objects.descriptorSetLayout;
             Internal::CheckResult(vkAllocateDescriptorSets(device, &setAllocInfo, &objects.descriptorSet), "vkAllocateDescriptorSets failed");
 
-            VkDescriptorBufferInfo positionInfo{};
+            VkDescriptorBufferInfo positionInfo = {};
             positionInfo.buffer = m_positionBuffer;
             positionInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo cellCursorInfo{};
+            VkDescriptorBufferInfo cellCursorInfo = {};
             cellCursorInfo.buffer = m_cellCursorBuffer;
             cellCursorInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo bucketAgentInfo{};
+            VkDescriptorBufferInfo bucketAgentInfo = {};
             bucketAgentInfo.buffer = m_bucketAgentBuffer;
             bucketAgentInfo.range = VK_WHOLE_SIZE;
 
@@ -529,11 +529,11 @@ namespace Hal
             }
             vkUpdateDescriptorSets(device, 3, writes, 0, nullptr);
 
-            VkPushConstantRange pushConstantRange{};
+            VkPushConstantRange pushConstantRange = {};
             pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             pushConstantRange.size = 3 * sizeof(int32_t);
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 1;
             pipelineLayoutInfo.pSetLayouts = &objects.descriptorSetLayout;
@@ -541,13 +541,13 @@ namespace Hal
             pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
             Internal::CheckResult(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &objects.pipelineLayout), "vkCreatePipelineLayout failed");
 
-            VkPipelineShaderStageCreateInfo stageInfo{};
+            VkPipelineShaderStageCreateInfo stageInfo = {};
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
             stageInfo.module = objects.shaderModule;
             stageInfo.pName = "main";
 
-            VkComputePipelineCreateInfo pipelineInfo{};
+            VkComputePipelineCreateInfo pipelineInfo = {};
             pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
             pipelineInfo.stage = stageInfo;
             pipelineInfo.layout = objects.pipelineLayout;
@@ -560,7 +560,7 @@ namespace Hal
             PipelineObjects &objects = m_forceAccumPipeline;
 
             std::vector<char> shaderCode = Internal::ReadFile(ShaderPath("AgentForceAccum.comp"));
-            VkShaderModuleCreateInfo shaderInfo{};
+            VkShaderModuleCreateInfo shaderInfo = {};
             shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             shaderInfo.codeSize = shaderCode.size();
             shaderInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
@@ -575,42 +575,42 @@ namespace Hal
                 bindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             }
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.bindingCount = 5;
             layoutInfo.pBindings = bindings;
             Internal::CheckResult(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &objects.descriptorSetLayout), "vkCreateDescriptorSetLayout failed");
 
-            VkDescriptorPoolSize poolSize{};
+            VkDescriptorPoolSize poolSize = {};
             poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             poolSize.descriptorCount = 5;
-            VkDescriptorPoolCreateInfo poolInfo{};
+            VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = 1;
             poolInfo.pPoolSizes = &poolSize;
             poolInfo.maxSets = 1;
             Internal::CheckResult(vkCreateDescriptorPool(device, &poolInfo, nullptr, &objects.descriptorPool), "vkCreateDescriptorPool failed");
 
-            VkDescriptorSetAllocateInfo setAllocInfo{};
+            VkDescriptorSetAllocateInfo setAllocInfo = {};
             setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             setAllocInfo.descriptorPool = objects.descriptorPool;
             setAllocInfo.descriptorSetCount = 1;
             setAllocInfo.pSetLayouts = &objects.descriptorSetLayout;
             Internal::CheckResult(vkAllocateDescriptorSets(device, &setAllocInfo, &objects.descriptorSet), "vkAllocateDescriptorSets failed");
 
-            VkDescriptorBufferInfo positionInfo{};
+            VkDescriptorBufferInfo positionInfo = {};
             positionInfo.buffer = m_positionBuffer;
             positionInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo radiusInfo{};
+            VkDescriptorBufferInfo radiusInfo = {};
             radiusInfo.buffer = m_radiusBuffer;
             radiusInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo cellOffsetInfo{};
+            VkDescriptorBufferInfo cellOffsetInfo = {};
             cellOffsetInfo.buffer = m_cellOffsetBuffer;
             cellOffsetInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo bucketAgentInfo{};
+            VkDescriptorBufferInfo bucketAgentInfo = {};
             bucketAgentInfo.buffer = m_bucketAgentBuffer;
             bucketAgentInfo.range = VK_WHOLE_SIZE;
-            VkDescriptorBufferInfo velocityDeltaInfo{};
+            VkDescriptorBufferInfo velocityDeltaInfo = {};
             velocityDeltaInfo.buffer = m_velocityDeltaBuffer;
             velocityDeltaInfo.range = VK_WHOLE_SIZE;
 
@@ -627,11 +627,11 @@ namespace Hal
             }
             vkUpdateDescriptorSets(device, 5, writes, 0, nullptr);
 
-            VkPushConstantRange pushConstantRange{};
+            VkPushConstantRange pushConstantRange = {};
             pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             pushConstantRange.size = sizeof(AgentPushConstants);
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 1;
             pipelineLayoutInfo.pSetLayouts = &objects.descriptorSetLayout;
@@ -639,13 +639,13 @@ namespace Hal
             pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
             Internal::CheckResult(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &objects.pipelineLayout), "vkCreatePipelineLayout failed");
 
-            VkPipelineShaderStageCreateInfo stageInfo{};
+            VkPipelineShaderStageCreateInfo stageInfo = {};
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
             stageInfo.module = objects.shaderModule;
             stageInfo.pName = "main";
 
-            VkComputePipelineCreateInfo pipelineInfo{};
+            VkComputePipelineCreateInfo pipelineInfo = {};
             pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
             pipelineInfo.stage = stageInfo;
             pipelineInfo.layout = objects.pipelineLayout;
@@ -656,13 +656,13 @@ namespace Hal
         {
             VkDevice device = m_context.Device();
 
-            VkCommandPoolCreateInfo poolInfo{};
+            VkCommandPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             poolInfo.queueFamilyIndex = m_context.ComputeQueueFamilyIndex();
             Internal::CheckResult(vkCreateCommandPool(device, &poolInfo, nullptr, &m_commandPool), "vkCreateCommandPool failed");
 
-            VkCommandBufferAllocateInfo allocInfo{};
+            VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.commandPool = m_commandPool;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

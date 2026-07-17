@@ -111,7 +111,7 @@ namespace Hal
                 createFlags |= 0x00000001; // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
             }
 
-            VkApplicationInfo appInfo{};
+            VkApplicationInfo appInfo = {};
             appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
             appInfo.pApplicationName = "HalCpp";
             appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
@@ -119,7 +119,7 @@ namespace Hal
             appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
             appInfo.apiVersion = VK_API_VERSION_1_0;
 
-            VkInstanceCreateInfo createInfo{};
+            VkInstanceCreateInfo createInfo = {};
             createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
             createInfo.pApplicationInfo = &appInfo;
             createInfo.flags = createFlags;
@@ -167,7 +167,7 @@ namespace Hal
         void ComputeContext::CreateLogicalDevice()
         {
             const float queuePriority = 1.0f;
-            VkDeviceQueueCreateInfo queueCreateInfo{};
+            VkDeviceQueueCreateInfo queueCreateInfo = {};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = m_computeQueueFamilyIndex;
             queueCreateInfo.queueCount = 1;
@@ -184,7 +184,7 @@ namespace Hal
                 enabledExtensions.push_back("VK_KHR_portability_subset");
             }
 
-            VkDeviceCreateInfo deviceCreateInfo{};
+            VkDeviceCreateInfo deviceCreateInfo = {};
             deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
             deviceCreateInfo.queueCreateInfoCount = 1;
             deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;

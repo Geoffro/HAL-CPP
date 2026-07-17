@@ -40,7 +40,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace GpuSlimeMoldInternal
 {
     // One slime agent: a position and a heading. Trail is deposited at the
     // position; the three sensors are placed relative to the heading.
@@ -105,6 +105,8 @@ namespace
         return trail[static_cast<size_t>(ix * ny + iy)];
     }
 }
+
+using namespace GpuSlimeMoldInternal;
 
 int main(int argc, char **argv)
 {

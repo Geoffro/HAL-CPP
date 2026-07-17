@@ -66,24 +66,24 @@ namespace Hal
 
             // Begins a titled panel/window; returns false if it is collapsed
             // (skip building its contents then). Always pair with EndPanel.
-            bool BeginPanel(const char *title);
+            bool BeginPanel(const char *pTitle);
             void EndPanel();
 
-            void Text(const char *text);
+            void Text(const char *pText);
 
             // Parameter controls. Each binds to a caller-owned value and
             // returns whether the user changed it this frame.
-            bool Checkbox(const char *label,
+            bool Checkbox(const char *pLabel,
                           bool       &value);
-            bool IntSlider(const char *label,
+            bool IntSlider(const char *pLabel,
                            int32_t    &value,
                            int32_t     minValue,
                            int32_t     maxValue);
-            bool DoubleSlider(const char *label,
+            bool DoubleSlider(const char *pLabel,
                               double     &value,
                               double      minValue,
                               double      maxValue);
-            bool Button(const char *label);
+            bool Button(const char *pLabel);
 
             // Single-line text field (replacing Java's UIStringInput /
             // UIFileChooserInput — the latter without a native file dialog,
@@ -102,16 +102,16 @@ namespace Hal
 
             // Plotting (ImPlot). BeginPlot returns false if the plot is not
             // visible (skip the Plot* calls then); pair with EndPlot.
-            bool BeginPlot(const char *title,
-                           const char *xLabel,
-                           const char *yLabel);
-            void PlotLine(const char   *label,
-                          const double *xValues,
-                          const double *yValues,
+            bool BeginPlot(const char *pTitle,
+                           const char *pXLabel,
+                           const char *pYLabel);
+            void PlotLine(const char   *pLabel,
+                          const double *pXValues,
+                          const double *pYValues,
                           int32_t       count);
-            void PlotScatter(const char   *label,
-                             const double *xValues,
-                             const double *yValues,
+            void PlotScatter(const char   *pLabel,
+                             const double *pXValues,
+                             const double *pYValues,
                              int32_t       count);
             void EndPlot();
 

@@ -74,9 +74,9 @@ namespace Hal
             return ImGui::GetDrawData();
         }
 
-        bool GuiContext::BeginPanel(const char *title)
+        bool GuiContext::BeginPanel(const char *pTitle)
         {
-            return ImGui::Begin(title);
+            return ImGui::Begin(pTitle);
         }
 
         void GuiContext::EndPanel()
@@ -84,36 +84,36 @@ namespace Hal
             ImGui::End();
         }
 
-        void GuiContext::Text(const char *text)
+        void GuiContext::Text(const char *pText)
         {
-            ImGui::TextUnformatted(text);
+            ImGui::TextUnformatted(pText);
         }
 
-        bool GuiContext::Checkbox(const char *label,
+        bool GuiContext::Checkbox(const char *pLabel,
                                   bool       &value)
         {
-            return ImGui::Checkbox(label, &value);
+            return ImGui::Checkbox(pLabel, &value);
         }
 
-        bool GuiContext::IntSlider(const char *label,
+        bool GuiContext::IntSlider(const char *pLabel,
                                    int32_t    &value,
                                    int32_t     minValue,
                                    int32_t     maxValue)
         {
-            return ImGui::SliderInt(label, &value, minValue, maxValue);
+            return ImGui::SliderInt(pLabel, &value, minValue, maxValue);
         }
 
-        bool GuiContext::DoubleSlider(const char *label,
+        bool GuiContext::DoubleSlider(const char *pLabel,
                                       double     &value,
                                       double      minValue,
                                       double      maxValue)
         {
-            return ImGui::SliderScalar(label, ImGuiDataType_Double, &value, &minValue, &maxValue);
+            return ImGui::SliderScalar(pLabel, ImGuiDataType_Double, &value, &minValue, &maxValue);
         }
 
-        bool GuiContext::Button(const char *label)
+        bool GuiContext::Button(const char *pLabel)
         {
-            return ImGui::Button(label);
+            return ImGui::Button(pLabel);
         }
         bool GuiContext::StringInput(const char  *pLabel,
                                      std::string &value)
@@ -136,32 +136,32 @@ namespace Hal
             return ImGui::Combo(pLabel, &current, pItems, count);
         }
 
-        bool GuiContext::BeginPlot(const char *title,
-                                   const char *xLabel,
-                                   const char *yLabel)
+        bool GuiContext::BeginPlot(const char *pTitle,
+                                   const char *pXLabel,
+                                   const char *pYLabel)
         {
-            if (!ImPlot::BeginPlot(title))
+            if (!ImPlot::BeginPlot(pTitle))
             {
                 return false;
             }
-            ImPlot::SetupAxes(xLabel, yLabel);
+            ImPlot::SetupAxes(pXLabel, pYLabel);
             return true;
         }
 
-        void GuiContext::PlotLine(const char   *label,
-                                  const double *xValues,
-                                  const double *yValues,
+        void GuiContext::PlotLine(const char   *pLabel,
+                                  const double *pXValues,
+                                  const double *pYValues,
                                   int32_t       count)
         {
-            ImPlot::PlotLine(label, xValues, yValues, count);
+            ImPlot::PlotLine(pLabel, pXValues, pYValues, count);
         }
 
-        void GuiContext::PlotScatter(const char   *label,
-                                     const double *xValues,
-                                     const double *yValues,
+        void GuiContext::PlotScatter(const char   *pLabel,
+                                     const double *pXValues,
+                                     const double *pYValues,
                                      int32_t       count)
         {
-            ImPlot::PlotScatter(label, xValues, yValues, count);
+            ImPlot::PlotScatter(pLabel, pXValues, pYValues, count);
         }
 
         void GuiContext::EndPlot()

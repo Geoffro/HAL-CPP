@@ -274,14 +274,14 @@ namespace Hal
         return xDist * xDist + yDist * yDist + zDist * zDist;
     }
 
-    double DistSquared(const double *p1,
-                       const double *p2,
+    double DistSquared(const double *pP1,
+                       const double *pP2,
                        int32_t       numDims)
     {
         double sum = 0;
         for (int32_t i = 0; i < numDims; i++)
         {
-            double diff = p1[i] - p2[i];
+            double diff = pP1[i] - pP2[i];
             sum += diff * diff;
         }
         return sum;

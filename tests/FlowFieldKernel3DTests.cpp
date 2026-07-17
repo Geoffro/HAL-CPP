@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace FlowFieldKernel3DTestsInternal
 {
     const double kTwoPi = 6.28318530717958647692;
 
@@ -27,6 +27,8 @@ namespace
         vz = c * std::sin(y) + b * std::cos(x);
     }
 }
+
+using namespace FlowFieldKernel3DTestsInternal;
 
 // The advection is a deterministic RK2 map with no cross-particle coupling,
 // so the GPU result must match a CPU replay of the same ABC-flow RK2 step

@@ -1,0 +1,75 @@
+# Encodes docs/coding_standards.md where clang-format can express the rule.
+# Requires clang-format >= 16 (uses PackConstructorInitializers, PointerAlignment
+# object form is not used here but several other options below need >=16 too).
+# Several standards rules have no clang-format equivalent - see the notes at the
+# bottom of docs/coding_standards.md.
+
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++20
+
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: false
+
+# Braces and Layout: opening braces always on their own line.
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Empty
+
+# Classes: `MyClass()` with no space before the parens; `if (...)` with a space.
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+
+# Pointers/refs bind to the variable name: `Type &name`, `Type *pName`.
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+# Classes: align consecutive member declarations and their types.
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+
+# Classes: align consecutive `field = value;` assignment blocks, including
+# compound assignments like `field *= value;` (AlignCompound).
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCompound: true
+  PadOperators: true
+
+# Functions: first arg on the line, one-per-line after that, aligned under
+# the opening paren, when the whole call/signature doesn't fit on one line -
+# no partial packing, for both declarations (Parameters) and call sites
+# (Arguments).
+AlignAfterOpenBracket: Align
+BinPackParameters: false
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Constructors: leading-comma initializer list, one member per line.
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+# Conditionals: `if ((a) && (b))` spacing, not `if(a&&b)`.
+SpacesInParentheses: false
+SpaceBeforeCtorInitializerColon: true
+
+SortIncludes: true
+IncludeBlocks: Preserve
+
+ReflowComments: true
+Cpp11BracedListStyle: false
