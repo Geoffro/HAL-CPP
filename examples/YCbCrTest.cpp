@@ -1,5 +1,4 @@
-// Ported from LEARN_HERE/Other/yCbCrTest: renders the Cb/Cr chroma plane
-// (at fixed luma) across the grid, a smooth 2D sweep of colors.
+// Renders the Cb/Cr chroma plane (at fixed luma) across the grid.
 //
 // Live window by default; pass "headless" to dump the plane to ycbcrtest.png.
 

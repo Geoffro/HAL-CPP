@@ -12,26 +12,13 @@ namespace Hal
 {
     namespace Gpu
     {
-        // GPU implicit (ADI / Crank-Nicolson) 2D diffusion — the
-        // tridiagonal-solve-on-GPU stretch goal, mirroring
-        // Hal::Internal::Diffusion2DADI: each step is two
-        // directional sweeps (solve along x per row with the explicit y
-        // half-step as RHS, then along y per column), each line's
-        // tridiagonal system solved by one workgroup with PCR (parallel
-        // cyclic reduction) in shared memory; wrapped axes go through the
-        // same Sherman-Morrison decomposition TdmaSolver::TDMAperiodic
-        // uses (see shaders/AdiSweep2D.comp).
-        //
-        // Same architecture as the reworked DiffusionKernel2D: VMA
-        // device-local buffers (two, ping-ponged between sweeps) plus one
-        // persistently mapped staging buffer, fence-synchronized, and
-        // GPU-resident stepping — RunSteps records all sweeps of all
-        // steps into ONE submission with one upload and one readback.
-        //
-        // Because each line lives in one workgroup's shared memory, grid
-        // dimensions are capped at kMaxLine (1024, matching the shader's
-        // fixed workgroup size); the constructor validates the dimensions
-        // and the device's workgroup limits and throws if unsupported.
+        // GPU implicit (ADI) 2D diffusion matching Hal::Internal::Diffusion2DADI
+        // with zero-flux or periodic boundaries. Each step is two sweeps (x then
+        // y); each line's tridiagonal system is solved by one workgroup with
+        // parallel cyclic reduction (shaders/AdiSweep2D.comp), and periodic axes
+        // use the Sherman-Morrison decomposition. RunSteps runs all steps in one
+        // submission. Grid dimensions are capped at kMaxLine, and the device must
+        // support the shader's workgroup size and shared memory (IsSupported).
         class AdiKernel2D
         {
         public:
@@ -43,10 +30,8 @@ namespace Hal
             AdiKernel2D(const AdiKernel2D &other) = delete;
             AdiKernel2D &operator=(const AdiKernel2D &other) = delete;
 
-            // Runs `steps` full ADI steps (two sweeps each) entirely on
-            // the GPU: field is uploaded once, evolved in place, and
-            // written back once. No CFL cap — ADI is unconditionally
-            // stable, exactly like the CPU DiffusionADI.
+            // Runs `steps` ADI steps on the GPU; field is uploaded once and read
+            // back once. Unconditionally stable.
             void RunSteps(std::vector<float> &field,
                           int32_t             steps,
                           float               diffRate,
@@ -55,7 +40,13 @@ namespace Hal
 
             static const int32_t kMaxLine = 1024;
 
+            // True if the device supports the workgroup size and shared
+            // memory the solve needs.
+            static bool IsSupported(ComputeContext &context);
+
         private:
+            void Destroy();
+
             void CreateBuffers();
             void CreateDescriptorObjects();
             void CreatePipeline();

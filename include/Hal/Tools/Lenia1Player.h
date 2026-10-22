@@ -8,24 +8,13 @@
 
 namespace Hal
 {
-    // Single-channel Lenia, a continuous cellular automaton, ported from
-    // Tools/Lenia/Lenia1Player.java. Each step convolves the state field A
-    // with a fixed radial kernel K (via the FFT — see Hal::FftGrid), maps
-    // the resulting per-cell "potential" through a growth function G, and
-    // integrates: A <- clamp(A + G(K * A) * deltaT, 0, 1).
-    //
-    // The kernel and growth functions are std::function<double(double)>:
-    // they are stored, swappable at runtime (SetKernelFunction /
-    // SetGrowthFunction, like the Java setters), and typically capture
-    // parameters (kernel radius, growth mean/width). This is the
-    // stored-configurable-callback case, distinct from the hot per-call
-    // PDE boundary callbacks that docs/DESIGN.md's callback-style rule
-    // targets — the growth call, though per-cell, is a simple scalar map
-    // and correctness/runtime-flexibility matter more here than shaving
-    // the type-erasure indirection.
-    //
-    // KernelFn maps a distance-from-the-focal-cell to a kernel weight;
-    // GrowthFn maps a convolved potential to a growth rate.
+    // Single-channel Lenia, a continuous cellular automaton. Each step
+    // convolves the state field A with a radial kernel K (via FftGrid),
+    // maps the result through a growth function G, and integrates:
+    //     A <- clamp(A + G(K * A) * deltaT, 0, 1)
+    // The kernel function maps distance from the focal cell to a weight;
+    // the growth function maps a convolved value to a growth rate. Both
+    // are stored and can be replaced at runtime.
     class Lenia1Player
     {
     public:

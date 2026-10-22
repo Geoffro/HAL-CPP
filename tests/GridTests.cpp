@@ -3,10 +3,15 @@
 #include "Hal/Grids/Grid1D.h"
 #include "Hal/Grids/Grid2D.h"
 #include "Hal/Grids/Grid3D.h"
+#include "Hal/Grids/GridGeometry1D.h"
 #include "Hal/Grids/GridGeometry2D.h"
 #include "Hal/Grids/GridGeometry3D.h"
 #include "Hal/Neighborhood.h"
 
+#include "Hal/Rand.h"
+
+#include <set>
+#include <stdexcept>
 #include <vector>
 
 TEST_CASE("Grid2D Get/Set/Add operate correctly by index and by coordinate")
@@ -61,7 +66,7 @@ TEST_CASE("Grid2D SetAll/AddAll/MulAll/BoundAll/GetSum/GetAvg/GetMax/GetMin")
     CHECK(grid.GetMin() == doctest::Approx(8.0));
 }
 
-TEST_CASE("Grid2D<int32_t> GetAvg truncates like HAL's Java Grid2Dint")
+TEST_CASE("Grid2D<int32_t> GetAvg truncates")
 {
     Hal::Grid2D<int32_t> grid(1, 3);
     grid.Set(0, 1);
@@ -161,13 +166,8 @@ TEST_CASE("Grid3D MapHood maps the Moore3D template onto an interior center")
     CHECK(count == 26);
 }
 
-// Regression test for a port-introduced (not Java) sign-flip bug: an
-// earlier version of GridGeometry2D/3D's wrap-mode DispX/DispY/DispZ
-// called DispWrap with its arguments swapped relative to the non-wrap
-// branch, so wrapping around the boundary flipped the displacement's
-// sign instead of just picking the shorter path. Checked here directly
-// rather than through a squared-distance query, since squared distance
-// can't detect a sign flip.
+// Wrapped displacements must keep the non-wrap sign convention; checked
+// directly because squared distances can't see a sign flip.
 TEST_CASE("GridGeometry2D::DispX/DispY agree in sign with the non-wrap case when a wrap shortcut is taken")
 {
     Hal::GridGeometry2D grid(10, 10, true, true);
@@ -191,4 +191,167 @@ TEST_CASE("GridGeometry3D::DispX/DispY/DispZ agree in sign with the non-wrap cas
     CHECK(grid.DispY(9.0, 1.0) == doctest::Approx(2.0));
     CHECK(grid.DispZ(1.0, 9.0) == doctest::Approx(-2.0));
     CHECK(grid.DispZ(9.0, 1.0) == doctest::Approx(2.0));
+}
+
+TEST_CASE("GridGeometry1D::DispX agrees in sign with the non-wrap case when a wrap shortcut is taken")
+{
+    Hal::GridGeometry1D grid(10, true);
+
+    CHECK(grid.DispX(1.0, 9.0) == doctest::Approx(-2.0));
+    CHECK(grid.DispX(9.0, 1.0) == doctest::Approx(2.0));
+    CHECK(grid.DispX(2.0, 5.0) == doctest::Approx(3.0));
+    CHECK(grid.DispX(5.0, 2.0) == doctest::Approx(-3.0));
+}
+
+TEST_CASE("GridGeometry1D: WrapI, hood mapping, and neighborhood helpers")
+{
+    Hal::GridGeometry1D wrapped(5, true);
+    Hal::GridGeometry1D bounded(5, false);
+    CHECK(wrapped.WrapI(-1) == 4);
+    CHECK(wrapped.WrapI(7) == 2);
+    CHECK(bounded.WrapI(3) == 3);
+    CHECK_THROWS_AS(bounded.WrapI(5), std::invalid_argument);
+
+    std::vector<int32_t> hood = {0, 0, -1, 1};
+    CHECK(bounded.GetHoodI(hood.data(), 4, 0, 0) == -1);
+    CHECK(wrapped.GetHoodI(hood.data(), 4, 0, 0) == 4);
+    CHECK(bounded.ContainsValidI(hood.data(), 4, 0, [](int32_t x) { return x == 1; }));
+    CHECK_FALSE(bounded.ContainsValidI(hood.data(), 4, 0, [](int32_t x) { return x == 4; }));
+
+    std::vector<int32_t> visited;
+    wrapped.ApplyHoodWithIndex(hood.data(), 4, 0, [&](int32_t entry, int32_t x) { visited.push_back(entry * 10 + x); });
+    CHECK(visited == std::vector<int32_t>{4, 11});
+
+    std::vector<int32_t> evalHood = hood;
+    int32_t count = bounded.MapHood(evalHood.data(), 4, 2, [](int32_t x) { return x > 2; });
+    REQUIRE(count == 1);
+    CHECK(evalHood[0] == 3);
+
+    std::vector<int32_t> rect;
+    wrapped.ApplyRectangle(3, 4, [&](int32_t x) { rect.push_back(x); });
+    CHECK(rect == std::vector<int32_t>{3, 4, 0, 1});
+
+    std::vector<int32_t> edges;
+    bounded.ForEdge([&](int32_t x) { edges.push_back(x); });
+    CHECK(edges == std::vector<int32_t>{0, 4});
+
+    Hal::GridGeometry1D coarse(10, false);
+    CHECK(bounded.MapXsq(4, coarse) == 9);
+    CHECK(bounded.MapXpt(2.5, coarse) == doctest::Approx(5.0));
+
+    Hal::Rand rand(1);
+    for (int32_t i = 0; i < 20; i++)
+    {
+        int32_t x = wrapped.RandomHoodI(hood.data(), 4, 0, rand);
+        CHECK(((x == 4) || (x == 1)));
+    }
+}
+
+TEST_CASE("GridGeometry2D: WrapI, Map*, GetHoodI, ContainsValidI, and ApplyRectangle")
+{
+    Hal::GridGeometry2D grid(4, 3, true, false);
+    CHECK(grid.WrapI(-1, 1) == grid.I(3, 1));
+    CHECK_THROWS_AS(grid.WrapI(0, 3), std::invalid_argument);
+
+    Hal::GridGeometry2D fine(8, 6, false, false);
+    CHECK(grid.MapXsq(1, fine) == 3);
+    CHECK(grid.MapYsq(2, fine) == 5);
+    CHECK(grid.MapI(grid.I(1, 2), fine) == fine.I(3, 5));
+    CHECK(grid.MapXpt(1.5, fine) == doctest::Approx(3.0));
+    CHECK(grid.MapYpt(1.5, fine) == doctest::Approx(3.0));
+
+    std::vector<int32_t> hood = Hal::VonNeumannHood(false);
+    int32_t length = static_cast<int32_t>(hood.size());
+    CHECK(grid.GetHoodI(hood.data(), length, 3, 0, 0) == grid.I(0, 0));
+    CHECK(grid.GetHoodI(hood.data(), length, 0, 0, 3) == -1);
+    CHECK(grid.ContainsValidI(hood.data(), length, 0, 0, [](int32_t x, int32_t y) { return (x == 3) && (y == 0); }));
+
+    std::set<int32_t> rect;
+    grid.ApplyRectangle(3, 1, 2, 2, [&](int32_t x, int32_t y) { rect.insert(grid.I(x, y)); });
+    CHECK(rect == std::set<int32_t>{grid.I(3, 1), grid.I(3, 2), grid.I(0, 1), grid.I(0, 2)});
+}
+
+TEST_CASE("GridGeometry2D: ForEdge visits each boundary square once and BoundaryIs lists rows then columns")
+{
+    Hal::GridGeometry2D grid(5, 4, false, false);
+    std::set<int32_t> visited;
+    int32_t calls = 0;
+    grid.ForEdge([&](int32_t i, int32_t x, int32_t y) {
+        CHECK(i == grid.I(x, y));
+        visited.insert(i);
+        calls++;
+    });
+    CHECK(calls == (2 * 5 + 2 * 4 - 4));
+    CHECK(visited.size() == static_cast<size_t>(calls));
+
+    std::vector<int32_t> boundary = grid.BoundaryIs();
+    REQUIRE(boundary.size() == static_cast<size_t>((5 + 4) * 2));
+    CHECK(boundary[0] == grid.I(0, 0));
+    CHECK(boundary[5] == grid.I(0, 3));
+    CHECK(boundary[10] == grid.I(0, 0));
+    CHECK(boundary[14] == grid.I(4, 0));
+}
+
+TEST_CASE("GridGeometry2D::AlongLineIs lists every square a segment crosses")
+{
+    Hal::GridGeometry2D grid(10, 10, false, false);
+    std::vector<int32_t> squares(32);
+    int32_t count = grid.AlongLineIs(0.5, 2.5, 4.5, 2.5, squares.data());
+    REQUIRE(count == 5);
+    for (int32_t i = 0; i < count; i++)
+    {
+        CHECK(squares[static_cast<size_t>(i)] == grid.I(i, 2));
+    }
+
+    count = grid.AlongLineIs(0.5, 0.5, 2.5, 2.5, squares.data());
+    CHECK(squares[0] == grid.I(0, 0));
+    CHECK(squares[static_cast<size_t>(count - 1)] == grid.I(2, 2));
+    CHECK(count == 5);
+}
+
+TEST_CASE("GridGeometry3D: WrapI, ConvI, GetHoodI, ForEdge, and BoundaryIs")
+{
+    Hal::GridGeometry3D grid(4, 3, 2, false, false, true);
+    CHECK(grid.WrapI(1, 1, -1) == grid.I(1, 1, 1));
+    CHECK_THROWS_AS(grid.WrapI(4, 0, 0), std::invalid_argument);
+
+    Hal::GridGeometry3D fine(8, 6, 4, false, false, false);
+    CHECK(grid.ConvI(grid.I(1, 2, 1), fine) == fine.I(3, 5, 3));
+    CHECK(grid.ConvZpt(1.0, fine) == doctest::Approx(2.0));
+
+    std::vector<int32_t> hood = Hal::VonNeumannHood3D(false);
+    int32_t length = static_cast<int32_t>(hood.size());
+    CHECK(grid.GetHoodI(hood.data(), length, 1, 1, 1, 4) == grid.I(1, 1, 0));
+    CHECK(grid.GetHoodI(hood.data(), length, 0, 1, 1, 1) == -1);
+
+    std::set<int32_t> visited;
+    int32_t calls = 0;
+    Hal::GridGeometry3D box(4, 4, 4, false, false, false);
+    box.ForEdge([&](int32_t i, int32_t, int32_t, int32_t) {
+        visited.insert(i);
+        calls++;
+    });
+    CHECK(calls == (64 - 8));
+    CHECK(visited.size() == static_cast<size_t>(calls));
+    CHECK(box.BoundaryIs().size() == static_cast<size_t>(6 * 16));
+}
+
+TEST_CASE("Grid1D and Grid3D aggregate helpers")
+{
+    Hal::Grid1D<int32_t> line(4);
+    line.SetAll(2);
+    line.Add(1, 4);
+    line.MulAll(1.5);
+    CHECK(line.GetSum() == (3 + 9 + 3 + 3));
+    CHECK(line.GetMax() == 9);
+    CHECK(line.GetMin() == 3);
+    CHECK(line.GetAvg() == 4);
+    line.BoundAll(0, 5);
+    CHECK(line.GetMax() == 5);
+
+    Hal::Grid3D<double> volume(2, 2, 2);
+    volume.SetAll(1.0);
+    volume.Set(1, 1, 1, 9.0);
+    CHECK(volume.GetAvg() == doctest::Approx(2.0));
+    CHECK(volume.Get(volume.I(1, 1, 1)) == doctest::Approx(9.0));
 }

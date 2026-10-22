@@ -1,10 +1,9 @@
 #pragma once
 
-// The Outbreak SIR-style model from Examples/MultiwellOutbreak (Person +
-// OutbreakWorld), extracted into a header so it can drive both a standalone
-// example and the MultiOutbreak multi-well experiment. Chart/GIF drawing is
-// dropped; per-cell coloring is exposed via the static ReturnColor so the
-// caller (a GridWindow or a MultiWellExperiment drawer) renders it.
+// The SIR-style outbreak model (Person + OutbreakWorld), shared by the
+// OutbreakWorld example and the MultiOutbreak multi-well experiment.
+// Per-cell coloring is exposed via the static ReturnColor so the caller (a
+// GridWindow or a MultiWellExperiment drawer) renders it.
 //
 // Inspired by https://www.meltingasphalt.com/interactive/outbreak/
 

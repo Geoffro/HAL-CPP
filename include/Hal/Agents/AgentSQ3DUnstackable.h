@@ -9,10 +9,8 @@
 
 namespace Hal
 {
-    // On-lattice 3D agent with at most one agent per grid square, ported
-    // from GridsAndAgents/AgentSQ3Dunstackable.java. See
-    // AgentSQ2DUnstackable.h for the 2D version this mirrors; TGrid must
-    // expose `using AgentType = <derived agent type>;` (see AgentGrid3D.h).
+    // On-lattice 3D agent; at most one agent per voxel (see
+    // AgentSQ2DUnstackable.h).
     template <typename TGrid>
     class AgentSQ3DUnstackable : public AgentBase<TGrid>
     {
@@ -186,6 +184,10 @@ namespace Hal
 
         void Dispose()
         {
+            if (!this->IsAlive())
+            {
+                throw std::runtime_error("attempting to dispose already dead agent");
+            }
             RemSQ();
             this->m_pGrid->RemoveAgent(*static_cast<typename TGrid::AgentType *>(this));
         }
@@ -204,9 +206,7 @@ namespace Hal
             return this->m_pGrid->MapHood(pHood, hoodLength, m_xSq, m_ySq, m_zSq);
         }
 
-        // Duck-typed to match AgentPT3D's linked-list walk — see
-        // AgentSQ2DUnstackable.h for why this is templated on the pointer
-        // type rather than spelling `TGrid::AgentType*` directly.
+        // See AgentSQ2DUnstackable::GetAllOnSquare.
         template <typename TPtr>
         void GetAllOnSquare(std::vector<TPtr *> &putHere)
         {

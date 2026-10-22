@@ -12,15 +12,8 @@ namespace Hal
 {
     namespace Gpu
     {
-        // GPU-resident volumetric Gray-Scott reaction-diffusion (see
-        // shaders/GrayScott3D.comp): two coupled chemical fields U and V on
-        // a toroidal 3D grid, whose Turing instability grows the sponge /
-        // coral / gyroid morphologies the Gpu3DReactionDiffusion showcase
-        // renders. The 3D analogue of GrayScottKernel2D — same VMA
-        // device-local ping-pong buffers (one interleaved vec2 per voxel),
-        // persistently mapped staging, fence sync, and GPU-resident
-        // RunSteps (a whole batch of steps in one submission, one upload and
-        // one readback, reaction and both diffusions on the device).
+        // GPU Gray-Scott reaction-diffusion on a toroidal 3D grid
+        // (shaders/GrayScott3D.comp); see GrayScottKernel2D.
         class GrayScott3DKernel
         {
         public:
@@ -33,10 +26,8 @@ namespace Hal
             GrayScott3DKernel(const GrayScott3DKernel &other) = delete;
             GrayScott3DKernel &operator=(const GrayScott3DKernel &other) = delete;
 
-            // Runs `steps` full Gray-Scott steps entirely on the GPU. Both
-            // arrays are length xDim*yDim*zDim in (x*yDim + y)*zDim + z
-            // order. feed/kill select the morphology; diffU/diffV are the
-            // two diffusion rates (typically diffU > diffV).
+            // Runs `steps` Gray-Scott steps on the GPU. u and v hold xDim*yDim*zDim
+            // values each, indexed (x*yDim + y)*zDim + z.
             void RunSteps(std::vector<float> &u,
                           std::vector<float> &v,
                           int32_t             steps,
@@ -46,6 +37,8 @@ namespace Hal
                           float               diffV);
 
         private:
+            void Destroy();
+
             void CreateBuffers();
             void CreateDescriptorObjects();
             void CreatePipeline();

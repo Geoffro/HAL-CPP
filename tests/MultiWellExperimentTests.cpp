@@ -68,10 +68,13 @@ TEST_CASE("Hal::MultiWellExperiment: Render places each well at the right offset
     experiment.Render(DrawModel);
 
     int32_t width = experiment.CompositeWidth();
+    int32_t height = experiment.CompositeHeight();
     const std::vector<uint8_t> &pixels = experiment.Pixels();
+    // Composite coordinates are y-up; image row 0 is the top.
     auto pixelAt = [&](int32_t cx, int32_t cy, int32_t channel)
     {
-        return static_cast<int32_t>(pixels[(static_cast<size_t>(cy) * static_cast<size_t>(width) + static_cast<size_t>(cx)) * 4 + static_cast<size_t>(channel)]);
+        size_t row = static_cast<size_t>(height - 1 - cy);
+        return static_cast<int32_t>(pixels[(row * static_cast<size_t>(width) + static_cast<size_t>(cx)) * 4 + static_cast<size_t>(channel)]);
     };
 
     // Well 0 (id 10) occupies composite (0..2, 0..1). Local (0,0) at (0,0).
@@ -88,7 +91,7 @@ TEST_CASE("Hal::MultiWellExperiment: Render places each well at the right offset
     CHECK(pixelAt(4, 0, 0) == 30);
     CHECK(pixelAt(4, 0, 1) == 0);
 
-    // Well 1 (id 20) is below well 0: yWell=1 -> yStart=3. Local (0,0) at
+    // Well 1 (id 20) is above well 0: yWell=1 -> yStart=3. Local (0,0) at
     // composite (0,3).
     CHECK(pixelAt(0, 3, 0) == 20);
 
@@ -117,10 +120,12 @@ TEST_CASE("Hal::MultiWellExperiment: unused layout cells stay border-colored")
     experiment.Render(DrawModel);
 
     int32_t width = experiment.CompositeWidth();
+    int32_t height = experiment.CompositeHeight();
     const std::vector<uint8_t> &pixels = experiment.Pixels();
-    // The 4th cell (well index 3: xWell=1,yWell=1 -> composite (4,3)) is
-    // never drawn, so it holds the border color.
-    size_t idx = (static_cast<size_t>(3) * static_cast<size_t>(width) + static_cast<size_t>(4)) * 4;
+    // The 4th cell (well index 3: xWell=1,yWell=1 -> composite (4,3), y-up)
+    // is never drawn, so it holds the border color.
+    size_t row = static_cast<size_t>(height - 1 - 3);
+    size_t idx = (row * static_cast<size_t>(width) + static_cast<size_t>(4)) * 4;
     CHECK(static_cast<int32_t>(pixels[idx]) == 7);
     CHECK(static_cast<int32_t>(pixels[idx + 1]) == 8);
     CHECK(static_cast<int32_t>(pixels[idx + 2]) == 9);

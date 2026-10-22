@@ -1,9 +1,8 @@
-// Ported from Examples/_3OffLatticeExample: two competing cell types
-// (purple / pink) as spherical off-lattice agents. Cells push apart via
-// Hooke's-law contact forces, and divide at a type-specific base rate that
-// is contact-inhibited by the total force they feel, so crowding slows
-// growth. Cells draw as a colored nucleus on a shared "cytoplasm" disc.
-// Writes per-type populations to poponts.csv.
+// Two competing cell types (purple / pink) as spherical off-lattice
+// agents. Cells push apart via Hooke's-law contact forces and divide at a
+// type-specific rate that is contact-inhibited by the total force they
+// feel, so crowding slows growth. Cells draw as a colored nucleus on a
+// shared "cytoplasm" disc. Writes per-type populations to poponts.csv.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final frame to offlatticeexample.png.

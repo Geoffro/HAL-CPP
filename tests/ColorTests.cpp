@@ -139,3 +139,82 @@ TEST_CASE("Named default colors match their Rgb() equivalents and are fully opaq
     CHECK(Hal::GetAlpha256(Hal::WHITE) == 255);
     CHECK(Hal::GetBlue256(Hal::MAGENTA) == 255);
 }
+
+static_assert(Hal::RED == static_cast<int32_t>(0xFFFF0000u), "named colors are compile-time constants");
+
+TEST_CASE("Fractional channel accessors and setters round-trip through 0..255")
+{
+    int32_t color = Hal::Rgba(1.0, 0.5, 0.0, 0.25);
+    CHECK(Hal::GetRed(color) == doctest::Approx(1.0));
+    CHECK(Hal::GetGreen(color) == doctest::Approx(128.0 / 255.0));
+    CHECK(Hal::GetBlue(color) == doctest::Approx(0.0));
+    CHECK(Hal::GetAlpha(color) == doctest::Approx(64.0 / 255.0));
+
+    color = Hal::SetRed(color, 0.0);
+    color = Hal::SetGreen(color, 1.0);
+    color = Hal::SetBlue(color, 2.0);
+    color = Hal::SetAlpha(color, 1.0);
+    CHECK(Hal::GetRed256(color) == 0);
+    CHECK(Hal::GetGreen256(color) == 255);
+    CHECK(Hal::GetBlue256(color) == 255);
+    CHECK(Hal::GetAlpha256(color) == 255);
+}
+
+TEST_CASE("The six HeatMap channel orders permute the same ramp, and ranged overloads rescale first")
+{
+    int32_t rgb = Hal::HeatMapRgb(0.5);
+    CHECK(Hal::GetRed256(rgb) == 255);
+    CHECK(Hal::GetGreen256(rgb) == 128);
+    CHECK(Hal::GetBlue256(rgb) == 0);
+
+    int32_t first = Hal::GetRed256(rgb);
+    int32_t second = Hal::GetGreen256(rgb);
+    int32_t third = Hal::GetBlue256(rgb);
+    CHECK(Hal::HeatMapRbg(0.5) == Hal::Rgb256(first, third, second));
+    CHECK(Hal::HeatMapGrb(0.5) == Hal::Rgb256(second, first, third));
+    CHECK(Hal::HeatMapGbr(0.5) == Hal::Rgb256(third, first, second));
+    CHECK(Hal::HeatMapBrg(0.5) == Hal::Rgb256(second, third, first));
+    CHECK(Hal::HeatMapBgr(0.5) == Hal::Rgb256(third, second, first));
+
+    CHECK(Hal::HeatMapRgb(15.0, 10.0, 20.0) == Hal::HeatMapRgb(0.5));
+    CHECK(Hal::HeatMapRbg(15.0, 10.0, 20.0) == Hal::HeatMapRbg(0.5));
+    CHECK(Hal::HeatMapGrb(15.0, 10.0, 20.0) == Hal::HeatMapGrb(0.5));
+    CHECK(Hal::HeatMapGbr(15.0, 10.0, 20.0) == Hal::HeatMapGbr(0.5));
+    CHECK(Hal::HeatMapBrg(15.0, 10.0, 20.0) == Hal::HeatMapBrg(0.5));
+    CHECK(Hal::HeatMapBgr(15.0, 10.0, 20.0) == Hal::HeatMapBgr(0.5));
+    CHECK(Hal::HeatMapRgb(1.0) == Hal::WHITE);
+    CHECK(Hal::HeatMapRgb(0.0) == Hal::BLACK);
+}
+
+TEST_CASE("HeatMapParula clamps to its endpoint colors and HeatMapJet's ranged form rescales")
+{
+    CHECK(Hal::HeatMapParula(-1.0) == Hal::Rgb(0.2, 0.2, 0.5));
+    CHECK(Hal::HeatMapParula(2.0) == Hal::YELLOW);
+    CHECK(Hal::HeatMapParula(5.0, 0.0, 10.0) == Hal::HeatMapParula(0.5));
+    CHECK(Hal::HeatMapJet(3.0, 2.0, 4.0) == Hal::HeatMapJet(0.5));
+}
+
+TEST_CASE("ColorMap2D interpolates between its four corner colors")
+{
+    CHECK(Hal::ColorMap2D(0.0, 0.0, Hal::RED, Hal::GREEN, Hal::BLUE, Hal::WHITE) == Hal::RED);
+    CHECK(Hal::ColorMap2D(1.0, 0.0, Hal::RED, Hal::GREEN, Hal::BLUE, Hal::WHITE) == Hal::GREEN);
+    CHECK(Hal::ColorMap2D(0.0, 1.0, Hal::RED, Hal::GREEN, Hal::BLUE, Hal::WHITE) == Hal::BLUE);
+    CHECK(Hal::ColorMap2D(1.0, 1.0, Hal::RED, Hal::GREEN, Hal::BLUE, Hal::WHITE) == Hal::WHITE);
+}
+
+TEST_CASE("ColorString lists every channel")
+{
+    CHECK(Hal::ColorString(Hal::Rgba256(1, 2, 3, 4)) == "r: 1, g: 2, b: 3, a: 4");
+}
+
+TEST_CASE("YCbCrColor, CbCrPlaneColor, and HsLuvColor produce the expected anchor colors")
+{
+    int32_t grey = Hal::YCbCrColor(0.5, 0.5, 0.5);
+    CHECK(Hal::GetRed256(grey) == 128);
+    CHECK(Hal::GetGreen256(grey) == 128);
+    CHECK(Hal::GetBlue256(grey) == 128);
+    CHECK(Hal::CbCrPlaneColor(0.5, 0.5) == grey);
+
+    CHECK(Hal::HsLuvColor(1.0, 0.0) == Hal::Rgb256(89, 60, 255));
+    CHECK(Hal::GetAlpha256(Hal::HsLuvColor(0.3, 0.7)) == 255);
+}

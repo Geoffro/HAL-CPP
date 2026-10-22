@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include "TestSupport.h"
+
 #include "Hal/Grids/Grid2D.h"
 #include "Hal/Video/GridRender.h"
 #include "Hal/Video/PngExport.h"
@@ -13,28 +15,16 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <vector>
 
-// ---------------------------------------------------------------------
-// PNG export is checked against an exact ground truth: PNG is lossless,
-// so decoding the file back (via the separately-vendored stb_image
-// reader, not the writer used to produce it) must reproduce every byte
-// of the original RGBA buffer exactly — not just "looks like an image."
-//
-// MPEG video export can't be checked this way (it's lossy, and HAL
-// doesn't vendor a decoder) — that test instead checks the small set of
-// things that are true regardless of compression: the file starts with
-// the correct MPEG sequence-header magic bytes, ends with the
-// sequence-end code, and grows as more frames are added.
-// ---------------------------------------------------------------------
-
-static std::string TempFilePath(const std::string &name)
-{
-    return (std::filesystem::temp_directory_path() / name).string();
-}
+// PNG is lossless, so decoding the file (with the separate stb_image
+// reader) must reproduce the RGBA buffer exactly. MPEG is lossy and has
+// no vendored decoder, so the video test checks the sequence header and
+// end codes and that the file grows per frame.
 
 TEST_CASE("Hal::ExportPng + Hal::RenderGrid2DToRgba round-trips exactly through a real PNG file")
 {
-    std::string path = TempFilePath("hal_test_export.png");
+    std::string path = TestHelpers::TempFilePath("hal_test_export.png");
 
     Hal::Grid2D<double> grid(6, 4);
     for (int32_t x = 0; x < 6; x++)
@@ -73,7 +63,7 @@ TEST_CASE("Hal::ExportPng + Hal::RenderGrid2DToRgba round-trips exactly through 
 
 TEST_CASE("Hal::VideoWriter produces a file with a valid MPEG sequence header and end code, growing with each frame")
 {
-    std::string path = TempFilePath("hal_test_export.mpg");
+    std::string path = TestHelpers::TempFilePath("hal_test_export.mpg");
 
     const int32_t width = 16;
     const int32_t height = 16;
@@ -117,4 +107,24 @@ TEST_CASE("Hal::VideoWriter produces a file with a valid MPEG sequence header an
     CHECK(bytes[n - 1] == 0xB7);
 
     std::remove(path.c_str());
+}
+
+TEST_CASE("ExportPng and VideoWriter::AddFrame reject buffers of the wrong size")
+{
+    std::vector<uint8_t> tooSmall(4 * 4 * 4 - 1, 0);
+    CHECK_FALSE(Hal::ExportPng(TestHelpers::TempFilePath("hal_test_bad_size.png"), 4, 4, tooSmall));
+    CHECK_FALSE(Hal::ExportPng(TestHelpers::TempFilePath("hal_test_bad_dims.png"), 0, 4, tooSmall));
+
+    std::string path = TestHelpers::TempFilePath("hal_test_bad_size.mpg");
+    {
+        Hal::VideoWriter writer(path, 16, 16, 30);
+        REQUIRE(writer.IsOpen());
+        CHECK_FALSE(writer.AddFrame(tooSmall));
+        CHECK(writer.AddFrame(std::vector<uint8_t>(16 * 16 * 4, 128)));
+    }
+    std::remove(path.c_str());
+
+    Hal::VideoWriter unopened(TestHelpers::TempFilePath("hal_test_no_such_dir/out.mpg"), 16, 16, 30);
+    CHECK_FALSE(unopened.IsOpen());
+    CHECK_FALSE(unopened.AddFrame(std::vector<uint8_t>(16 * 16 * 4, 0)));
 }

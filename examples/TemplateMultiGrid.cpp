@@ -1,8 +1,7 @@
-// Ported from Examples/Template_Models/TemplateMultiGrid: the multi-grid
-// skeleton — an on-lattice agent grid, an off-lattice spherical agent grid,
-// and a 3D PDE all sharing one domain, drawn together in the software 3D
-// window. The PDE field is shown as a lattice of tiny colored spheres, with
-// each agent as a larger sphere. A starting point to copy from.
+// Multi-grid skeleton: an on-lattice agent grid, an off-lattice spherical
+// agent grid, and a 3D PDE sharing one domain, drawn together in the
+// software 3D window. The PDE is shown as a lattice of tiny colored
+// spheres, each agent as a larger sphere. A starting point to copy from.
 //
 // Live window by default (drag to orbit, up/down to zoom); pass "headless"
 // to run a bounded number of steps and dump the final frame to

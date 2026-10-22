@@ -1,21 +1,10 @@
 #version 450
 
-// GPU-resident 2D wave equation (leapfrog / Verlet time integration) — the
-// hyperbolic counterpart to the parabolic diffusion kernels. Where
-// diffusion smooths and dissipates, this propagates and interferes: it is
-// the "ripple tank" behind examples/GpuWaveField.cpp.
-//
-// Discretizing u_tt = c^2 * laplacian(u) with a centered second time
-// difference gives the explicit leapfrog update
+// 2D wave equation by leapfrog: discretizing u_tt = c^2 * laplacian(u)
+// gives
 //   u_next = 2*u_cur - u_prev + speed2 * laplacian(u_cur)
-// where speed2 = (c*dt/dx)^2 (CFL-stable for speed2 <= 0.5 in 2D). A
-// per-step multiplicative `damping` bleeds energy so the tank settles
-// between source pulses instead of ringing forever.
-//
-// Ping-pong: binding 0 is the current field (read), binding 1 is the
-// previous field (read) which is overwritten with u_next; the host swaps
-// the roles each step by alternating descriptor sets. A 5-point Laplacian
-// keeps the update compact; the grid is toroidal when wrap is set.
+// with speed2 = (c*dt/dx)^2 (stable for speed2 <= 0.5 in 2D). A per-step
+// multiplicative damping removes energy.
 
 layout(local_size_x = 16, local_size_y = 16) in;
 

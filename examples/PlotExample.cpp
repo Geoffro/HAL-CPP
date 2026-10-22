@@ -1,5 +1,5 @@
-// Ported from LEARN_HERE/Other/PlotExample: the minimal plot demo — a
-// single red polyline through a handful of hand-picked points.
+// The minimal plot demo: a single red polyline through a handful of
+// points.
 //
 // Always writes plotexample.png; also shows a window unless run with
 // "headless".

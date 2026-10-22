@@ -1,7 +1,7 @@
-// Ported from Examples/ODEmodel/TumorGrowth: a two-variable predator-prey
-// style tumor/immune ODE integrated with the adaptive Runge-Kutta-Fehlberg
-// solver (Runge45Record captures the whole trajectory), then plotted as
-// tumor (green) and immune (blue) population curves over time.
+// A two-variable predator-prey style tumor/immune ODE integrated with the
+// adaptive Runge-Kutta-Fehlberg solver (Runge45Record keeps the whole
+// trajectory), plotted as tumor (green) and immune (blue) curves over
+// time.
 //
 // Always writes tumorimmunemodel.png; also shows a window unless run with
 // "headless".

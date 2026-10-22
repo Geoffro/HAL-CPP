@@ -141,38 +141,38 @@
     {
       "check": "pointer-naming",
       "file": "examples/BirthDeathOffLattice.cpp",
-      "line": 102,
+      "line": 100,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Chemotaxis.cpp",
-      "line": 130,
+      "line": 129,
       "identifier": "overlap",
       "reason": "False positive: 'ChemotaxisModel::FORCE_SCALER * overlap' is a multiplication expression, not a pointer declaration."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Chemotaxis.cpp",
-      "line": 136,
+      "line": 135,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/ClinicianSim.cpp",
-      "line": 190,
+      "line": 188,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "raw-output",
       "file": "examples/ClinicianSim.cpp",
-      "line": 222,
+      "line": 220,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/ColorBarGenerator.cpp",
-      "line": 21,
+      "line": 18,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -214,20 +214,20 @@
     {
       "check": "pointer-naming",
       "file": "examples/CompetitiveRelease.cpp",
-      "line": 133,
+      "line": 132,
       "identifier": "SPACE_STEP",
       "reason": "False positive: 'SPACE_STEP * SPACE_STEP' is a multiplication expression, not a pointer declaration."
     },
     {
       "check": "pointer-naming",
       "file": "examples/CompetitiveRelease.cpp",
-      "line": 176,
+      "line": 175,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/DiffusionAdvection3D.cpp",
-      "line": 20,
+      "line": 19,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -245,25 +245,25 @@
     {
       "check": "raw-output",
       "file": "examples/FileIOTest.cpp",
-      "line": 31,
+      "line": 29,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "raw-output",
       "file": "examples/GOLSweepEx.cpp",
-      "line": 101,
+      "line": 98,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/GameOfLife.cpp",
-      "line": 125,
+      "line": 124,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Gas.cpp",
-      "line": 68,
+      "line": 67,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -323,13 +323,19 @@
     {
       "check": "raw-output",
       "file": "examples/Gradient2D.cpp",
-      "line": 25,
+      "line": 24,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "raw-output",
       "file": "examples/Gradient2D.cpp",
-      "line": 26,
+      "line": 25,
+      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
+    },
+    {
+      "check": "raw-output",
+      "file": "examples/Gradient3D.cpp",
+      "line": 28,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
@@ -345,45 +351,39 @@
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
-      "check": "raw-output",
-      "file": "examples/Gradient3D.cpp",
-      "line": 31,
-      "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
-    },
-    {
       "check": "pointer-naming",
       "file": "examples/HeatMaps.cpp",
-      "line": 18,
+      "line": 17,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/LineSegmentTest.cpp",
-      "line": 18,
+      "line": 17,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "raw-output",
       "file": "examples/LockExample.cpp",
-      "line": 46,
+      "line": 45,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/ModuleSetExample.cpp",
-      "line": 323,
+      "line": 318,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Mover3D.cpp",
-      "line": 46,
+      "line": 45,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Mover3DoffLattice.cpp",
-      "line": 45,
+      "line": 44,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -395,75 +395,75 @@
     {
       "check": "pointer-naming",
       "file": "examples/MultiwellExample.cpp",
-      "line": 27,
+      "line": 25,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "raw-output",
       "file": "examples/NonSpatialABM.cpp",
-      "line": 82,
+      "line": 81,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "raw-output",
       "file": "examples/NonSpatialABM.cpp",
-      "line": 84,
+      "line": 83,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/OffLatticeExample.cpp",
-      "line": 154,
+      "line": 153,
       "identifier": "overlap",
       "reason": "False positive: 'ExampleOffLattice::FORCE_SCALER * overlap' is a multiplication expression, not a pointer declaration."
     },
     {
       "check": "pointer-naming",
       "file": "examples/OffLatticeExample.cpp",
-      "line": 184,
+      "line": 183,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Orbium.cpp",
-      "line": 42,
+      "line": 39,
       "identifier": "SIGMA",
       "reason": "False positive: 'SIGMA * SIGMA' is a multiplication expression, not a pointer declaration."
     },
     {
       "check": "pointer-naming",
       "file": "examples/Orbium.cpp",
-      "line": 82,
+      "line": 79,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/OrbiumNPlayer.cpp",
-      "line": 60,
+      "line": 57,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/OutbreakWorld.cpp",
-      "line": 25,
+      "line": 23,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/PDEexample.cpp",
-      "line": 133,
+      "line": 131,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/PersianCarpets.cpp",
-      "line": 173,
+      "line": 172,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/PhylogenyModel.cpp",
-      "line": 194,
+      "line": 191,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -475,61 +475,61 @@
     {
       "check": "pointer-naming",
       "file": "examples/PopGrid.cpp",
-      "line": 25,
+      "line": 23,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/PopTumor.cpp",
-      "line": 192,
+      "line": 190,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "raw-output",
       "file": "examples/PopTumor.cpp",
-      "line": 212,
+      "line": 210,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/ReactionDiffusion2D.cpp",
-      "line": 22,
+      "line": 19,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/SaveLoadModel.cpp",
-      "line": 75,
+      "line": 73,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "raw-output",
       "file": "examples/SaveLoadModel.cpp",
-      "line": 104,
+      "line": 102,
       "reason": "example demo program prints its results/status directly to stdout (formatted tables, run summaries) -- this is the program's actual output, not application logging; same category as tools/'s CLI utilities per the module docstring."
     },
     {
       "check": "pointer-naming",
       "file": "examples/StemCellExample.cpp",
-      "line": 169,
+      "line": 166,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/TemplateMultiGrid.cpp",
-      "line": 151,
+      "line": 150,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/TemplateOffLattice2D.cpp",
-      "line": 66,
+      "line": 65,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/TemplateOnLattice2D.cpp",
-      "line": 73,
+      "line": 69,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
@@ -541,26 +541,26 @@
     {
       "check": "pointer-naming",
       "file": "examples/Vis3Dtest.cpp",
-      "line": 18,
+      "line": 17,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/YCbCrTest.cpp",
-      "line": 16,
+      "line": 15,
       "reason": "argv in a main() signature; established C/C++ convention, deliberately not given the pp prefix (see tools/check_coding_standards.py's module docstring)."
     },
     {
       "check": "pointer-naming",
       "file": "examples/models/OutbreakWorld.h",
-      "line": 90,
+      "line": 89,
       "identifier": "DIMENSION",
       "reason": "False positive: 'DIMENSION * DIMENSION' is a multiplication expression, not a 'Type *name' pointer declaration; the heuristic regex can't tell them apart on this shape."
     },
     {
       "check": "pointer-naming",
       "file": "examples/models/OutbreakWorld.h",
-      "line": 96,
+      "line": 95,
       "identifier": "FATALITY_MULTIPLIER_OVER_CAPACITY",
       "reason": "False positive: 'FATALITY_RATE * FATALITY_MULTIPLIER_OVER_CAPACITY' is a multiplication expression, not a pointer declaration."
     },

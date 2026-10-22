@@ -68,8 +68,21 @@ namespace Hal
                 allocInfo.allocationSize = memRequirements.size;
                 allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
-                CheckResult(vkAllocateMemory(device, &allocInfo, nullptr, &outMemory), "vkAllocateMemory failed");
-                CheckResult(vkBindBufferMemory(device, buffer, outMemory, 0), "vkBindBufferMemory failed");
+                VkResult result = vkAllocateMemory(device, &allocInfo, nullptr, &outMemory);
+                if (result == VK_SUCCESS)
+                {
+                    result = vkBindBufferMemory(device, buffer, outMemory, 0);
+                    if (result != VK_SUCCESS)
+                    {
+                        vkFreeMemory(device, outMemory, nullptr);
+                        outMemory = VK_NULL_HANDLE;
+                    }
+                }
+                if (result != VK_SUCCESS)
+                {
+                    vkDestroyBuffer(device, buffer, nullptr);
+                    CheckResult(result, "vkAllocateMemory/vkBindBufferMemory failed");
+                }
                 return buffer;
             }
 
@@ -89,21 +102,30 @@ namespace Hal
                 return buffer;
             }
 
-            bool HasInstanceExtension(const std::vector<VkExtensionProperties> &available,
-                                      const char                               *pName)
+            void CheckArgument(bool        condition,
+                               const char *pMessage)
             {
-                for (const VkExtensionProperties &ext : available)
+                if (!condition)
                 {
-                    if (std::string(ext.extensionName) == pName)
-                    {
-                        return true;
-                    }
+                    Logger::Instance().Log(LogSeverity::Error, pMessage);
+                    throw std::invalid_argument(pMessage);
                 }
-                return false;
             }
 
-            bool HasDeviceExtension(const std::vector<VkExtensionProperties> &available,
-                                    const char                               *pName)
+            void CheckSize(size_t      actual,
+                           size_t      expected,
+                           const char *pWhat)
+            {
+                if (actual != expected)
+                {
+                    std::string message = std::string(pWhat) + ": expected " + std::to_string(expected) + " elements, got " + std::to_string(actual);
+                    Logger::Instance().Log(LogSeverity::Error, message);
+                    throw std::invalid_argument(message);
+                }
+            }
+
+            bool HasExtension(const std::vector<VkExtensionProperties> &available,
+                              const char                               *pName)
             {
                 for (const VkExtensionProperties &ext : available)
                 {
@@ -146,10 +168,8 @@ namespace Hal
                 bufferInfo.usage = usage;
                 bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-                // HOST_ACCESS_RANDOM (not SEQUENTIAL) because readback
-                // staging is read by the host; VMA guarantees a
-                // HOST_VISIBLE|HOST_COHERENT type for it. CREATE_MAPPED
-                // keeps it mapped for the buffer's whole lifetime.
+                // HOST_ACCESS_RANDOM because readback staging is read by
+                // the host; VMA then picks a HOST_VISIBLE|HOST_COHERENT type.
                 VmaAllocationCreateInfo allocInfo = {};
                 allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
                 allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;

@@ -10,14 +10,8 @@
 
 namespace Hal
 {
-    // Templated 2D value grid, replacing HAL's per-type Grid2Ddouble /
-    // Grid2Dint / Grid2Dlong classes (a duplication Java needed because it
-    // has no usable generic primitive arrays) with a single template — see
-    // docs/DESIGN.md "Improvements over the Java version". Instantiate as
-    // Grid2D<double>, Grid2D<int32_t>, Grid2D<int64_t>, etc.
-    //
-    // NOTE: Gradient methods (GradientX/GradientY) are deferred to Phase 3,
-    // since in Java they depend on PDEequations, which doesn't exist yet.
+    // 2D value grid of T (Grid2D<double>, Grid2D<int32_t>, ...). Values are
+    // read and written directly; there is no delta buffer (see PDEGrid2D).
     template <typename T>
     class Grid2D : public GridGeometry2D
     {
@@ -88,9 +82,7 @@ namespace Hal
             m_field[I(x, y)] += val;
         }
 
-        // Matches HAL's Java Scale, which always takes a double factor
-        // (even on the int/long grid types) since scaling by a fractional
-        // amount is the common case.
+        // The factor is always a double; integer grids truncate the result.
         void Scale(int32_t i,
                    double  val)
         {
@@ -149,8 +141,7 @@ namespace Hal
             return tot;
         }
 
-        // Integer-valued grids truncate like HAL's Java Grid2Dint.GetAvg;
-        // floating-point grids return the true average.
+        // Integer grids return the truncated average.
         T GetAvg() const
         {
             T tot = T{};

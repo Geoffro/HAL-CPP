@@ -1,7 +1,7 @@
-// Ported from Examples/MultiwellOutbreak/MultiOutbreak: a 7x3 grid of
-// independent outbreak simulations, each with a different quarantine rate
-// (increasing across rows), composited via MultiWellExperiment so the
-// effect of quarantine on epidemic spread can be compared at a glance.
+// A 7x3 grid of independent outbreak simulations, each with a different
+// quarantine rate (increasing across rows), composited via
+// MultiWellExperiment so the effect of quarantine can be compared at a
+// glance.
 //
 // Live window by default; pass "headless" to run the fixed number of steps
 // and dump the final composite to multioutbreak.png.

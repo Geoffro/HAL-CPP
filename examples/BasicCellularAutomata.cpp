@@ -1,10 +1,10 @@
-// Ported from Examples/BasicCellularAutomata: a one-dimensional elementary
-// cellular automaton (Wolfram rule, default 35) grown row by row down the
-// grid, each new row's cells kept or removed by the rule applied to the
-// three cells above. The result is the classic self-similar triangle.
+// A one-dimensional elementary cellular automaton (Wolfram rule, default
+// 35) grown row by row down the grid: each new row's cells are kept or
+// removed by the rule applied to the three cells above, giving the classic
+// self-similar triangle.
 //
-// The Java version records a GIF; here the live window animates the growth
-// and the headless run dumps the final triangle to basiccellularautomata.png.
+// Live window by default; pass "headless" to dump the final triangle to
+// basiccellularautomata.png.
 
 #include "Hal/Agents/AgentSQ2DUnstackable.h"
 #include "Hal/Color.h"

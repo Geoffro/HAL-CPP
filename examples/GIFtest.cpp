@@ -1,7 +1,6 @@
-// Ported from LEARN_HERE/Other/GIFtest: animate a single randomly-recolored
-// pixel and record the frames to a movie. Java writes a GIF (GifMaker); this
-// port uses the C++ video path (VideoWriter, MP4) that replaced GIF export,
-// via GridWindow's recording API. Also dumps the final frame as a PNG.
+// Animates a single randomly recolored pixel and records the frames to a
+// movie through GridWindow's recording API, then dumps the final frame as a
+// PNG.
 //
 // Headless by nature (its point is the output files).
 

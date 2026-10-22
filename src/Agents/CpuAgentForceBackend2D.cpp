@@ -1,14 +1,16 @@
 #include "Hal/Agents/CpuAgentForceBackend2D.h"
 
+#include "Hal/Log/Logger.h"
+
 #include <cmath>
+#include <stdexcept>
 
 namespace Hal
 {
     namespace Internal
     {
         // Clamped cell coordinate for an agent position, matching
-        // AgentCellCount.comp's CellCoord (out-of-range positions bucket
-        // into the edge cell).
+        // AgentCellCount.comp (out-of-range positions use the edge cell).
         static int32_t AgentForceCellCoord(double  v,
                                            int32_t dim)
         {
@@ -24,9 +26,7 @@ namespace Hal
             return c;
         }
 
-        // Shortest signed displacement from a to b, wrapping if that is
-        // closer — matching GridGeometry2D::DispX/DispY and the Disp
-        // helper in AgentForceAccum.comp.
+        // b - a, taking the shorter path around a wrapped axis.
         static double AgentForceDisp(double  a,
                                      double  b,
                                      int32_t dim,
@@ -73,13 +73,17 @@ namespace Hal
                                                   bool                       wrapX,
                                                   bool                       wrapY)
     {
+        if (positions.size() != (radii.size() * 2))
+        {
+            Logger::Instance().Log(LogSeverity::Error, "CpuAgentForceBackend2D::AccumulateForces: positions must hold two values per radius");
+            throw std::invalid_argument("CpuAgentForceBackend2D::AccumulateForces: positions must hold two values per radius");
+        }
         int32_t numAgents = static_cast<int32_t>(radii.size());
         int32_t numCells = xDim * yDim;
         velocityDeltas.assign(static_cast<size_t>(numAgents) * 2, 0.0);
 
-        // Pass 1+2: per-cell counts folded straight into exclusive-prefix
-        // offsets (cellOffsets[c]..cellOffsets[c+1] is cell c's slot
-        // range, exactly the layout the GPU passes build).
+        // Passes 1+2: per-cell counts folded into exclusive-prefix offsets;
+        // cell c owns slots [cellOffsets[c], cellOffsets[c+1]).
         m_cellOffsets.assign(static_cast<size_t>(numCells) + 1, 0);
         for (int32_t i = 0; i < numAgents; i++)
         {
@@ -104,8 +108,7 @@ namespace Hal
             m_cellCursors[static_cast<size_t>(cell)]++;
         }
 
-        // Pass 4: per-agent bounding-box-of-cells scan + linear spring
-        // sum, the double-precision mirror of AgentForceAccum.comp.
+        // Pass 4: per-agent scan of the surrounding cells + spring sum.
         for (int32_t i = 0; i < numAgents; i++)
         {
             double posX = positions[static_cast<size_t>(i) * 2];

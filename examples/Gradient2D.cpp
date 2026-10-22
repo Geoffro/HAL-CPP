@@ -1,6 +1,5 @@
-// Headless port of LEARN_HERE/Diffusibles/Gradient2D.java: fill a PDEGrid2D
-// with a vertical ramp, then read back the finite-difference gradient at an
-// interior cell. Prints the x/y gradient the same way the Java demo does.
+// Headless: fills a PDEGrid2D with a vertical ramp, then prints the
+// finite-difference x/y gradient at an interior cell.
 
 #include "Hal/Grids/PDEGrid2D.h"
 

@@ -1,9 +1,7 @@
-// Ported from Examples/MultiwellOutbreak/OutbreakWorld (the standalone
-// single-world main): one SIR-style outbreak spreading from a central
-// cluster. Susceptible (grey) turns asymptomatic (pink), symptomatic (red),
-// then recovered (green) or dead (black); quarantined individuals draw blue,
-// and a green border flags when infections exceed hospital capacity. The
-// Java version's makeshift in-window chart is omitted.
+// One SIR-style outbreak spreading from a central cluster. Susceptible
+// (grey) turns asymptomatic (pink), symptomatic (red), then recovered
+// (green) or dead (black); quarantined individuals draw blue, and a green
+// border flags when infections exceed hospital capacity.
 //
 // Live window by default; pass "headless" to run the fixed number of steps
 // and dump the final frame to outbreakworld.png.

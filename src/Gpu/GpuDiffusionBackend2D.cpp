@@ -31,6 +31,7 @@ namespace Hal
             {
                 throw std::invalid_argument("GpuDiffusionBackend2D::Diffuse called with dimensions that don't match its fixed-size kernel");
             }
+            Hal::Internal::CheckFieldSizes(field, deltas, xDim, yDim, "GpuDiffusionBackend2D::Diffuse");
 
             size_t length = static_cast<size_t>(xDim) * static_cast<size_t>(yDim);
             std::vector<float> floatField(length);

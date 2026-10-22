@@ -11,10 +11,8 @@
 
 namespace Hal
 {
-    // Per-found-agent distance/displacement record filled by the
-    // displacement-info GetAgentsRad overloads: entry i describes
-    // retAgentList[i] (Java's double[4] of [dist, xDisp, yDisp, zDisp]).
-    // Displacements are from the query point to the agent, wrap-aware.
+    // Distance and wrap-aware displacement from a query point to a found
+    // agent, filled by the displacement-info GetAgentsRad overloads.
     struct AgentDisplacementInfo3D
     {
         double dist;
@@ -23,11 +21,7 @@ namespace Hal
         double dispZ;
     };
 
-    // On-lattice/off-lattice 3D agent grid, ported from
-    // GridsAndAgents/AgentGrid3D.java. See AgentGrid2D.h for the 2D
-    // version this mirrors (CRTP TDerived parameter, agnosticism to
-    // stackable vs. unstackable agent types, EvalAgent-filtered and
-    // displacement-info GetAgentsRad overloads).
+    // 3D agent grid (see AgentGrid2D.h).
     template <typename TAgent, typename TDerived>
     class AgentGrid3D : public GridGeometry3D
     {
@@ -188,6 +182,20 @@ namespace Hal
             return m_agents.Pop();
         }
 
+        // Number of agents occupying voxel i.
+        int32_t PopAt(int32_t i) const
+        {
+            TAgent *pAgent = GetAgent(i);
+            return (pAgent == nullptr) ? 0 : pAgent->GetCountOnSquare();
+        }
+
+        int32_t PopAt(int32_t x,
+                      int32_t y,
+                      int32_t z) const
+        {
+            return PopAt(I(x, y, z));
+        }
+
         void CleanAgents()
         {
             m_agents.CleanAgents();
@@ -217,8 +225,7 @@ namespace Hal
             return MapEmptyHood(pHood, hoodLength, this->ItoX(centerI), this->ItoY(centerI), this->ItoZ(centerI));
         }
 
-        // NOTE: lowercase begin()/end() — see the note in
-        // InternalAgentPool.h (C++ range-for protocol requirement).
+        // Lowercase for range-based for.
         typename InternalAgentPool<TAgent, TDerived>::Iterator begin()
         {
             return m_agents.begin();
@@ -336,10 +343,8 @@ namespace Hal
             }
         }
 
-        // Exact radius search: the same bucket scan as
-        // GetAgentsRadApprox, plus a true distance check per candidate —
-        // the cell-list neighbor search Phase 4's GPU compute path is
-        // expected to build on directly.
+        // Gets all agents within rad of (x,y,z): the GetAgentsRadApprox
+        // scan plus a wrap-aware distance check per candidate.
         void GetAgentsRad(std::vector<TAgent *> &retAgentList,
                           double                  x,
                           double                  y,
@@ -402,10 +407,7 @@ namespace Hal
             }
         }
 
-        // EvalAgent-filtered variant of the raw bucket scan: same
-        // over-inclusive box walk, keeping only agents the predicate
-        // accepts (evalAgent(pAgent) -> bool, a template callable per
-        // DESIGN.md's callback rule).
+        // GetAgentsRadApprox keeping only agents evalAgent(pAgent) accepts.
         template <typename EvalFn>
         void GetAgentsRadApprox(std::vector<TAgent *> &retAgentList,
                                 double                  x,
@@ -447,11 +449,7 @@ namespace Hal
             }
         }
 
-        // Exact radius search that also records each found agent's
-        // distance and wrap-aware displacement from the query point:
-        // displacementInfo[i] describes retAgentList[i]. Like Java, the
-        // info vector is padded so the indices line up even when
-        // retAgentList already held entries from an earlier query.
+        // See AgentGrid2D's displacement-info GetAgentsRad.
         void GetAgentsRad(std::vector<TAgent *>                &retAgentList,
                           std::vector<AgentDisplacementInfo3D> &displacementInfo,
                           double                                x,

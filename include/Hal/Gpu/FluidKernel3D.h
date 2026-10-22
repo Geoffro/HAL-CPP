@@ -12,15 +12,13 @@ namespace Hal
 {
     namespace Gpu
     {
-        // Parameters for one FluidKernel3D::RunSteps call. dt is in voxels
-        // per step (velocities are voxels/step); the dissipations are
-        // per-step multipliers (1 = lossless); buoyancy lifts hot fluid
-        // along +y proportional to (temperature - ambientTemperature).
-        // The source terms describe an analytic spherical divergence
-        // source (an outward blast wind) centered at (sourceX, sourceY,
-        // sourceZ) in voxel coordinates — set sourceStrength to 0 to
-        // disable it. pressureIterations is rounded up to even so the
-        // Jacobi ping-pong always lands the result in the same buffer.
+        // Parameters for one FluidKernel3D::RunSteps call. Velocities are in
+        // voxels per step; the dissipations are per-step multipliers
+        // (1 = lossless); buoyancy lifts fluid along +y in proportion to
+        // (temperature - ambientTemperature). The source is a spherical
+        // outward blast centered at (sourceX, sourceY, sourceZ) in voxels;
+        // sourceStrength 0 disables it. pressureIterations is rounded up to
+        // an even number.
         struct FluidParams
         {
             float   dt;
@@ -37,24 +35,12 @@ namespace Hal
             int32_t pressureIterations;
         };
 
-        // GPU-resident incompressible fluid solver — Stam's "Stable
-        // Fluids" (1999), the standard graphics model for smoke and fire:
-        // semi-Lagrangian advection (FluidAdvect3D.comp, unconditionally
-        // stable), buoyancy from an advected temperature field, and a
-        // pressure Poisson projection (FluidDivergence3D.comp +
-        // FluidJacobi3D.comp iterations + FluidProject3D.comp) that keeps
-        // the velocity field divergence-free — the projection is what
-        // produces the characteristic rolling, billowing motion. The
-        // domain is a closed box (clamped stencils, zero normal velocity
-        // at the walls), not toroidal.
-        //
-        // Velocity and pressure live ONLY on the device and persist
-        // across RunSteps calls; the caller sees just the scalar fields
-        // (density, temperature) it seeds and renders. Same VMA
-        // device-local buffer + persistently mapped staging + fence-sync
-        // architecture as GrayScott3DKernel: a whole batch of steps is
-        // recorded into one command buffer with one scalar upload before
-        // and one readback after.
+        // GPU incompressible fluid in a closed box, by Stam's stable fluids
+        // (1999): semi-Lagrangian advection with buoyancy
+        // (FluidAdvect3D.comp), then a Jacobi pressure projection
+        // (FluidDivergence3D/Jacobi3D/Project3D.comp). Velocity and pressure
+        // stay on the device across RunSteps calls; only the density and
+        // temperature are uploaded and read back.
         class FluidKernel3D
         {
         public:
@@ -67,18 +53,17 @@ namespace Hal
             FluidKernel3D(const FluidKernel3D &other) = delete;
             FluidKernel3D &operator=(const FluidKernel3D &other) = delete;
 
-            // Advances the fluid `steps` full solver steps (advect +
-            // buoyancy, divergence + source, pressure solve, project).
-            // scalars is interleaved (density, temperature) per voxel,
-            // length 2*xDim*yDim*zDim in (x*yDim + y)*zDim + z order; it
-            // is uploaded once, advected with the flow on the device, and
-            // read back once. The velocity field carries over from the
-            // previous call.
+            // Advances `steps` solver steps in one submission. scalars holds
+            // (density, temperature) pairs per voxel, indexed
+            // (x*yDim + y)*zDim + z; throws std::invalid_argument unless it
+            // holds 2*xDim*yDim*zDim values.
             void RunSteps(std::vector<float> &scalars,
                           int32_t             steps,
                           const FluidParams  &params);
 
         private:
+            void Destroy();
+
             void CreateBuffers();
             void CreateDescriptorObjects();
             void CreatePipelines();

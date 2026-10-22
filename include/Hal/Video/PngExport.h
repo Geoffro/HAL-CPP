@@ -6,11 +6,9 @@
 
 namespace Hal
 {
-    // Writes a width*height RGBA8 pixel buffer (4 bytes/pixel, row-major,
-    // top-to-bottom — row 0 is the top of the image) to a PNG file at
-    // path, via the vendored stb_image_write (third_party/stb). Returns
-    // false (and logs via Hal::Logger) on failure rather than throwing —
-    // an export failure shouldn't crash a long-running simulation.
+    // Writes a width*height RGBA8 buffer (row 0 at the top) to a PNG file.
+    // Returns false and logs on failure, including a buffer that isn't
+    // width*height*4 bytes.
     bool ExportPng(const std::string          &path,
                    int32_t                     width,
                    int32_t                     height,

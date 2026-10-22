@@ -1,18 +1,15 @@
 #pragma once
 
 #include "Hal/Pde/IAdiDiffusionBackend2D.h"
+#include "Hal/Pde/IDiffusionBackend2D.h"
 #include "Hal/Pde/TdmaSolver.h"
 
 #include <vector>
 
 namespace Hal
 {
-    // CPU implementation of IAdiDiffusionBackend2D: a thin wrapper over
-    // the existing Hal::Internal::Diffusion2DADI directional-sweep solver
-    // (see include/Hal/Pde/ADIequations.h) — no new numerics, just the
-    // interface adapter. Owns the TDMA solver and the intermediate-sweep
-    // scratch buffer PDEGrid2D::DiffusionADI otherwise carries (the
-    // scratch is resized on first use / dimension change).
+    // CPU IAdiDiffusionBackend2D over Hal::Internal::Diffusion2DADI. Owns
+    // the TDMA solver and the between-sweep scratch buffer.
     class CpuAdiDiffusionBackend2D : public IAdiDiffusionBackend2D
     {
     public:

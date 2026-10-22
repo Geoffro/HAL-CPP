@@ -1,13 +1,12 @@
 # HAL C++ Examples
 
-Ports of the Java `Examples/` and `LEARN_HERE/` models. Windowed models use
-the reusable `common/GridWindow` helper (a `UIGrid`/`GridWindow` analogue):
-run them with no arguments for a live Vulkan window, or pass `headless` to
-run without a window and dump a PNG/MP4 instead. Plot demos use
-`common/PlotWindow` (a pixel-grid line plotter, the `UIPlot` analogue). 3D
-demos use `common/Scene3D` (a software 3D renderer — orbit camera + depth
-sort over `GridWindow`, the `OpenGL3DWindow` analogue; drag the mouse to
-orbit, up/down arrows to zoom). Headless-only demos just print to stdout.
+Example models built on the library. Windowed models use the reusable
+`common/GridWindow` helper: run them with no arguments for a live Vulkan
+window, or pass `headless` to run without a window and dump a PNG/MP4
+instead. Plot demos use `common/PlotWindow` (a pixel-grid line plotter). 3D
+demos use `common/Scene3D` (a software 3D renderer with an orbit camera and
+depth sort over `GridWindow`; drag the mouse to orbit, up/down arrows to
+zoom). Headless-only demos print to stdout.
 
 ## Building & running
 
@@ -26,11 +25,10 @@ agent-force workloads.
 
 ## GPU showcases
 
-Twelve examples exist to *show off* the GPU rather than to port a Java model —
-large, deliberately artistic pieces. Most are GPU compute, where the whole
-time-stepped loop stays resident on the device (the shape that actually
-makes the GPU pay off; see `docs/DESIGN.md`); several also drive the hardware
-3D renderer. Each 2D piece opens a live window, or writes a video plus a
+Twelve examples exist to *show off* the GPU: large, deliberately artistic
+pieces. Most are GPU compute, where the whole time-stepped loop stays resident
+on the device (the shape that actually makes the GPU pay off; see
+`docs/DESIGN.md`); several also drive the hardware 3D renderer. Each 2D piece opens a live window, or writes a video plus a
 final PNG with `headless`. If `ffmpeg` is on the PATH the video is a real
 QuickTime-playable H.264 `.mp4` (upscaled with nearest-neighbor to keep the
 crisp look); otherwise it falls back to the built-in MPEG-1 encoder written
@@ -75,106 +73,58 @@ renderer's opt-in frame capture.
 ./build/examples/GpuSupernova 430                   # one full blast, records gpu_supernova.mp4 + .png
 ```
 
-## Porting status
+## Example catalog
 
-All 50 example programs are ported — every model in `Examples/` and
-`LEARN_HERE/`:
-
-| Example | Origin | Kind |
-|---|---|---|
-| GameOfLife | Examples/GameOfLife | windowed (on-lattice agents) |
-| ClinicianSim | Examples/ClinicianSim | interactive (treatable tumor + plot) |
-| SaveLoadModel | LEARN_HERE/Agents | windowed (agent-pool save/load) |
-| GuiExample | LEARN_HERE/Other | interactive (parameter menu) |
-| Example3D | Examples/_5Example3D | 3D (tumor + oxygen PDE) |
-| Mover3D | LEARN_HERE/Agents | 3D (lattice random walk) |
-| Mover3DoffLattice | LEARN_HERE/Agents | 3D (off-lattice walk) |
-| TemplateMultiGrid | Examples/Template_Models | 3D (multi-grid + PDE) |
-| Vis3Dtest | LEARN_HERE/Other | 3D (sphere/box smoke test) |
-| Vis3DtestGpu | (hardware-renderer demo) | 3D (Vulkan `Scene3DRenderContext`) |
-| LineSegmentTest | LEARN_HERE/Other | 3D (line segment) |
-| PopTumor | Examples/PopulationTumor | windowed (population diffusion) |
-| OrbiumNPlayer | Examples/Lenia | windowed (N-channel Lenia) |
-| MultiOutbreak | Examples/MultiwellOutbreak | windowed (multi-well SIR) |
-| OutbreakWorld | Examples/MultiwellOutbreak | windowed (SIR model) |
-| MultiwellExample | LEARN_HERE/Agents | windowed (multi-well BirthDeath) |
-| DiffusionAdvection3D | LEARN_HERE/Diffusibles | windowed (3D PDE slice) |
-| GOLSweepEx | Examples/GameOfLife | headless (parallel sweep, CSV) |
-| ColorBarGenerator | Examples/ColorBarGenerator | windowed (color bars) |
-| GIFtest | LEARN_HERE/Other | headless (MP4 + PNG export) |
-| FileIOTest | LEARN_HERE/Other | headless (mass file IO) |
-| LockExample | LEARN_HERE/Other | headless (threads + lock) |
-| Orbium | Examples/Lenia | windowed (Lenia / FFT) |
-| Chemotaxis | Examples/Chemotaxis | windowed (off-lattice + PDE) |
-| OffLatticeExample | Examples/_3OffLatticeExample | windowed (off-lattice, CSV) |
-| Gas | Examples/GasPopulationGrid | windowed (off-lattice density) |
-| BirthDeathOffLattice | LEARN_HERE/Agents | windowed (off-lattice agents) |
-| TemplateOffLattice2D | Examples/Template_Models | windowed (off-lattice skeleton) |
-| StemCellExample | Examples/_2StemCellExample | windowed (on-lattice agents) |
-| PersianCarpets | Examples/PersianModel | windowed (evolutionary game) |
-| PhylogenyModel | Examples/PhylogenyTracker | windowed (phylogeny + CSV export) |
-| ModuleSetExample | Examples/ModuleSetExample | windowed (ModuleSet / VarSet) |
-| CompetitiveRelease | Examples/_6CompetitiveRelease | windowed (agents + drug PDE, CSV) |
-| TumorGrowth | Examples/ODEmodel | plot (ODE + PlotWindow) |
-| PlotExample | LEARN_HERE/Other | plot (PlotWindow) |
-| BirthDeath | LEARN_HERE/Agents | windowed (on-lattice agents) |
-| DivisionDeathMutation | Examples/_1DivisionDeathMutation | windowed (on-lattice agents) |
-| TemplateOnLattice2D | Examples/Template_Models | windowed (on-lattice skeleton) |
-| BasicCellularAutomata | Examples/BasicCellularAutomata | windowed (elementary CA) |
-| ReactionDiffusion2D | LEARN_HERE/Diffusibles | windowed (PDE) |
-| PDEexample | Examples/_4PDEexample | windowed (agents + PDE) |
-| PopGrid | LEARN_HERE/Agents | windowed (population grid) |
-| HeatMaps | LEARN_HERE/Other | windowed (color palettes) |
-| ColorInterpolation | LEARN_HERE/Other | windowed (color) |
-| PNGexample | LEARN_HERE/Other | headless (PNG export) |
-| YCbCrTest | LEARN_HERE/Other | windowed (color) |
-| Gradient2D | LEARN_HERE/Diffusibles | headless (PDE) |
-| Gradient3D | LEARN_HERE/Diffusibles | headless (PDE) |
-| BinomialTest | LEARN_HERE/Other | headless (RNG) |
-| ColorTest | LEARN_HERE/Other | headless (color) |
-| NonSpatialABM | LEARN_HERE/Other | headless (mean-field ABM) |
-
-Nothing left to port. The last three each needed a supporting piece that was
-added with them: `SaveLoadModel` uses agent-pool serialization
-(`AgentGrid2D::SaveAgents`/`LoadAgents`); `GuiExample` uses new `GuiContext`
-string/combo widgets; `ClinicianSim` uses a reduced software port of Java's
-`InteractiveModel` (`common/InteractiveModel` + `common/TreatableTumor`) —
-keyboard-toggled treatment plus a live population plot, in place of the full
-mouse-driven treatment-timeline editor.
-
-## Library gaps found while porting
-
-- `Hal::CircleHood(includeOrigin, radius)` — added to `Neighborhood`.
-- `AgentGrid2D::MapEmptyHood` / `MapOccupiedHood` — added.
-- `Hal::MultinomialCalc` — added to `Tools` (also unblocks
-  `PopulationGrid2D::Diffusion` and `PopTumor`).
-- Named color constants `Hal::RED/GREEN/BLUE/BLACK/WHITE/YELLOW/CYAN/MAGENTA`
-  (from Java `Util`) — added to `Color`. (Note: `HalColorSchemes.jar` in the
-  Java repo is unrelated — it's a bundle of IntelliJ editor themes, not part
-  of the simulation color API.)
-- `Hal::ProbScale(prob, duration)` — added to `MathUtil` (per-timestep rate
-  rescaling used by CompetitiveRelease).
-- `AgentGrid2D::PopAt(i)` / `PopAt(x, y)` — per-square occupancy count, and
-  `GridWindow::Circle(x, y, r, color)` — a filled-disc rasterizer (the
-  `OpenGL2DWindow.Circle` analogue) for drawing off-lattice agents.
-- `Hal::RectangleHood(includeOrigin, radX, radY)` — added to `Neighborhood`
-  (the travel neighborhood in the outbreak model). `GridWindow::SetPixels`
-  blits a pre-composited buffer (e.g. `MultiWellExperiment::Pixels()`).
-- `AgentGrid2D::SaveAgents` / `LoadAgents` — reflection-free agent-pool
-  serialization (per-agent field callbacks), the last deferred serialization
-  piece; unblocks `SaveLoadModel`.
-- `GuiContext::StringInput` / `ComboBox` — text and dropdown widgets for
-  `GuiExample`. `common/Scene3D` (software 3D) and `common/InteractiveModel`
-  + `common/TreatableTumor` (interactive treatment driver) round out the
-  reusable helpers.
-- `PopulationGrid2D::Diffusion(diffRate, MultinomialCalc&)` — mean-field
-  multinomial diffusion (needed by PopTumor), the last previously-deferred
-  `PopulationGrid2D` method.
-- `AgentGrid3D::MapEmptyHood` (parallel to the 2D version).
-- `common/Scene3D` — a software 3D renderer (orbit camera + painter's-
-  algorithm depth sort over `GridWindow`) for the 3D examples. The
-  hardware-accelerated Vulkan version now exists as
-  `Hal::Gpu::Scene3DRenderContext` (depth-tested instanced spheres +
-  lines, Lambert lighting, drag-to-orbit / scroll-to-zoom via `Window`) —
-  see the `Vis3DtestGpu` demo, which mirrors `Vis3Dtest` on the hardware
-  path.
+| Example | Kind |
+|---|---|
+| GameOfLife | windowed (on-lattice agents) |
+| ClinicianSim | interactive (treatable tumor + plot) |
+| SaveLoadModel | windowed (agent-pool save/load) |
+| GuiExample | interactive (parameter menu) |
+| Example3D | 3D (tumor + oxygen PDE) |
+| Mover3D | 3D (lattice random walk) |
+| Mover3DoffLattice | 3D (off-lattice walk) |
+| TemplateMultiGrid | 3D (multi-grid + PDE) |
+| Vis3Dtest | 3D (sphere/box smoke test) |
+| Vis3DtestGpu | 3D (Vulkan `Scene3DRenderContext`) |
+| LineSegmentTest | 3D (line segment) |
+| PopTumor | windowed (population diffusion) |
+| OrbiumNPlayer | windowed (N-channel Lenia) |
+| MultiOutbreak | windowed (multi-well SIR) |
+| OutbreakWorld | windowed (SIR model) |
+| MultiwellExample | windowed (multi-well BirthDeath) |
+| DiffusionAdvection3D | windowed (3D PDE slice) |
+| GOLSweepEx | headless (parallel sweep, CSV) |
+| ColorBarGenerator | windowed (color bars) |
+| GIFtest | headless (MP4 + PNG export) |
+| FileIOTest | headless (mass file IO) |
+| LockExample | headless (threads + lock) |
+| Orbium | windowed (Lenia / FFT) |
+| Chemotaxis | windowed (off-lattice + PDE) |
+| OffLatticeExample | windowed (off-lattice, CSV) |
+| Gas | windowed (off-lattice density) |
+| BirthDeathOffLattice | windowed (off-lattice agents) |
+| TemplateOffLattice2D | windowed (off-lattice skeleton) |
+| StemCellExample | windowed (on-lattice agents) |
+| PersianCarpets | windowed (evolutionary game) |
+| PhylogenyModel | windowed (phylogeny + CSV export) |
+| ModuleSetExample | windowed (ModuleSet / VarSet) |
+| CompetitiveRelease | windowed (agents + drug PDE, CSV) |
+| TumorGrowth | plot (ODE + PlotWindow) |
+| PlotExample | plot (PlotWindow) |
+| BirthDeath | windowed (on-lattice agents) |
+| DivisionDeathMutation | windowed (on-lattice agents) |
+| TemplateOnLattice2D | windowed (on-lattice skeleton) |
+| BasicCellularAutomata | windowed (elementary CA) |
+| ReactionDiffusion2D | windowed (PDE) |
+| PDEexample | windowed (agents + PDE) |
+| PopGrid | windowed (population grid) |
+| HeatMaps | windowed (color palettes) |
+| ColorInterpolation | windowed (color) |
+| PNGexample | headless (PNG export) |
+| YCbCrTest | windowed (color) |
+| Gradient2D | headless (PDE) |
+| Gradient3D | headless (PDE) |
+| BinomialTest | headless (RNG) |
+| ColorTest | headless (color) |
+| NonSpatialABM | headless (mean-field ABM) |

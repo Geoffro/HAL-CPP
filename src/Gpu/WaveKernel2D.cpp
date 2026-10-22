@@ -50,13 +50,26 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipeline();
-            CreateCommandObjects();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipeline();
+                CreateCommandObjects();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         WaveKernel2D::~WaveKernel2D()
+        {
+            Destroy();
+        }
+
+        void WaveKernel2D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -266,6 +279,8 @@ namespace Hal
                                     float               damping,
                                     bool                wrap)
         {
+            Internal::CheckSize(cur.size(), static_cast<size_t>(m_length), "WaveKernel2D::RunSteps cur");
+            Internal::CheckSize(prev.size(), static_cast<size_t>(m_length), "WaveKernel2D::RunSteps prev");
             VkDeviceSize bufSize = static_cast<VkDeviceSize>(m_length) * sizeof(float);
             float *pStaging = static_cast<float *>(m_pStagingMapped);
             std::memcpy(pStaging, cur.data(), static_cast<size_t>(bufSize));

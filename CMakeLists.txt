@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(HalCpp LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(HAL_BUILD_TESTS "Build the Hal unit test suite" ON)
 option(HAL_BUILD_WINDOW "Build the GLFW + Vulkan windowed rendering backend" ON)
 option(HAL_BUILD_GUI "Build the Dear ImGui + ImPlot GUI layer" ON)
-option(HAL_BUILD_EXAMPLES "Build the ported HAL example models" ON)
+option(HAL_BUILD_EXAMPLES "Build the HAL example models" ON)
 
 add_library(HalCore
     src/Log/Logger.cpp
@@ -29,6 +29,7 @@ add_library(HalCore
     src/Grids/GridGeometry1D.cpp
     src/Grids/GridGeometry2D.cpp
     src/Grids/GridGeometry3D.cpp
+    src/Grids/GridSerialization.cpp
     src/Grids/PDEGridSerialization.cpp
     src/Pde/PDEequations.cpp
     src/Pde/ADIequations.cpp
@@ -72,10 +73,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(volk)
 
-# VMA (Vulkan Memory Allocator) — buffer allocation for the compute
-# kernels. Header-only; the single
-# implementation TU is src/Gpu/Internal/VmaImpl.cpp, built with dynamic
-# Vulkan functions since volk loads Vulkan at runtime.
+# VMA (Vulkan Memory Allocator) for the compute kernels' buffers. Its one
+# implementation TU is src/Gpu/Internal/VmaImpl.cpp.
 FetchContent_Declare(
     VulkanMemoryAllocator
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
@@ -84,13 +83,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
-# Shaders are compiled GLSL -> SPIR-V at build time (not at runtime), into
-# an absolute, fixed location under the build tree. HAL_SHADER_DIR bakes
-# that absolute path into HalGpu as a compile definition, so shader lookup
-# at runtime never depends on the process's current working directory —
-# this is what makes shaders locatable whether the test binary is run from
-# a terminal or launched from an Xcode scheme (Xcode does not default to the
-# source/build directory as the working directory).
+# Shaders compile GLSL -> SPIR-V at build time into a fixed directory under
+# the build tree. HAL_SHADER_DIR bakes its absolute path into HalGpu, so
+# shader lookup doesn't depend on the working directory (e.g. under Xcode).
 find_program(GLSLANG_VALIDATOR glslangValidator REQUIRED)
 
 set(HAL_SHADER_SOURCES
@@ -124,10 +119,8 @@ file(MAKE_DIRECTORY ${HAL_SHADER_OUTPUT_DIR})
 
 set(HAL_SHADER_SPV_FILES "")
 foreach (shaderSource ${HAL_SHADER_SOURCES})
-    # Keeps the source extension in the output name (e.g.
-    # FullscreenQuad.vert -> FullscreenQuad.vert.spv), not just the stem —
-    # a .vert and a .frag with the same stem (as FullscreenQuad.vert/.frag
-    # are) would otherwise collide on a single "FullscreenQuad.spv" output.
+    # Keep the source extension (FullscreenQuad.vert -> FullscreenQuad.vert.spv)
+    # so stages sharing a stem don't collide.
     get_filename_component(shaderName ${shaderSource} NAME)
     set(shaderOutput ${HAL_SHADER_OUTPUT_DIR}/${shaderName}.spv)
     add_custom_command(
@@ -247,11 +240,9 @@ if (HAL_BUILD_GUI)
     )
     FetchContent_MakeAvailable(implot)
 
-    # The GUI core (context + parameter controls + plots) is
-    # platform-agnostic: it uses only Dear ImGui / ImPlot core, not their
-    # GLFW/Vulkan backends, so it builds and is unit-tested without a
-    # window (the frame-building path produces real draw data headlessly).
-    # The GLFW+Vulkan rendering integration lives separately in HalWindow.
+    # The GUI core uses only the Dear ImGui / ImPlot core (no GLFW/Vulkan
+    # backends), so it builds and is tested without a window. The windowed
+    # integration lives in HalWindow.
     add_library(HalGui
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -317,9 +308,8 @@ if (HAL_BUILD_EXAMPLES AND HAL_BUILD_WINDOW)
     add_subdirectory(examples)
 endif()
 
-# CPU/GPU backend timing comparison — headless (needs a Vulkan compute
-# device, not a window), so it is built whenever the examples are wanted,
-# independent of the window layer.
+# CPU/GPU backend timing comparison. Headless, so it doesn't need the window
+# layer.
 if (HAL_BUILD_EXAMPLES)
     add_executable(HalBackendBenchmark examples/BackendBenchmark.cpp)
     target_link_libraries(HalBackendBenchmark

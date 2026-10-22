@@ -15,18 +15,6 @@ namespace Hal
         return Rgba(r, g, b, 1.0);
     }
 
-    // Named default colors (see Color.h). Rgb() is a plain function, so
-    // invoking it during static initialization here is well-defined
-    // regardless of where it appears in this file.
-    const int32_t RED = Rgb(1.0, 0.0, 0.0);
-    const int32_t GREEN = Rgb(0.0, 1.0, 0.0);
-    const int32_t BLUE = Rgb(0.0, 0.0, 1.0);
-    const int32_t BLACK = Rgb(0.0, 0.0, 0.0);
-    const int32_t WHITE = Rgb(1.0, 1.0, 1.0);
-    const int32_t YELLOW = Rgb(1.0, 1.0, 0.0);
-    const int32_t CYAN = Rgb(0.0, 1.0, 1.0);
-    const int32_t MAGENTA = Rgb(1.0, 0.0, 1.0);
-
     int32_t Rgba(double r,
                  double g,
                  double b,
@@ -155,39 +143,38 @@ namespace Hal
         return Rgb256(255 - GetRed256(color), 255 - GetGreen256(color), 255 - GetBlue256(color));
     }
 
-    const int32_t kRed = Rgb(1, 0, 0);
-    const int32_t kGreen = Rgb(0, 1, 0);
-    const int32_t kBlue = Rgb(0, 0, 1);
-    const int32_t kBlack = Rgb(0, 0, 0);
-    const int32_t kWhite = Rgb(1, 1, 1);
-    const int32_t kYellow = Rgb(1, 1, 0);
-    const int32_t kCyan = Rgb(0, 1, 1);
-    const int32_t kMagenta = Rgb(1, 0, 1);
-
     namespace Internal
     {
-        const int32_t kCategoricalColorTable[20] =
+        constexpr int32_t PackOpaqueRgb(uint32_t r,
+                                        uint32_t g,
+                                        uint32_t b)
+        {
+            return static_cast<int32_t>(0xFF000000u | (r << 16) | (g << 8) | b);
+        }
+
+        // d3 category20 palette.
+        constexpr int32_t kCategoricalColorTable[20] =
             {
-                Rgb256(56, 116, 177),
-                Rgb256(198, 56, 44),
-                Rgb256(79, 159, 57),
-                Rgb256(189, 190, 58),
-                Rgb256(142, 102, 186),
-                Rgb256(240, 134, 39),
-                Rgb256(83, 187, 206),
-                Rgb256(214, 123, 191),
-                Rgb256(133, 88, 76),
-                Rgb256(178, 197, 230),
-                Rgb256(243, 156, 151),
-                Rgb256(166, 222, 144),
-                Rgb256(220, 220, 147),
-                Rgb256(194, 174, 211),
-                Rgb256(246, 191, 126),
-                Rgb256(169, 216, 228),
-                Rgb256(238, 184, 209),
-                Rgb256(190, 157, 146),
-                Rgb256(199, 199, 199),
-                Rgb256(127, 127, 127)};
+                PackOpaqueRgb(56, 116, 177),
+                PackOpaqueRgb(198, 56, 44),
+                PackOpaqueRgb(79, 159, 57),
+                PackOpaqueRgb(189, 190, 58),
+                PackOpaqueRgb(142, 102, 186),
+                PackOpaqueRgb(240, 134, 39),
+                PackOpaqueRgb(83, 187, 206),
+                PackOpaqueRgb(214, 123, 191),
+                PackOpaqueRgb(133, 88, 76),
+                PackOpaqueRgb(178, 197, 230),
+                PackOpaqueRgb(243, 156, 151),
+                PackOpaqueRgb(166, 222, 144),
+                PackOpaqueRgb(220, 220, 147),
+                PackOpaqueRgb(194, 174, 211),
+                PackOpaqueRgb(246, 191, 126),
+                PackOpaqueRgb(169, 216, 228),
+                PackOpaqueRgb(238, 184, 209),
+                PackOpaqueRgb(190, 157, 146),
+                PackOpaqueRgb(199, 199, 199),
+                PackOpaqueRgb(127, 127, 127)};
 
         int32_t InterpComp(double  val,
                            int32_t minComp,
@@ -272,10 +259,6 @@ namespace Hal
         return HeatMapRgb(Scale0To1(val, min, max));
     }
 
-    // NOTE: HAL's Java HeatMapRBG(val,min,max) called HeatMapBGR(val)
-    // instead of HeatMapRBG(val) — every sibling overload calls its own
-    // matching single-argument palette function, so this was a copy-paste
-    // bug (see docs/JAVA_BUGS_FOUND.md #3); fixed here.
     int32_t HeatMapRbg(double val,
                        double min,
                        double max)

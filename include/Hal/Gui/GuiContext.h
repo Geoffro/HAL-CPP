@@ -11,23 +11,18 @@ namespace Hal
 {
     namespace Gui
     {
-        // Owns a Dear ImGui + ImPlot context and provides the HAL GUI API
-        // shape — parameter controls (replacing Java's UIBoolInput /
-        // UIIntInput / UIDoubleInput) and line/scatter plots (the UIPlot
-        // equivalent). This is the platform-agnostic core: it uses only
-        // ImGui/ImPlot core, not their GLFW/Vulkan backends, so a frame can
-        // be built and its draw data inspected with no window (that path is
-        // unit-tested headlessly). The GLFW input + Vulkan rendering
-        // integration that turns this into an on-screen UI lives in
-        // HalWindow.
+        // Owns a Dear ImGui + ImPlot context and wraps parameter controls
+        // and line/scatter plots. Uses only the ImGui/ImPlot core, so a
+        // frame can be built headlessly; WindowGuiRenderer draws it in a
+        // window.
         //
         // Usage per frame: BeginFrame -> build panels/controls/plots ->
         // EndFrame, then a renderer consumes DrawData(). The control helpers
         // are immediate-mode: they bind directly to a caller-owned value and
         // return whether it changed this frame.
         //
-        // Not reentrant / single-instance: ImGui keeps a global "current
-        // context", which BeginFrame sets — use one GuiContext at a time.
+        // ImGui has a global current context, which BeginFrame sets; build
+        // one GuiContext's frame at a time.
         class GuiContext
         {
         public:
@@ -85,16 +80,13 @@ namespace Hal
                               double      maxValue);
             bool Button(const char *pLabel);
 
-            // Single-line text field (replacing Java's UIStringInput /
-            // UIFileChooserInput — the latter without a native file dialog,
-            // just an editable path). Returns true when edited. The value is
+            // Single-line text field. Returns true when edited. The value is
             // capped at 255 characters.
             bool StringInput(const char  *pLabel,
                              std::string &value);
 
-            // Dropdown selecting one of `count` items (replacing Java's
-            // UIComboBoxInput). `current` is the selected index; returns true
-            // when it changes.
+            // Dropdown selecting one of `count` items. `current` is the
+            // selected index; returns true when it changes.
             bool ComboBox(const char        *pLabel,
                           int32_t           &current,
                           const char *const *pItems,

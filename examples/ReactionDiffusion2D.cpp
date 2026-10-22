@@ -1,9 +1,6 @@
-// Ported from LEARN_HERE/Diffusibles/ReactionDiffusion2D.java: a source
-// column feeds two PDE fields each tick; one is transported by advection,
-// the other spread by (implicit ADI) diffusion, shown side by side. The
-// Java version uses two UIGrids in one window; here they share a single
-// combined window (advection on the left, diffusion on the right, one blank
-// separator column between).
+// A source column feeds two PDE fields each tick; one is transported by
+// advection, the other spread by implicit (ADI) diffusion. They are drawn
+// side by side, advection on the left, with a blank separator column.
 //
 // Live window by default; pass "headless" to run without a window and dump
 // the final frame to reactiondiffusion2d.png.

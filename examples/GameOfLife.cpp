@@ -1,10 +1,9 @@
-// Conway's Game of Life on an AgentGrid2D, ported from
-// Examples/GameOfLife/GOLGrid.java. Each square holds one GOLAgent whose
-// live/dead state is double-buffered by tick parity, so a whole generation
-// is computed from the previous one before any cell flips.
+// Conway's Game of Life on an AgentGrid2D. Each square holds one GOLAgent
+// whose live/dead state is double-buffered by tick parity, so a whole
+// generation is computed from the previous one before any cell flips.
 //
-// Live windowed run by default; pass "headless" as the first argument to
-// run without a window and dump the final generation to gameoflife.png.
+// Live window by default; pass "headless" as the first argument to run
+// without a window and dump the final generation to gameoflife.png.
 
 #include "Hal/Agents/AgentSQ2DUnstackable.h"
 #include "Hal/Color.h"

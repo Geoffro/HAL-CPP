@@ -7,20 +7,10 @@
 
 namespace Hal
 {
-    // Shared indexing/neighborhood geometry for 1D grids, ported from
-    // HAL's Interfaces/Grid1D.java. Unlike the Java version (a default-
-    // method interface implemented by each concrete grid class via virtual
-    // dispatch), this is a plain concrete base class: xDim/wrapX are held
-    // directly as members here rather than behind virtual accessors, since
-    // every 1D grid type (value grid, agent grid, PDE grid) stores exactly
-    // the same dimension/wrap state. This keeps the neighbor-search hot
-    // path (Phase 2's agent cell-list lookups) free of vtable dispatch.
-    //
-    // Neighborhood-taking methods (ApplyHood/MapHood/etc.) are templates on
-    // the caller's callable type rather than std::function, so they accept
-    // captured lambdas/functors with zero type-erasure overhead — the
-    // template plays the role Java's per-call lambda + functional-interface
-    // played, without needing a named struct at every call site.
+    // Indexing and neighborhood geometry shared by every 1D grid type. A
+    // non-virtual base so neighbor lookups avoid virtual dispatch.
+    // Neighborhood methods are templated on the callable, so captured
+    // lambdas cost no type erasure.
     class GridGeometry1D
     {
     public:
@@ -45,6 +35,7 @@ namespace Hal
         bool InWrap(int32_t x) const;
         bool InWrap(double x) const;
 
+        // x2 - x1, taking the shorter path around a wrapped axis.
         double DispX(double x1,
                      double x2) const;
 

@@ -10,12 +10,10 @@ namespace Hal
     {
         class GridWindow;
 
-        // The model contract driven by InteractiveModel, ported from Java's
-        // Tools/InteractiveModel/TreatableTumor. A clinician toggles one or
-        // more treatments over time; each step the model advances under the
-        // current treatment intensities, draws itself, and reports the plot
-        // values (e.g. subpopulation counts) to chart. The Java serialization
-        // hook (SetupConstructors) is dropped — not needed here.
+        // The model contract driven by InteractiveModel: a clinician toggles one
+        // or more treatments over time; each step the model advances under the
+        // current treatment intensities, draws itself, and reports plot values
+        // (e.g. subpopulation counts) to chart.
         class ITreatableTumor
         {
         public:

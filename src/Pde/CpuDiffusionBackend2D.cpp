@@ -20,6 +20,7 @@ namespace Hal
                                         bool                       wrapX,
                                         bool                       wrapY)
     {
+        Internal::CheckFieldSizes(field, deltas, xDim, yDim, "CpuDiffusionBackend2D::Diffuse");
         Internal::Diffusion2(field.data(), deltas.data(), diffRate, xDim, yDim, wrapX, wrapY);
     }
 }

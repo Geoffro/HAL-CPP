@@ -12,40 +12,11 @@ namespace Hal
 {
     namespace Gpu
     {
-        // Vulkan graphics pipeline that presents a live, per-frame-
-        // updatable pixel-grid texture to a Window — the
-        // `UIGrid`-equivalent live render surface, built on top of the
-        // plain clear-and-present milestone that came before it.
-        // Replaces Java's
-        // `UIWindow`/`OpenGL2DWindow`/`OpenGL3DWindow`.
-        //
-        // Owns its own instance/device (separate from
-        // Hal::Gpu::ComputeContext, which is deliberately surface-less) —
-        // an instance/device unification between headless compute and
-        // windowed rendering is a legitimate follow-up, not required for
-        // this milestone.
-        //
-        // The texture is a fixed textureWidth x textureHeight RGBA8
-        // image, sized once at construction (same "fixed-size resources,
-        // correctness first" stance as DiffusionKernel2D/
-        // AgentForceKernel2D). UpdateTexture() re-uploads its full
-        // contents via a staging buffer each time it's called — no
-        // partial/dirty-rect updates yet, matching HAL's own model loop
-        // shape (recompute the whole visible grid each tick, then render
-        // it). A full-screen triangle (FullscreenQuad.vert/.frag, no
-        // vertex/index buffer needed) samples it, so the texture always
-        // covers the entire window regardless of its own aspect ratio;
-        // fitting/letterboxing is a legitimate follow-up.
-        //
-        // Single frame in flight (one fence, synchronous acquire →
-        // record → submit → present) — the same "correctness first"
-        // stance as every compute kernel in Phase 4. Window resizes are
-        // handled: the swapchain (plus image views and framebuffers) is
-        // rebuilt when the window reports a resize or an acquire/present
-        // returns OUT_OF_DATE, and while the window is minimized (a
-        // zero-size framebuffer) frames are skipped until it is restored.
-        // The pipelines use dynamic viewport/scissor state so only the
-        // swapchain-sized resources are recreated, never the pipeline.
+        // Presents a fixed-size RGBA8 texture, updated per frame, across the
+        // whole window via a full-screen triangle (FullscreenQuad.vert/.frag).
+        // Owns its own Vulkan instance and device, separate from ComputeContext.
+        // One frame in flight. The swapchain is rebuilt on resize or OUT_OF_DATE,
+        // and frames are skipped while the window is minimized.
         class WindowRenderContext
         {
         public:
@@ -57,26 +28,20 @@ namespace Hal
             WindowRenderContext(const WindowRenderContext &other) = delete;
             WindowRenderContext &operator=(const WindowRenderContext &other) = delete;
 
-            // pixelsRgba must be textureWidth*textureHeight RGBA8 (4
-            // bytes/pixel, row-major, top-to-bottom — matching
-            // Hal::RenderGrid2DToRgba's output). Blocks until the upload
-            // completes.
+            // pixelsRgba must be textureWidth*textureHeight RGBA8 (row 0 at the top,
+            // as RenderGrid2DToRgba produces); throws std::invalid_argument
+            // otherwise. Blocks until the upload completes.
             void UpdateTexture(const std::vector<uint8_t> &pixelsRgba);
 
-            // Acquires the next swapchain image, draws the current texture
-            // contents over the full window, then (if provided) invokes
-            // overlay(commandBuffer) inside the same render pass so a UI
-            // layer (e.g. Dear ImGui) can draw on top, and presents.
-            // Returns true if a frame was presented; false if this frame
-            // was skipped because the swapchain had to be recreated
-            // (window resize) or the window is minimized — keep calling,
-            // the next frame draws normally.
+            // Draws the texture, then overlay(commandBuffer) in the same render
+            // pass (e.g. for an ImGui layer), and presents. Returns false if the
+            // frame was skipped (swapchain recreated or window minimized); keep
+            // calling.
             bool DrawFrame(const std::function<void(VkCommandBuffer)> &overlay);
             bool DrawFrame();
 
-            // Vulkan handles a UI/overlay renderer (e.g. imgui_impl_vulkan)
-            // needs to initialize against this context's device and render
-            // pass. All owned by this object and valid for its lifetime.
+            // Handles an overlay renderer (e.g. imgui_impl_vulkan) initializes
+            // against; valid for this object's lifetime.
             VkInstance Instance() const;
             VkPhysicalDevice PhysicalDevice() const;
             VkDevice Device() const;
@@ -86,6 +51,8 @@ namespace Hal
             uint32_t SwapchainImageCount() const;
 
         private:
+            void Destroy();
+
             void CreateInstance();
             void CreateSurface();
             void SelectPhysicalDevice();
@@ -101,10 +68,8 @@ namespace Hal
             VkCommandBuffer BeginSingleTimeCommands();
             void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
-            // Rebuilds the swapchain-sized resources (swapchain, image
-            // views, framebuffers) after a resize. Returns false without
-            // recreating anything while the framebuffer is zero-sized
-            // (minimized) — callers skip the frame and retry later.
+            // Rebuilds the swapchain, image views, and framebuffers. Returns false
+            // without rebuilding while the framebuffer is zero-sized (minimized).
             bool RecreateSwapchain();
 
             Window &m_window;

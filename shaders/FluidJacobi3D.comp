@@ -1,10 +1,9 @@
 #version 450
 
-// Stable-fluids pressure pass — one Jacobi iteration of the Poisson solve
-// lap(p) = div. FluidKernel3D ping-pongs this shader an even number of
-// times per step (the previous step's pressure is the warm start, so a
-// modest iteration count converges well). Neighbor reads clamp at the box
-// walls, which acts as the Neumann boundary the closed domain wants.
+// Stable-fluids pressure: one Jacobi iteration of lap(p) = div.
+// FluidKernel3D runs an even number per step, warm-started from the
+// previous step's pressure. Clamped neighbor reads give the closed box's
+// Neumann boundary.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

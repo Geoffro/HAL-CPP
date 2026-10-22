@@ -19,15 +19,13 @@ namespace Hal
             std::vector<double> ys;
         };
 
-        // A minimal analogue of HAL's Gui/PlotWindow (a UIPlot): a pixel-grid
-        // line plotter. Add polylines with AddLine / AddSegment, then Render()
-        // maps data coordinates to pixels and rasterizes the segments into an
-        // underlying GridWindow (so ToPng and the live window come for free).
+        // A pixel-grid line plotter. Add polylines with AddLine / AddSegment, then
+        // Render() maps data coordinates to pixels and rasterizes the segments into
+        // an underlying GridWindow (so ToPng and the live window come for free).
         //
-        // Axis bounds are either fixed (SetBounds) or, by default, computed
-        // to fit all data added so far. Unlike Java's UIPlot this collects
-        // points and renders the finished plot rather than streaming live,
-        // which yields the same final image with far less machinery.
+        // Axis bounds are either fixed (SetBounds) or, by default, fitted to all
+        // data added so far. Points are collected and the finished plot rendered
+        // at once.
         class PlotWindow
         {
         public:

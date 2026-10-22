@@ -14,18 +14,9 @@
 
 namespace Hal
 {
-    // 2D reaction-diffusion-advection grid, ported from
-    // GridsAndAgents/PDEGrid2D.java. Double-buffered like a value grid
-    // (Get reads the committed field, Set/Add/Mul/Scale accumulate into
-    // deltas, Update() commits) — this is the same field/deltas/Update()
-    // shape used throughout, and each explicit stencil cell's update
-    // depends only on the read-only current field plus its own delta
-    // slot, which is exactly the compute-shader-friendly structure
-    // Phase 4 is expected to build on (see docs/DESIGN.md).
-    //
-    // NOTE: deferred from this port: the discontinuous/spatially-varying
-    // diffusion-rate and velocity-field overloads (`Diffusion`/`Advection`
-    // taking per-cell rate arrays or grids), and the Gradient methods.
+    // 2D reaction-diffusion-advection grid. Get reads the committed field;
+    // Set/Add/Mul/Scale and the PDE operators accumulate into a delta
+    // buffer that Update() commits.
     class PDEGrid2D : public GridGeometry2D
     {
     public:
@@ -67,14 +58,18 @@ namespace Hal
             return m_deltas;
         }
 
-        // Restores field/deltas/updateCt directly (e.g. after loading a
-        // saved simulation) — field and
-        // deltas must each already be Length()-sized, matching this
-        // grid's own dimensions.
+        // Restores field, pending deltas, and update count (e.g. after
+        // loading). Throws std::invalid_argument unless both arrays hold
+        // Length() values.
         void SetState(const std::vector<double> &field,
                       const std::vector<double> &deltas,
                       int32_t                    updateCt)
         {
+            if ((static_cast<int32_t>(field.size()) != Length()) ||
+                (static_cast<int32_t>(deltas.size()) != Length()))
+            {
+                throw std::invalid_argument("PDEGrid::SetState arrays must match the grid length");
+            }
             m_field = field;
             m_deltas = deltas;
             m_updateCt = updateCt;
@@ -422,9 +417,7 @@ namespace Hal
             return outOfBoundsValue;
         }
 
-        // As DisplacedFieldX but for an off-grid y. NOTE: Java's
-        // PDEGrid2D.GradientY wrapped the y access with the x-axis wrap flag
-        // (a bug, see docs/JAVA_BUGS_FOUND.md); this uses IsWrapY().
+        // As DisplacedFieldX, for an off-grid y.
         double DisplacedFieldY(int32_t x,
                                int32_t y,
                                double  outOfBoundsValue) const

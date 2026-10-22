@@ -82,14 +82,27 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipelines();
-            CreateCommandObjects();
-            ClearDeltas();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipelines();
+                CreateCommandObjects();
+                ClearDeltas();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         DiffusionKernel2D::~DiffusionKernel2D()
+        {
+            Destroy();
+        }
+
+        void DiffusionKernel2D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -159,6 +172,7 @@ namespace Hal
 
         void DiffusionKernel2D::UploadField(const std::vector<float> &field)
         {
+            Internal::CheckSize(field.size(), static_cast<size_t>(m_length), "DiffusionKernel2D::UploadField field");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_length) * sizeof(float);
             std::memcpy(m_pStagingMapped, field.data(), static_cast<size_t>(size));
 
@@ -233,6 +247,7 @@ namespace Hal
                                          bool                wrapX,
                                          bool                wrapY)
         {
+            Internal::CheckSize(field.size(), static_cast<size_t>(m_length), "DiffusionKernel2D::RunSteps field");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_length) * sizeof(float);
             std::memcpy(m_pStagingMapped, field.data(), static_cast<size_t>(size));
 

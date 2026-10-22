@@ -70,8 +70,6 @@ namespace Hal
         {
             x = Wrap(x, m_xDim);
         }
-        // NOTE: HAL's Java WrapI wrapped y using Xdim() instead of Ydim()
-        // (a bug, see docs/JAVA_BUGS_FOUND.md #4); fixed here.
         if (m_wrapY)
         {
             y = Wrap(y, m_yDim);
@@ -134,15 +132,6 @@ namespace Hal
     double GridGeometry2D::DispX(double x1,
                                  double x2) const
     {
-        // NOTE: an earlier version of this port called
-        // DispWrap(x2, x1, m_xDim) here, which returns x1 - x2 (adjusted)
-        // rather than x2 - x1 (adjusted) — a sign flip relative to the
-        // non-wrap branch below, introduced in translation (Java's
-        // Agent2DBase.DispX is a member method called as DispX(self, other)
-        // and is self-consistent between its wrap/non-wrap branches; this
-        // free-function form needs DispWrap(x1, x2, ...) to preserve that).
-        // Not a Java bug — a port bug, fixed directly rather than filed in
-        // JAVA_BUGS_FOUND.md.
         if (m_wrapX)
         {
             return DispWrap(x1, x2, m_xDim);

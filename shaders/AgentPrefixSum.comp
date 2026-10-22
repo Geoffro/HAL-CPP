@@ -1,17 +1,11 @@
 #version 450
 
-// Turns per-cell agent counts into exclusive prefix-sum offsets (so cell i
-// owns bucketAgents[cellOffsets[i] .. cellOffsets[i+1])), plus an initial
-// copy of those offsets into a mutable cursor buffer that
-// AgentScatter.comp atomically advances while placing agents.
+// Turns per-cell agent counts into exclusive prefix-sum offsets (cell i
+// owns bucketAgents[cellOffsets[i] .. cellOffsets[i+1])), and copies the
+// offsets into the cursor buffer AgentScatter.comp advances atomically.
 //
-// Deliberately a single-invocation sequential scan rather than a
-// parallel (Hillis-Steele/Blelloch) one: cell counts are correctness-
-// critical and this kernel's total work is O(numCells), which is small
-// relative to the O(numAgents) cost of the surrounding passes for any
-// grid actually used with agents. A parallel scan is a legitimate
-// follow-up if profiling ever shows this pass matters, not a
-// correctness requirement now.
+// A single-invocation sequential scan: its O(numCells) work is small next
+// to the O(numAgents) passes around it.
 
 layout(local_size_x = 1) in;
 

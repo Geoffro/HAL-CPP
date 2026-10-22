@@ -5,13 +5,8 @@
 
 namespace Hal
 {
-    // Explicit interface replacing Java's VarSet: an object (typically an
-    // agent) that owns a flat array of parameters which one or more modules
-    // each claim a slot in (see VarSetManager). Kept an explicit virtual
-    // interface — the whole modularity subsystem is being intentionally
-    // redesigned away from Java's reflection (see docs/DESIGN.md), and
-    // interface initialization is a per-agent-creation event, not a hot
-    // path, so the virtual call is immaterial.
+    // An object (typically an agent) owning a flat parameter array in which
+    // modules each claim a slot (see VarSetManager).
     class IVarSet
     {
     public:
@@ -24,11 +19,10 @@ namespace Hal
         virtual void SetVars(std::vector<double> vars) = 0;
     };
 
-    // Allocates parameter slots in a shared per-object array, ported from
-    // Tools/Modularity/VarSetManager.java. Each module that needs its own
-    // per-agent state calls NewVar() once during setup to claim an index;
-    // once any variable set has been generated (GenVarSet / AddVarSet), the
-    // parameter count is frozen and further NewVar() calls throw.
+    // Allocates parameter slots in a shared per-object array. Each module
+    // needing per-agent state calls NewVar() once during setup; once any
+    // variable set has been generated (GenVarSet / AddVarSet), the layout is
+    // frozen and further NewVar() calls throw.
     class VarSetManager
     {
     public:

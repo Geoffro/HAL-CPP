@@ -6,28 +6,15 @@
 
 namespace Hal
 {
-    // Single-producer/single-consumer triple buffer, the concrete
-    // mechanism behind docs/DESIGN.md's sim/render threading contract:
-    // the simulation thread writes state into a private back buffer and
-    // Publish()es it; the render loop Acquire()s the most recently
-    // published buffer and reads a consistent, tear-free snapshot. Unlike
-    // Java HAL (which mutates Swing components straight from the sim
-    // thread, unsafe per Swing's own contract), producer and consumer here
-    // never touch the same T instance concurrently.
-    //
-    // Three slots so the producer always has a slot to write and the
-    // consumer always has a slot to read, with a third holding the latest
-    // completed frame in between — the producer never blocks on the
-    // consumer and vice versa. "Latest wins": if the producer publishes
-    // several frames between two Acquire() calls, the consumer skips
-    // straight to the newest, exactly what a render loop wants (drop stale
-    // frames rather than fall behind).
-    //
-    // T must be default-constructible (or copy-constructible for the
-    // initial-value constructor). The producer must not retain the
-    // reference from BackBuffer() across a Publish(), nor the consumer the
-    // reference from FrontBuffer() across an Acquire() — those swaps
-    // repoint which slot each refers to.
+    // Single-producer/single-consumer triple buffer for handing simulation
+    // state to a render loop. The producer writes BackBuffer() and
+    // Publish()es it; the consumer Acquire()s the newest published frame
+    // and reads FrontBuffer(). Neither side blocks the other or touches the
+    // same slot concurrently, and frames published between two Acquire()
+    // calls are skipped in favor of the newest. Publish() hands the back
+    // slot off, so the producer gets an older frame's slot to rewrite next.
+    // References from BackBuffer()/FrontBuffer() are invalidated by
+    // Publish()/Acquire() respectively.
     template <typename T>
     class TripleBuffer
     {

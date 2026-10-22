@@ -11,22 +11,10 @@ namespace Hal
 {
     namespace Gpu
     {
-        // GPU implementation of IAgentForceBackend2D, wrapping
-        // AgentForceKernel2D behind the same interface
-        // CpuAgentForceBackend2D implements — the agent-force analogue of
-        // GpuDiffusionBackend2D, extending the IComputeBackend strategy
-        // pattern to the second compute path.
-        //
-        // Fixed-size: the wrapped kernel's buffers are sized once at
-        // construction (grid dimensions and agent capacity), so
-        // AccumulateForces() throws std::invalid_argument if called with
-        // different dimensions or more agents than maxAgents — same
-        // stance as GpuDiffusionBackend2D.
-        //
-        // Converts between the interface's double arrays and the kernel's
-        // float SSBOs; the conversion cost is the accepted price of one
-        // interface spanning a double-precision CPU path and a float GPU
-        // one (see GpuDiffusionBackend2D's header).
+        // GPU IAgentForceBackend2D over AgentForceKernel2D. Sized at
+        // construction (grid and agent capacity); AccumulateForces throws
+        // std::invalid_argument for other dimensions or more agents. Converts
+        // between double and float each call.
         class GpuAgentForceBackend2D : public IAgentForceBackend2D
         {
         public:

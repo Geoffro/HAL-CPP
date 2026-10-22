@@ -1,7 +1,5 @@
-// Ported from LEARN_HERE/Other/FileIOTest: a stress test that opens many
-// output files at once, writes to each, and closes them. Java uses HAL's
-// FileIO + Util.MakeDirs; the C++ port uses the standard library
-// (<fstream> / <filesystem>) directly, which covers the same ground.
+// A stress test that opens many output files at once, writes to each, and
+// closes them, using <fstream> and <filesystem>.
 //
 // Headless: creates fileIOtest/ with the files and prints a summary.
 
@@ -13,7 +11,7 @@
 
 int main()
 {
-    const int32_t nFiles = 200; // Java opens 1000; 200 keeps the demo tidy.
+    const int32_t nFiles = 200;
     std::filesystem::create_directories("fileIOtest");
 
     std::vector<std::ofstream> outs;

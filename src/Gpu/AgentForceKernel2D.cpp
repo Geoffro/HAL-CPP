@@ -58,15 +58,28 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateCellCountPipeline();
-            CreatePrefixSumPipeline();
-            CreateScatterPipeline();
-            CreateForceAccumPipeline();
-            CreateCommandObjects();
+            try
+            {
+                CreateBuffers();
+                CreateCellCountPipeline();
+                CreatePrefixSumPipeline();
+                CreateScatterPipeline();
+                CreateForceAccumPipeline();
+                CreateCommandObjects();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         AgentForceKernel2D::~AgentForceKernel2D()
+        {
+            Destroy();
+        }
+
+        void AgentForceKernel2D::Destroy()
         {
             VkDevice device = m_context.Device();
 
@@ -161,8 +174,10 @@ namespace Hal
                                               const std::vector<float> &radii,
                                               int32_t                   numAgents)
         {
-            // Only writes the mapped staging regions; the staging->device
-            // copies are recorded into Dispatch()'s single submission.
+            Internal::CheckArgument((numAgents >= 0) && (numAgents <= m_maxAgents), "AgentForceKernel2D::UploadAgents numAgents must be within [0, maxAgents]");
+            Internal::CheckArgument(positions.size() >= (static_cast<size_t>(numAgents) * 2), "AgentForceKernel2D::UploadAgents positions must hold 2 floats per agent");
+            Internal::CheckArgument(radii.size() >= static_cast<size_t>(numAgents), "AgentForceKernel2D::UploadAgents radii must hold 1 float per agent");
+            // Only writes staging; Dispatch() records the device copies.
             m_numAgents = numAgents;
 
             char *pStaging = static_cast<char *>(m_pStagingMapped);
@@ -176,6 +191,11 @@ namespace Hal
                                           bool   wrapX,
                                           bool   wrapY)
         {
+            if (m_numAgents == 0)
+            {
+                return;
+            }
+
             struct GridPushConstants
             {
                 int32_t numAgents;

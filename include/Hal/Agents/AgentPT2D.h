@@ -9,16 +9,10 @@
 
 namespace Hal
 {
-    // Off-lattice 2D agent that can share a grid square with other agents,
-    // ported from GridsAndAgents/AgentPT2D.java. Agents occupying the same
-    // square form a doubly linked list (m_pNextSq/m_pPrevSq) threaded through
-    // the grid's occupancy array — this bucket-list structure is what
-    // AgentGrid2D::GetAgentsRad/GetAgentsRadApprox walk, and what Phase 4's
-    // GPU neighbor search is expected to rebuild per-tick on the GPU (see
-    // docs/DESIGN.md).
-    //
-    // TGrid must expose `using AgentType = <derived agent type>;` (see
-    // AgentGrid2D.h).
+    // Off-lattice 2D agent that can share a grid square with other agents.
+    // Agents on the same square form a doubly linked list headed in the
+    // grid's occupancy array; AgentGrid2D's radius queries walk these
+    // lists. TGrid must expose `using AgentType = <derived agent type>;`.
     template <typename TGrid>
     class AgentPT2D : public AgentBase<TGrid>
     {
@@ -201,10 +195,7 @@ namespace Hal
             this->m_pGrid->RemoveAgent(*static_cast<typename TGrid::AgentType *>(this));
         }
 
-        // NOTE: templated on the pointer type (TPtr) rather than spelled
-        // as `TGrid::AgentType*` — see the matching note in
-        // AgentSQ2DUnstackable.h for why (TGrid is still incomplete at
-        // the point this base class is first instantiated).
+        // See AgentSQ2DUnstackable::GetAllOnSquare.
         template <typename TPtr>
         void GetAllOnSquare(std::vector<TPtr *> &putHere)
         {
@@ -241,9 +232,6 @@ namespace Hal
             typename TGrid::AgentType **ppGridArray = this->m_pGrid->GridArray();
             if (ppGridArray[i] != nullptr)
             {
-                // Implicit derived-to-base conversion (TGrid::AgentType* to
-                // AgentPT2D<TGrid>*), resolved here in the function body —
-                // by call time TGrid::AgentType is complete.
                 AgentPT2D<TGrid> *pOccupant = ppGridArray[i];
                 pOccupant->m_pPrevSq = this;
                 m_pNextSq = pOccupant;
@@ -275,15 +263,8 @@ namespace Hal
         double m_ptX;
         double m_ptY;
         int32_t m_iSq;
-        // NOTE: typed as AgentPT2D<TGrid>* (this class itself), not
-        // TGrid::AgentType* — a self-referential pointer member is always
-        // fine regardless of TGrid's completeness, whereas
-        // `TGrid::AgentType*` as a field type would force eager lookup of
-        // that nested type at class-template-instantiation time, before
-        // TGrid (the concrete grid) is complete. Downcasts to
-        // TGrid::AgentType* happen only inside function bodies (lazily
-        // instantiated, by which point TGrid is complete) — see the CRTP
-        // note in DESIGN.md.
+        // Base-typed because TGrid::AgentType can't be named while TGrid is
+        // incomplete.
         AgentPT2D<TGrid> *m_pNextSq;
         AgentPT2D<TGrid> *m_pPrevSq;
     };

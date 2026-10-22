@@ -7,29 +7,12 @@
 
 namespace Hal
 {
-    // Mean-field/count-based population grid core, ported from
-    // GridsAndAgents/PopulationGridBase.java (and PopulationGridLongBase.java
-    // — the two Java classes are identical except for the count storage
-    // type, `int` vs `long`; collapsed here into one template on TCount,
-    // matching the pattern already used for Grid1D/2D/3D).
-    //
-    // Like PDEGrid, this uses a double-buffered "current counts + pending
-    // deltas, commit on Update()" design. Its extra feature over a plain
-    // value grid is an adaptive dense/sparse iteration mode: once the
-    // occupied fraction drops below 0.1%, it switches to maintaining a
-    // doubly linked list of occupied indices (`ApplyOccupied`/iteration
-    // walk only those, instead of scanning the whole grid) and switches
-    // back once occupancy climbs back above 1%.
-    //
-    // NOTE: Java accumulates total population as `long` (int-count grid)
-    // or `double` (long-count grid) to reduce overflow risk without fully
-    // solving it. Simplified here to a single `int64_t` accumulator
-    // regardless of TCount — no less safe than Java's scheme, and one
-    // convention instead of two.
-    //
-    // NOTE: `Diffusion` (stochastic diffusion of discrete counts) is
-    // deferred to Phase 3 — it depends on `MultinomialCalc` and
-    // `PopulationGridPDEequations`, neither of which exist yet.
+    // Count-based population grid core (TCount is int32_t or int64_t).
+    // Changes accumulate in a delta buffer that Update() commits. Iteration
+    // adapts to occupancy: when at most 0.1% of cells are occupied it walks
+    // a linked list of occupied indices instead of scanning the grid, and
+    // returns to scanning once occupancy reaches 1%. The total population is
+    // kept as int64_t.
     template <typename TCount>
     class PopulationGridBase
     {
@@ -57,18 +40,9 @@ namespace Hal
             if (val != TCount{})
             {
                 m_deltas[i] += val;
-                if (m_usingSparseIndices && (m_nextLiveDelta[i] == kUnlinked))
+                if (m_usingSparseIndices)
                 {
-                    if (m_firstLiveDelta == kUnlinked)
-                    {
-                        m_nextLiveDelta[i] = kLinkedTo;
-                        m_firstLiveDelta   = i;
-                    }
-                    else
-                    {
-                        m_nextLiveDelta[i] = m_firstLiveDelta;
-                        m_firstLiveDelta   = i;
-                    }
+                    LinkDeltaIndex(i);
                 }
             }
         }
@@ -120,18 +94,18 @@ namespace Hal
             Add(iTo, val);
         }
 
-        void Move(int32_t              iFrom,
-                  int32_t              iTo,
+        void Move(int32_t                     iFrom,
+                  int32_t                     iTo,
                   PopulationGridBase<TCount> &gridTo,
-                  TCount               val)
+                  TCount                      val)
         {
             Add(iFrom, -val);
             gridTo.Add(iTo, val);
         }
 
-        // Calls action(i, count) for every occupied index. Throws if
-        // action mutates this grid's population during the walk (the
-        // Java version guards against this the same way).
+        // Calls action(i, count) for every occupied index. Adding during
+        // the walk is fine (it only touches deltas); throws if action calls
+        // Update().
         template <typename ActionFn>
         void ApplyOccupied(ActionFn action)
         {
@@ -215,7 +189,6 @@ namespace Hal
             }
             if (!m_usingSparseIndices && (m_occupiedArea <= static_cast<int32_t>(m_length * 0.001)))
             {
-                m_usingSparseIndices = true;
                 SetupSparseIndices();
             }
             if (m_usingSparseIndices && (m_occupiedArea >= static_cast<int32_t>(m_length * 0.01)))
@@ -224,17 +197,9 @@ namespace Hal
             }
         }
 
-        // Called automatically when occupancy drops to the sparse
-        // threshold; exposed publicly to match Java, which lets a caller
-        // force it (e.g. right after loading a sparse initial condition).
-        //
-        // NOTE: rebuilds the linked list via LinkPopIndex (link only, no
-        // counter change) rather than AddPopIndex — Java's version calls
-        // the equivalent of AddPopIndex here, which re-increments
-        // occupiedArea for every already-occupied cell even though the
-        // caller (Update()'s dense-path loop) already counted them
-        // moments earlier, corrupting occupiedArea on every dense->sparse
-        // transition (see docs/JAVA_BUGS_FOUND.md #7); fixed here.
+        // Switches to sparse iteration now, rebuilding the occupied-index and
+        // pending-delta lists. Update() calls this when occupancy falls to
+        // the sparse threshold and may switch back to dense iteration.
         void SetupSparseIndices()
         {
             if (m_nextLiveIndex.empty())
@@ -258,7 +223,12 @@ namespace Hal
                 {
                     LinkPopIndex(i);
                 }
+                if (m_deltas[i] != TCount{})
+                {
+                    LinkDeltaIndex(i);
+                }
             }
+            m_usingSparseIndices = true;
         }
 
         void AddTo(TCount *pDest) const
@@ -277,14 +247,7 @@ namespace Hal
             }
         }
 
-        // Iterates occupied indices (dense scan or sparse linked-list walk
-        // depending on current mode) — see the note on begin()/end() in
-        // InternalAgentPool.h for why these are lowercase.
-        //
-        // NOTE: Java's OccupiedIterator stored an `updateID` field that is
-        // assigned but never actually checked anywhere (a vestigial/dead
-        // field — the real during-iteration-mutation guard lives in
-        // ApplyOccupied instead) — dropped here rather than ported.
+        // Iterates occupied indices (dense scan or sparse list walk).
         class Iterator
         {
         public:
@@ -361,10 +324,20 @@ namespace Hal
         }
 
     private:
-        // Links index i to the front of the occupied-index list, without
-        // touching occupiedArea — used by SetupSparseIndices, which
-        // rebuilds the list for cells whose occupancy was already
-        // counted by the caller.
+        // Adds i to the pending-delta list if it isn't already on it.
+        void LinkDeltaIndex(int32_t i)
+        {
+            if (m_nextLiveDelta[i] != kUnlinked)
+            {
+                return;
+            }
+            m_nextLiveDelta[i] = (m_firstLiveDelta == kUnlinked) ? kLinkedTo : m_firstLiveDelta;
+            m_firstLiveDelta = i;
+        }
+
+        // Links i to the front of the occupied-index list without changing
+        // the occupied count (SetupSparseIndices relinks cells already
+        // counted).
         void LinkPopIndex(int32_t i)
         {
             if (m_firstLiveIndex != kUnlinked)
@@ -375,9 +348,7 @@ namespace Hal
             m_firstLiveIndex = i;
         }
 
-        // Same as LinkPopIndex, but also counts the newly-occupied cell —
-        // used by Update()'s sparse-mode incremental path, where i is
-        // transitioning to occupied for the first time.
+        // LinkPopIndex plus counting the newly occupied cell.
         void AddPopIndex(int32_t i)
         {
             m_occupiedArea++;

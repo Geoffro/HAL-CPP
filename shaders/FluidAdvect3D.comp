@@ -1,17 +1,11 @@
 #version 450
 
-// Stable-fluids advection pass (Stam 1999) — the first of the four passes
-// behind Hal::Gpu::FluidKernel3D (see also FluidDivergence3D.comp,
-// FluidJacobi3D.comp, FluidProject3D.comp). Semi-Lagrangian: each voxel
-// backtraces its position through the velocity field and takes a
-// trilinear sample of the previous velocity and scalar (density,
-// temperature) fields there — unconditionally stable for any dt, which is
-// the whole point of the scheme. Buoyancy from the sampled temperature
-// and per-field dissipation are folded into this pass so one dispatch
-// advances everything except the pressure projection.
-//
-// The domain is a closed box: backtraced samples clamp to the interior
-// (no wrap), matching the projection passes' clamped stencils.
+// Stable-fluids (Stam 1999) advection, the first of FluidKernel3D's four
+// passes. Semi-Lagrangian: each voxel backtraces through the velocity
+// field and trilinearly samples the previous velocity and scalars
+// (density, temperature), which is stable for any dt. Buoyancy and
+// dissipation are applied here too. The domain is a closed box:
+// backtraced samples clamp to the interior.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

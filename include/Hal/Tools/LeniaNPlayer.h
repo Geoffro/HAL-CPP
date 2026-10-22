@@ -11,13 +11,9 @@
 
 namespace Hal
 {
-    // One labeled kernel snapshot held by LeniaNPlayer::StoreKernel: the
-    // kernel function plus every derived per-pair kernel artifact
-    // (spatial fields, normalization sums, FFT-transformed kernels), so
-    // LoadKernel restores the exact convolution state without a
-    // RecalcKernels. Deep copies, unlike Java's KernelInfo, which stashed
-    // references and relied on RecalcKernels reallocating (safe only
-    // under a garbage collector).
+    // A kernel saved by LeniaNPlayer::StoreKernel: the kernel function and
+    // deep copies of every derived per-pair kernel, so LoadKernel restores
+    // the convolution state without recomputing.
     struct LeniaKernelSnapshot
     {
         std::function<double(int32_t, int32_t, double)> kernelFn;
@@ -26,30 +22,13 @@ namespace Hal
         std::vector<FftGrid>                            fftKernels;
     };
 
-    // Multi-channel Lenia, ported from Tools/Lenia/LeniaNPlayer.java —
-    // several coupled continuous-CA "player" fields A_0..A_{n-1}. For each
-    // ordered channel pair (i, j) there is a kernel K_ij describing how
-    // source channel j influences target channel i. Each step convolves
-    // every source field A_j with every K_ij (via Hal::FftGrid), then
-    // updates each channel i from the growth function applied to that
-    // channel's full set of convolutions:
-    //   A_i <- clamp(A_i + G(i, [K_i0*A_0, ..., K_i(n-1)*A_(n-1)]) * dt, 0, 1)
-    //
-    // KernelFn(targetChannel, sourceChannel, distanceFromFocalCell) -> weight.
+    // Multi-channel Lenia: coupled fields A_0..A_{n-1}, with a kernel K_ij
+    // for how source channel j influences target channel i. Each step
+    // convolves every A_j with every K_ij (via FftGrid) and updates
+    //     A_i <- clamp(A_i + G(i, [K_i0*A_0, ..., K_i(n-1)*A_(n-1)]) * dt, 0, 1)
+    // KernelFn(targetChannel, sourceChannel, distance) -> weight.
     // GrowthFn(channel, convolvedValues) -> growth rate, where
-    // convolvedValues holds the n per-source convolutions (K_ij*A_j) at one
-    // cell. Both are stored, runtime-swappable std::functions (the
-    // configurable-model-function case, like Lenia1Player — see its header).
-    //
-    // NOTE: the Java version deduplicated identical kernels within a source
-    // column to skip redundant convolutions (FindKernelDuplicates /
-    // fftFieldRefs). That optimization is dropped here: it only compared
-    // each kernel against its immediate predecessor and, for three or more
-    // identical kernels in a column, read a convolution buffer that was
-    // never computed that step — a real bug (see docs/JAVA_BUGS_FOUND.md).
-    // This port always computes every K_ij*A_j, which is correct and
-    // simpler; caching fft(A_j) across targets is a valid future
-    // optimization.
+    // convolvedValues holds the n convolutions at one cell.
     class LeniaNPlayer
     {
     public:

@@ -1,8 +1,8 @@
-// Ported from Examples/_5Example3D: a 3D tumor growing through an oxygen
-// field. Blood vessels (drawn as large red spheres in vertical columns) are
-// oxygen sources; tumor cells consume oxygen, divide where it is plentiful,
-// and die where it is scarce. Oxygen diffuses on a PDEGrid3D. Rendered with
-// the software Scene3D (tumor cells colored by local oxygen).
+// A 3D tumor growing through an oxygen field. Blood vessels (large red
+// spheres in vertical columns) are oxygen sources; tumor cells consume
+// oxygen, divide where it is plentiful, and die where it is scarce. Oxygen
+// diffuses on a PDEGrid3D. Rendered with the software Scene3D, tumor cells
+// colored by local oxygen.
 //
 // Live window by default (drag to orbit, up/down to zoom); pass "headless"
 // to run a bounded number of steps and dump the final frame to example3d.png.
@@ -252,9 +252,8 @@ int main(int argc, char **argv)
     {
         bool headless = (argc > 1) && (std::strcmp(argv[1], "headless") == 0);
 
-        // Java constructs Example3D(x, z, y) with x=80, y=80, z=20, i.e. an
-        // 80 x 20 x 80 domain. A smaller domain keeps the software renderer
-        // and headless run snappy.
+        // An 80 x 20 x 80 domain scaled down so the software renderer and the
+        // headless run stay quick.
         const int32_t x = headless ? 40 : 80;
         const int32_t yDim = headless ? 10 : 20;
         const int32_t z = headless ? 40 : 80;

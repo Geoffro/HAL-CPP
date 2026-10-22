@@ -7,14 +7,9 @@ namespace Hal
     class BinaryReader;
     class BinaryWriter;
 
-
-    // Core uniform pseudorandom generator. Implements xoshiro256** (Blackman
-    // & Vigna, public domain), seeded via splitmix64, in place of porting
-    // HAL's vendored java.util.SplittableRandom implementation verbatim (see
-    // docs/DESIGN.md, "RNG"). The design goal HAL cared about — cheap,
-    // statistically independent streams per instance — is preserved via
-    // Split(), which reseeds a new generator from this one's own output
-    // rather than sharing state.
+    // Uniform pseudorandom generator: xoshiro256** (Blackman & Vigna),
+    // seeded via splitmix64. Split() derives an independent generator from
+    // this one's output.
     class Rng
     {
     public:
@@ -38,13 +33,10 @@ namespace Hal
 
         bool NextBool();
 
-        // Returns a new, independently-seeded Rng derived from this one's
-        // output stream.
         Rng Split();
 
-        // Persists/restores the full generator state (the 4-word
-        // xoshiro256** state), so a reloaded Rng continues the exact same
-        // output stream from where it left off.
+        // Persists/restores the full generator state, so a reloaded Rng
+        // continues the same output stream.
         void Save(BinaryWriter &writer) const;
         void Load(BinaryReader &reader);
 

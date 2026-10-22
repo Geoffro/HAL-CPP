@@ -4,25 +4,14 @@
 
 #include <cstdint>
 #include <deque>
+#include <stdexcept>
 #include <vector>
 
 namespace Hal
 {
-    // Agent object pool with dead-agent free-list and in-place recycling,
-    // ported from HAL's GridsAndAgents/InternalGridAgentList.java.
-    //
-    // The Java version constructs new agents via reflection
-    // (`Class<T>.getDeclaredConstructors()[0].newInstance()`) because
-    // generics are erased at runtime. TAgent here is a compile-time
-    // template parameter, so new agents are constructed directly via
-    // `TAgent(TGrid*)` — no reflection needed (see docs/DESIGN.md).
-    //
-    // Agent objects live in `m_storage`, a std::deque so that pointers
-    // into it stay valid across growth (deque never invalidates
-    // references on push_back, unlike std::vector) — this replaces
-    // Java's ArrayList<T>-of-references, which has the same stability
-    // property for a different reason (the array holds references, not
-    // objects inline).
+    // Agent pool with a dead-agent free list and in-place recycling. Agents
+    // are constructed as TAgent(TGrid*) and stored in a std::deque, so
+    // pointers to them stay valid as the pool grows.
     template <typename TAgent, typename TGrid>
     class InternalAgentPool
     {
@@ -67,8 +56,13 @@ namespace Hal
             return *pNewAgent;
         }
 
+        // Throws std::runtime_error if agent is already dead.
         void RemoveAgent(TAgent &agent)
         {
+            if (!agent.IsAlive())
+            {
+                throw std::runtime_error("attempting to dispose already dead agent");
+            }
             agent.SetAlive(false);
             m_deads.push_back(&agent);
             m_pop--;
@@ -127,10 +121,8 @@ namespace Hal
             m_deads.clear();
         }
 
-        // Iterates alive agents, skipping any agent born during the
-        // current iteration pass (stateID versioning) — matching Java's
-        // AgentListIterator, which makes birth-during-iteration safe by
-        // construction rather than by convention.
+        // Visits alive agents in list order, skipping agents born after the
+        // iteration began (they carry a newer state id).
         class Iterator
         {
         public:
@@ -188,17 +180,7 @@ namespace Hal
             TAgent *m_pCurrent;
         };
 
-        // NOTE: begin()/end() are lowercase, breaking from the project's
-        // CamelCase-for-functions convention, because C++'s range-based
-        // for loop is defined to call container.begin()/.end() by that
-        // exact spelling — this is a language protocol requirement, not a
-        // style choice, so it's exempt from coding_standards.md here.
-        //
-        // Also simplified relative to Java's InternalGridAgentList, which
-        // only increments stateID when not already inside an outer
-        // iteration (to let nested/reentrant iteration share one pass).
-        // Reentrant iteration isn't needed yet at this milestone, so this
-        // always increments; revisit if a model needs nested iteration.
+        // Lowercase for range-based for.
         Iterator begin()
         {
             m_stateId++;

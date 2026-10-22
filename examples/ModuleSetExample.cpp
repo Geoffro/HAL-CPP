@@ -1,14 +1,9 @@
-// Ported from Examples/ModuleSetExample: the same division/death/mutation
-// tumor, but decomposed into interchangeable behavior modules (setup,
-// division/death probabilities, mutation bookkeeping, drawing) composed via
-// a ModuleSet. Each module implements only the hooks it needs; the model
-// invokes, at each hook point, just the modules that implement it.
-//
-// Java discovered which hooks a module implemented by reflection. The C++
-// ModuleSet has no reflection, so each module lists its hooks explicitly
-// when added (see docs/DESIGN.md) — that list is the only structural
-// difference from the Java version. Per-module per-cell state uses the
-// VarSetManager / IVarSet interface.
+// The division/death/mutation tumor decomposed into interchangeable
+// behavior modules (setup, division/death probabilities, mutation
+// bookkeeping, drawing) composed via a ModuleSet. Each module declares the
+// hooks it implements when added, and the model invokes just those
+// modules at each hook point. Per-module per-cell state uses VarSetManager
+// and IVarSet.
 //
 // Live window by default; pass "headless" to dump the final tumor to
 // modulesetexample.png.
@@ -150,8 +145,8 @@ public:
                 pModule->OnStepCell(&c);
             }
             int32_t ct = MapEmptyHood(m_hood.data(), HoodSize(), c.Isq());
-            // Faithful to Java: integer division, so this is 1 only when the
-            // neighborhood is completely full (unused by these demo modules).
+            // Integer division: 1 only when the neighborhood is completely full
+            // (unused by these demo modules).
             double contactInhib = (hoodSize - ct) / hoodSize;
 
             double dieProb = 0.0;

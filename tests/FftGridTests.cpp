@@ -186,3 +186,24 @@ TEST_CASE("Hal::FftGrid: non-power-of-two dimensions and mismatched operations t
     Hal::Grid2D<double> wrongSize(2, 2);
     CHECK_THROWS_AS(a.SetGrid(wrongSize), std::invalid_argument);
 }
+
+TEST_CASE("Hal::FftGrid: ToRealGrid and the Real/Imag accessors expose the complex data")
+{
+    Hal::Grid2D<double> source(4, 2);
+    for (int32_t i = 0; i < source.Length(); i++)
+    {
+        source.Set(i, static_cast<double>(i));
+    }
+    Hal::FftGrid grid(source);
+    Hal::Grid2D<double> real = grid.ToRealGrid();
+    CHECK(real.GetField() == source.GetField());
+    CHECK(grid.Real() == source.GetField());
+    for (double v : grid.Imag())
+    {
+        CHECK(v == 0.0);
+    }
+    CHECK(grid.GetReal(3, 1) == doctest::Approx(source.Get(3, 1)));
+    CHECK(grid.GetImag(3, 1) == 0.0);
+
+    CHECK_THROWS_AS(Hal::FftGrid(3, 4), std::invalid_argument);
+}

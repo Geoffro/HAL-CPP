@@ -9,11 +9,8 @@
 
 namespace Hal
 {
-    // On-lattice 2D agent with at most one agent per grid square, ported
-    // from GridsAndAgents/AgentSQ2Dunstackable.java. TGrid must expose
-    // `using AgentType = <derived agent type>;` (see AgentGrid2D.h) so
-    // AddSQ/RemSQ can address the grid's occupancy array with the correct
-    // concrete type.
+    // On-lattice 2D agent; at most one agent per grid square. TGrid must
+    // expose `using AgentType = <derived agent type>;` (AgentGrid2D does).
     template <typename TGrid>
     class AgentSQ2DUnstackable : public AgentBase<TGrid>
     {
@@ -158,6 +155,10 @@ namespace Hal
 
         void Dispose()
         {
+            if (!this->IsAlive())
+            {
+                throw std::runtime_error("attempting to dispose already dead agent");
+            }
             RemSQ();
             this->m_pGrid->RemoveAgent(*static_cast<typename TGrid::AgentType *>(this));
         }
@@ -176,18 +177,10 @@ namespace Hal
             return this->m_pGrid->MapHood(pHood, hoodLength, m_xSq, m_ySq);
         }
 
-        // Duck-typed to match AgentPT2D's linked-list walk, so
-        // AgentGrid2D::GetAgents/GetAgentsRad work unchanged regardless of
-        // which agent base TAgent derives from.
-        //
-        // NOTE: templated on the pointer type (TPtr), deduced from the
-        // call site, rather than spelled as `TGrid::AgentType*` directly —
-        // referencing that nested type in a member *declaration* forces
-        // eager lookup at class-template-instantiation time, which is too
-        // early: TGrid (the concrete grid) is still incomplete at the
-        // point an agent class first instantiates this base (see the CRTP
-        // note in DESIGN.md). A template method's signature is only
-        // resolved when actually called, by which point TGrid is complete.
+        // Same interface as AgentPT2D's square walk, so AgentGrid2D's
+        // queries work with either base. Templated on the pointer type
+        // because TGrid is incomplete where this base is instantiated (see
+        // docs/DESIGN.md).
         template <typename TPtr>
         void GetAllOnSquare(std::vector<TPtr *> &putHere)
         {

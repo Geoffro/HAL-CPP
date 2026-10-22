@@ -9,33 +9,15 @@
 
 namespace Hal
 {
-    // General ODE integrator, ported from Tools/ODESolver/ODESolver.java.
-    // Solves dy/dt = f(t, y) for a flat state vector y of a given length.
-    //
-    // The derivative f is passed as a template callable (not a
-    // std::function or a named-interface object, per docs/DESIGN.md's
-    // callback-style rule — it's evaluated many times per step, so the
-    // zero-overhead template form matters) with the signature:
+    // ODE integrator for dy/dt = f(t, y) over a flat state vector. The
+    // derivative is a callable
     //
     //     derivative(double t, const double *pState, double *pDerivativesOut)
     //
-    // writing exactly `length` derivative values into pDerivativesOut.
-    // This mirrors Java's Derivative.Set(t, state, out) — the length is a
-    // separate argument to each solver method since C++ raw arrays don't
-    // carry it.
-    //
-    // Three integrators, matching the Java original: Euler and
-    // Runge-Kutta 4 as fixed-step methods, and Runge-Kutta-Fehlberg 4(5)
-    // (Runge45) as an adaptive-step method. Scratch buffers are reused
-    // across calls (resized only when the state length changes), so
-    // repeated stepping of the same system doesn't reallocate — the same
-    // intent as the Java version's scratch caching, without its
-    // caching-by-length bookkeeping.
-    //
-    // Trajectory-recording variants (EulerRecord / Runge4Record /
-    // Runge45Record) append every integrated step to caller-owned
-    // states / ts vectors, for plotting the solution over time — the C++
-    // analog of Java's ArrayList<double[]> / ArrayList<Double> overloads.
+    // writing `length` values. Euler and classical Runge-Kutta 4 are
+    // fixed-step; Runge45 (Runge-Kutta-Fehlberg 4(5)) adapts its step.
+    // The *Record variants append every step to caller-owned state/time
+    // vectors. Scratch buffers are reused across calls.
     class OdeSolver
     {
     public:
@@ -108,11 +90,11 @@ namespace Hal
 
             derivative(t, pState, pK1);
             EulerAdd(pState, pK1, halfStep, pTmp, length);
-            derivative(t, pTmp, pK2);
+            derivative(t + halfStep, pTmp, pK2);
             EulerAdd(pState, pK2, halfStep, pTmp, length);
-            derivative(t, pTmp, pK3);
+            derivative(t + halfStep, pTmp, pK3);
             EulerAdd(pState, pK3, dt, pTmp, length);
-            derivative(t, pTmp, pK4);
+            derivative(t + dt, pTmp, pK4);
             for (int32_t i = 0; i < length; i++)
             {
                 pOut[i] = pState[i] + (pK1[i] + 2 * pK2[i] + 2 * pK3[i] + pK4[i]) * dt / 6.0;

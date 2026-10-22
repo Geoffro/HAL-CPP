@@ -5,19 +5,10 @@
 
 namespace Hal
 {
-    // Strategy interface for the implicit (ADI / Crank-Nicolson) 2D
-    // diffusion solve, mirroring IDiffusionBackend2D for the explicit
-    // stencil: model code holds a pointer to this and swaps
-    // implementations without changing call sites. Operates on flat,
-    // caller-owned field/delta arrays (matching
-    // Hal::Internal::Diffusion2DADI's raw-pointer signature) so one
-    // interface covers a plain array and a PDEGrid2D's backing storage.
-    //
-    // Two implementations exist — Hal::CpuAdiDiffusionBackend2D
-    // (include/Hal/Pde/CpuAdiDiffusionBackend2D.h) and
-    // Hal::Gpu::GpuAdiDiffusionBackend2D
-    // (include/Hal/Gpu/GpuAdiDiffusionBackend2D.h), the tridiagonal
-    // solve via cyclic reduction / PCR on the GPU side.
+    // Strategy interface for one implicit (ADI) 2D diffusion step,
+    // implemented on the CPU (Hal::CpuAdiDiffusionBackend2D) and the GPU
+    // (Hal::Gpu::GpuAdiDiffusionBackend2D). Same flat-array layout as
+    // IDiffusionBackend2D. Zero-flux or periodic boundaries.
     class IAdiDiffusionBackend2D
     {
     public:
@@ -27,10 +18,10 @@ namespace Hal
         IAdiDiffusionBackend2D(const IAdiDiffusionBackend2D &other) = delete;
         IAdiDiffusionBackend2D &operator=(const IAdiDiffusionBackend2D &other) = delete;
 
-        // Adds one ADI step's contribution into deltas (deltas[i] += ...),
-        // matching Hal::Internal::Diffusion2DADI's accumulate semantics —
-        // callers are responsible for clearing deltas first if that's not
-        // wanted. Unconditionally stable: no CFL cap on diffRate.
+        // Adds one step's contribution into deltas (deltas[i] += ...); clear
+        // deltas first if accumulation isn't wanted. Unconditionally
+        // stable. Throws std::invalid_argument unless field and deltas hold
+        // xDim*yDim values.
         virtual void DiffuseADI(const std::vector<double> &field,
                                 std::vector<double>       &deltas,
                                 double                     diffRate,

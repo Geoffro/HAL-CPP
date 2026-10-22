@@ -80,14 +80,27 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipelines();
-            CreateCommandObjects();
-            InitializeFieldBuffers();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipelines();
+                CreateCommandObjects();
+                InitializeFieldBuffers();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         SlimeMold3DKernel::~SlimeMold3DKernel()
+        {
+            Destroy();
+        }
+
+        void SlimeMold3DKernel::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -373,6 +386,7 @@ namespace Hal
 
         void SlimeMold3DKernel::SeedField(const std::vector<float> &field)
         {
+            Internal::CheckSize(field.size(), static_cast<size_t>(m_length), "SlimeMold3DKernel::SeedField field");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_length) * sizeof(float);
             std::memcpy(m_pStagingMapped, field.data(), static_cast<size_t>(size));
 
@@ -413,6 +427,8 @@ namespace Hal
                                          int32_t                  steps,
                                          const SlimeMold3DParams &params)
         {
+            Internal::CheckArgument((agentCount >= 0) && (agentCount <= m_agentCapacity), "SlimeMold3DKernel::RunSteps agentCount must be within [0, capacity]");
+            Internal::CheckArgument(agents.size() >= (static_cast<size_t>(agentCount) * 8), "SlimeMold3DKernel::RunSteps agents must hold 8 floats per agent");
             VkDeviceSize agentSize = static_cast<VkDeviceSize>(agentCount) * 8 * sizeof(float);
             if (agentCount > 0)
             {

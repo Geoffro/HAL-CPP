@@ -8,10 +8,8 @@
 
 namespace Hal
 {
-    // Shared indexing/neighborhood geometry for 2D grids, ported from
-    // HAL's Interfaces/Grid2D.java. See GridGeometry1D.h for the rationale
-    // behind using a concrete (non-virtual) base class and templated
-    // neighborhood-hook methods instead of Java's default-method interface.
+    // Indexing and neighborhood geometry shared by every 2D grid type (see
+    // GridGeometry1D.h). Index i = x * yDim + y.
     class GridGeometry2D
     {
     public:
@@ -54,6 +52,7 @@ namespace Hal
         bool InWrap(int32_t x,
                     int32_t y) const;
 
+        // x2 - x1 (y2 - y1), taking the shorter path around a wrapped axis.
         double DispX(double x1,
                      double x2) const;
 
@@ -88,8 +87,8 @@ namespace Hal
         double MapYpt(double                y,
                       const GridGeometry2D &other) const;
 
-        // Returns one index per boundary square, in [bottom row, top row,
-        // left column, right column] order.
+        // Indices of the boundary squares in [bottom row, top row, left
+        // column, right column] order; corner squares appear twice.
         std::vector<int32_t> BoundaryIs() const;
 
         // Along-line rasterization (Bresenham-like): writes the indices of

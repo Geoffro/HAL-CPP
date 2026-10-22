@@ -4,8 +4,6 @@
 
 namespace Hal
 {
-    // The TDMA scratch starts empty — TdmaSolver grows it to each solve's
-    // length on demand, so no dimensions are needed up front.
     CpuAdiDiffusionBackend2D::CpuAdiDiffusionBackend2D()
         : m_tdma(0),
           m_scratch()
@@ -24,6 +22,7 @@ namespace Hal
                                               bool                       wrapX,
                                               bool                       wrapY)
     {
+        Internal::CheckFieldSizes(field, deltas, xDim, yDim, "CpuAdiDiffusionBackend2D::DiffuseADI");
         size_t length = static_cast<size_t>(xDim) * static_cast<size_t>(yDim);
         if (m_scratch.size() != length)
         {

@@ -1,29 +1,17 @@
 #pragma once
 
 #include "Hal/Agents/AgentPT3D.h"
+#include "Hal/Grids/AgentGrid3D.h"
 #include "Hal/MathUtil.h"
 #include "Hal/Rand.h"
 
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <vector>
 
 namespace Hal
 {
-    // "Spherical cow" 3D physics agent, ported from
-    // GridsAndAgents/SphericalAgent3D.java. See SphericalAgent2D.h for the
-    // 2D version this mirrors (deferred cross-grid SumForces overload and
-    // GetFreshAgentSearchArr scratch pool; ThreadLocal-to-local-array
-    // simplification for the zero-scratch-arg Divide(); the TSelf-
-    // defaulted-template-parameter fix for Divide's return type hitting
-    // the incomplete-type pitfall).
-    //
-    // NOTE: Java's 3D Divide only re-normalizes the scratch axis onto the
-    // sphere when pRand is null (the 2D version re-normalizes
-    // unconditionally, which is harmless but redundant when a freshly
-    // sampled point is already on the circle edge) — ported faithfully as
-    // the more efficient of the two, not a bug.
+    // Spherical off-lattice agent (see SphericalAgent2D.h).
     template <typename TGrid>
     class SphericalAgent3D : public AgentPT3D<TGrid>
     {
@@ -83,8 +71,7 @@ namespace Hal
             m_zVel   = 0;
         }
 
-        // See SphericalAgent2D::SumForces for the overlap-force contract;
-        // this is the same law extended to three velocity components.
+        // See SphericalAgent2D::SumForces.
         template <typename OverlapFn>
         double SumForces(double   interactionRad,
                          OverlapFn overlapFun)
@@ -100,7 +87,7 @@ namespace Hal
                     double yComp = this->Grid()->DispY(this->Ypt(), pOther->Ypt());
                     double zComp = this->Grid()->DispZ(this->Zpt(), pOther->Zpt());
                     double dist  = Norm(xComp, yComp, zComp);
-                    if (dist < interactionRad)
+                    if ((dist < interactionRad) && (dist > 0.0))
                     {
                         double touchDist = (m_radius + pOther->Radius()) - dist;
                         double force     = overlapFun(touchDist, *pOther);
@@ -117,30 +104,25 @@ namespace Hal
             return sum;
         }
 
-        // Same force law, but against an already-computed neighbor list +
-        // per-neighbor displacement info ([dist, xDisp, yDisp, zDisp] per
-        // entry) rather than performing its own radius search.
+        // Same force law, over a neighbor list and displacement info from
+        // AgentGrid3D::GetAgentsRad queried at this agent's position.
         template <typename TNeighbor, typename OverlapFn>
-        double SumForces(const std::vector<TNeighbor *>            &neighbors,
-                         const std::vector<std::array<double, 4>> &displacementInfo,
-                         OverlapFn                                  overlapFun)
+        double SumForces(const std::vector<TNeighbor *>             &neighbors,
+                         const std::vector<AgentDisplacementInfo3D> &displacementInfo,
+                         OverlapFn                                   overlapFun)
         {
             double sum = 0;
             for (size_t i = 0; i < neighbors.size(); i++)
             {
-                TNeighbor *pOther = neighbors[i];
-                if (pOther != this)
+                TNeighbor                     *pOther = neighbors[i];
+                const AgentDisplacementInfo3D &info = displacementInfo[i];
+                if ((pOther != this) && (info.dist > 0.0))
                 {
-                    const std::array<double, 4> &info = displacementInfo[i];
-                    double dist  = info[0];
-                    double xComp = info[1];
-                    double yComp = info[2];
-                    double zComp = info[3];
-                    double touchDist = (m_radius + pOther->Radius()) - dist;
+                    double touchDist = (m_radius + pOther->Radius()) - info.dist;
                     double force     = overlapFun(touchDist, *pOther);
-                    m_xVel -= (xComp / dist) * force;
-                    m_yVel -= (yComp / dist) * force;
-                    m_zVel -= (zComp / dist) * force;
+                    m_xVel -= (info.dispX / info.dist) * force;
+                    m_yVel -= (info.dispY / info.dist) * force;
+                    m_zVel -= (info.dispZ / info.dist) * force;
                     if (force > 0)
                     {
                         sum += std::abs(force);
@@ -175,8 +157,8 @@ namespace Hal
             this->MoveSafePT(this->Xpt() + m_xVel, this->Ypt() + m_yVel, this->Zpt() + m_zVel);
         }
 
-        // See SphericalAgent2D::Divide — same TSelf-defaulted-template
-        // trick to defer the incomplete-type lookup on the return type.
+        // See SphericalAgent2D::Divide. With pRand null, the given axis is
+        // rescaled to length divRadius.
         template <typename TSelf = TGrid>
         typename TSelf::AgentType *Divide(double  divRadius,
                                           double *pScratchCoordArr,

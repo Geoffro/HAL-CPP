@@ -9,24 +9,15 @@
 
 namespace Hal
 {
-    // Runs and visualizes many independent model instances ("wells") laid
-    // out in a grid, ported from Tools/MultiWellExperiment. Reframed for
-    // this port's headless-first architecture: instead of driving a live
-    // Swing GridWindow, it composites every well's rendered pixels into one
-    // RGBA8 buffer (with 1px borders between wells), which the caller can
-    // hand to ExportPng / VideoWriter (Phase 6) or a
-    // WindowRenderContext texture — the same separation of simulation from
-    // display used elsewhere.
-    //
-    // TModel is the per-well model type; wells are held as non-owning
-    // pointers (the caller owns the models). The stepper and drawer are
-    // template callables passed per call (not stored std::functions): the
-    // drawer runs per pixel per well per frame, a hot loop, so this uses
-    // the zero-overhead callable form per docs/DESIGN.md's callback-style
-    // rule.
+    // Runs many independent model instances ("wells") and composites
+    // their rendered pixels into one RGBA8 image with 1px borders between
+    // wells, for ExportPng, VideoWriter, or a WindowRenderContext texture.
+    // Wells fill each column bottom to top, then move right; y is up, as in
+    // RenderGrid2DToRgba. TModel is the per-well model type; the caller
+    // owns the models.
     //   stepper: void(TModel &model, int32_t wellIndex)
     //   drawer:  int32_t(const TModel &model, int32_t x, int32_t y)
-    //            returning a packed ARGB color (Hal::Color format)
+    //            returning a packed ARGB color
     template <typename TModel>
     class MultiWellExperiment
     {
@@ -70,8 +61,8 @@ namespace Hal
             return m_compositeHeight;
         }
 
-        // The composited RGBA8 buffer (row-major, top-to-bottom), valid
-        // after Render().
+        // The composited RGBA8 buffer (row-major, image row 0 at the top),
+        // valid after Render().
         const std::vector<uint8_t> &Pixels() const
         {
             return m_pixels;
@@ -131,9 +122,7 @@ namespace Hal
 
             for (int32_t well = 0; well < static_cast<int32_t>(m_wells.size()); well++)
             {
-                // Wells fill down a column then move to the next column,
-                // matching the Java layout (xWell = i/wellsY, yWell =
-                // i%wellsY); the +1 leaves a 1px border between wells.
+                // The +1 leaves a 1px border between wells.
                 int32_t xWell = well / m_wellsY;
                 int32_t yWell = well % m_wellsY;
                 int32_t xStart = xWell * (m_visXdim + 1);
@@ -154,7 +143,8 @@ namespace Hal
                                int32_t compositeY,
                                int32_t color)
         {
-            size_t index = (static_cast<size_t>(compositeY) * static_cast<size_t>(m_compositeWidth) + static_cast<size_t>(compositeX)) * 4;
+            int32_t imageRow = m_compositeHeight - 1 - compositeY;
+            size_t  index = (static_cast<size_t>(imageRow) * static_cast<size_t>(m_compositeWidth) + static_cast<size_t>(compositeX)) * 4;
             m_pixels[index] = static_cast<uint8_t>(GetRed256(color));
             m_pixels[index + 1] = static_cast<uint8_t>(GetGreen256(color));
             m_pixels[index + 2] = static_cast<uint8_t>(GetBlue256(color));

@@ -1,10 +1,7 @@
-// Ported from Examples/GameOfLife/GOLSweepEx: a parameter sweep that runs
-// many Game-of-Life simulations in parallel (one per random starting
-// density) and writes each run's live-cell count over time to a CSV. The
-// point of the example is the parallel sweep (Hal::MultiThread) plus
-// per-run output collection, so the Life model here is a compact array
-// version rather than the agent-based GOLGrid — it computes the identical
-// Conway rule and per-tick live count.
+// A parameter sweep running many Game of Life simulations in parallel (one
+// per random starting density) with Hal::MultiThread, writing each run's
+// live-cell count over time to a CSV. The Life model is a compact array
+// version of the same Conway rule rather than the agent-based GOLGrid.
 //
 // Headless: writes SweepResults.csv and prints progress.
 

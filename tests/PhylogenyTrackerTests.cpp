@@ -1,19 +1,19 @@
 #include <doctest/doctest.h>
 
+#include "TestSupport.h"
+
 #include "Hal/Tools/PhylogenyTracker.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-// A concrete genome subclass carrying inherited data, mirroring the Java
-// PhylogenyModel example's CellGenome (which tracks a mutation count that
-// increments from parent to child).
+// A genome carrying inherited data: a mutation count incremented from
+// parent to child.
 class TestGenome : public Hal::Genome<TestGenome>
 {
 public:
@@ -241,11 +241,6 @@ TEST_CASE("PhylogenyTracker: NewGenome rejects a second progenitor")
 // Clone recording + CSV export.
 // ---------------------------------------------------------------------
 
-static std::string PhyloTempFile(const std::string &name)
-{
-    return (std::filesystem::temp_directory_path() / name).string();
-}
-
 static std::vector<std::vector<std::string>> ReadCsv(const std::string &path)
 {
     std::vector<std::vector<std::string>> rows;
@@ -301,7 +296,7 @@ TEST_CASE("PhylogenyTracker::OutputClonesToCSV with no cutoff writes each clone'
     grandchild.SetPop(2);
     tracker.RecordClones("t0");
 
-    std::string path = PhyloTempFile("hal_phylo_nocutoff.csv");
+    std::string path = TestHelpers::TempFilePath("hal_phylo_nocutoff.csv");
     tracker.OutputClonesToCSV(path, {"nMut"}, MutationAttr, 0);
 
     std::vector<std::vector<std::string>> rows = ReadCsv(path);
@@ -328,7 +323,7 @@ TEST_CASE("PhylogenyTracker::OutputClonesToCSV folds a below-cutoff clone into i
     grandchild.SetPop(2);
     tracker.RecordClones("t0");
 
-    std::string path = PhyloTempFile("hal_phylo_cutoff.csv");
+    std::string path = TestHelpers::TempFilePath("hal_phylo_cutoff.csv");
     // Cutoff 3: the grandchild (peak subtree pop 2) is excluded and its
     // population folds into the child, which now shows 5.
     tracker.OutputClonesToCSV(path, {"nMut"}, MutationAttr, 3);
@@ -351,7 +346,7 @@ TEST_CASE("PhylogenyTracker::OutputClonesToCSV records one column per timepoint"
     root.SetPop(9);
     tracker.RecordClones("late");
 
-    std::string path = PhyloTempFile("hal_phylo_multi.csv");
+    std::string path = TestHelpers::TempFilePath("hal_phylo_multi.csv");
     tracker.OutputClonesToCSV(path, {"nMut"}, MutationAttr, 0);
 
     std::vector<std::vector<std::string>> rows = ReadCsv(path);
@@ -369,9 +364,92 @@ TEST_CASE("PhylogenyTracker::OutputClonesToCSV validates cutoff, headers, and at
     root.IncPop();
     tracker.RecordClones("t0");
 
-    std::string path = PhyloTempFile("hal_phylo_validate.csv");
+    std::string path = TestHelpers::TempFilePath("hal_phylo_validate.csv");
     CHECK_THROWS_AS(tracker.OutputClonesToCSV(path, {"nMut"}, MutationAttr, -1), std::invalid_argument);
     CHECK_THROWS_AS(tracker.OutputClonesToCSV(path, {"CloneID"}, MutationAttr, 0), std::invalid_argument);
     // attrsFn returns one field but two headers are declared.
     CHECK_THROWS_AS(tracker.OutputClonesToCSV(path, {"a", "b"}, MutationAttr, 0), std::invalid_argument);
+}
+
+TEST_CASE("PhylogenyTracker: a dead genome stays dead and can't be killed twice")
+{
+    Hal::PhylogenyTracker<TestGenome> tracker(false);
+    TestGenome &root = tracker.NewGenome(nullptr);
+    TestGenome &child = tracker.NewGenome(&root);
+    root.IncPop();
+    child.IncPop();
+    CHECK(tracker.GetNumLivingGenomes() == 2);
+
+    child.DecPop();
+    CHECK_FALSE(child.IsAlive());
+    CHECK(tracker.GetNumLivingGenomes() == 1);
+
+    child.SetPop(0);
+    CHECK(tracker.GetNumLivingGenomes() == 1);
+    CHECK_THROWS_AS(child.IncPop(), std::logic_error);
+    CHECK(child.GetPop() == 0);
+    CHECK(tracker.GetTotalPop() == 1);
+}
+
+TEST_CASE("PhylogenyTracker: with leaf removal, killing an already pruned genome again leaves the tree intact")
+{
+    Hal::PhylogenyTracker<TestGenome> tracker(true);
+    TestGenome &root = tracker.NewGenome(nullptr);
+    root.IncPop();
+    TestGenome &a = tracker.NewGenome(&root);
+    TestGenome &b = tracker.NewGenome(&root);
+    a.IncPop();
+    b.IncPop();
+
+    a.DecPop();
+    CHECK(tracker.GetNumTreeGenomes() == 2);
+    a.SetPop(0);
+    CHECK(tracker.GetNumTreeGenomes() == 2);
+
+    std::vector<TestGenome *> children;
+    root.GetChildren(children);
+    REQUIRE(children.size() == 1);
+    CHECK(children[0] == &b);
+}
+
+TEST_CASE("PhylogenyTracker::ForEachGenome skips a pruned progenitor")
+{
+    Hal::PhylogenyTracker<TestGenome> tracker(true);
+    TestGenome &root = tracker.NewGenome(nullptr);
+    root.IncPop();
+    TestGenome &child = tracker.NewGenome(&root);
+    child.IncPop();
+    TestGenome &grandchild = tracker.NewGenome(&child);
+    grandchild.IncPop();
+
+    root.DecPop();
+    child.DecPop();
+    std::vector<int32_t> ids;
+    tracker.ForEachGenome([&](TestGenome &g) { ids.push_back(g.GetId()); });
+    CHECK(ids == std::vector<int32_t>{0, 1, 2});
+
+    grandchild.DecPop();
+    ids.clear();
+    tracker.ForEachGenome([&](TestGenome &g) { ids.push_back(g.GetId()); });
+    CHECK(ids.empty());
+    CHECK(tracker.GetNumTreeGenomes() == 0);
+}
+
+TEST_CASE("PhylogenyTracker::OutputClonesToCSV folds a clone whose peak equals the cutoff into its parent")
+{
+    Hal::PhylogenyTracker<TestGenome> tracker(false);
+    TestGenome &root = tracker.NewGenome(nullptr);
+    TestGenome &child = tracker.NewGenome(&root);
+    root.SetPop(5);
+    child.SetPop(3);
+    tracker.RecordClones("t0");
+
+    std::string path = TestHelpers::TempFilePath("hal_phylo_cutoff_equal.csv");
+    tracker.OutputClonesToCSV(path, {"nMut"}, MutationAttr, 3);
+
+    std::vector<std::vector<std::string>> rows = ReadCsv(path);
+    REQUIRE(rows.size() == 2);
+    CHECK(rows[1] == std::vector<std::string>{"0", "0", "0", "8"});
+
+    std::remove(path.c_str());
 }

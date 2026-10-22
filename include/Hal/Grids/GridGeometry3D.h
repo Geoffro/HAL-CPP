@@ -9,14 +9,8 @@
 
 namespace Hal
 {
-    // Shared indexing/neighborhood geometry for 3D grids, ported from
-    // HAL's Interfaces/Grid3D.java. See GridGeometry1D.h for the rationale
-    // behind the concrete-base-class + templated-callback design.
-    //
-    // `BucketFillMask`/`BorderFindMask` (flood-fill mask helpers) keep
-    // Java's caller-owned-scratch contract: the caller supplies the
-    // connectivity hood plus the `out`/`scratch`/`stack` buffers (all sized
-    // to `Length()`), so the hot path stays allocation-free.
+    // Indexing and neighborhood geometry shared by every 3D grid type (see
+    // GridGeometry1D.h). Index i = (x * yDim + y) * zDim + z.
     class GridGeometry3D
     {
     public:
@@ -76,6 +70,8 @@ namespace Hal
                     double y,
                     double z) const;
 
+        // x2 - x1 (likewise y, z), taking the shorter path around a wrapped
+        // axis.
         double DispX(double x1,
                      double x2) const;
 
@@ -128,6 +124,8 @@ namespace Hal
         double ConvZpt(double                z,
                        const GridGeometry3D &other) const;
 
+        // Indices of the boundary voxels, face by face (z=0, z=max, y=0,
+        // y=max, x=0, x=max); edge and corner voxels appear more than once.
         std::vector<int32_t> BoundaryIs() const;
 
         int32_t GetHoodI(const int32_t *pHood,
@@ -469,17 +467,11 @@ namespace Hal
             }
         }
 
-        // Flood-fill from iStart across cells connected through pNearbyHood,
-        // writing `true` into pOut for every reachable cell that satisfies
-        // isMask (the fill is confined to the masked region). pOut, pScratch
-        // and stack are caller-owned scratch sized to Length(); pNearbyHood
-        // is the connectivity offset table (reused as MapHood's write buffer).
-        // Ported from Grid3D.java BucketFillMask.
-        //
-        // Faithful quirk (see JAVA_BUGS_FOUND.md #17): the seed cell iStart
-        // is NEVER written into pOut, even when it satisfies isMask — only
-        // cells discovered as masked *neighbors* are marked. Callers that
-        // want the seed included must set pOut[iStart] themselves.
+        // Flood-fills from iStart through pNearbyHood connectivity, setting
+        // pOut for every reachable cell that satisfies isMask (the fill only
+        // spreads through masked cells). The seed itself is not marked; set
+        // pOut[iStart] if it should be. pOut and pScratch must hold
+        // Length() entries; stack is reused scratch.
         template <typename IsMaskFn>
         void BucketFillMask(bool                 *pOut,
                             int32_t              *pNearbyHood,
@@ -519,11 +511,9 @@ namespace Hal
             }
         }
 
-        // Flood-fill from iStart across cells *not* in the mask, marking in
-        // pOut the masked cells encountered at the fill's frontier — i.e. the
-        // border of the masked region facing the open region containing
-        // iStart. Same caller-owned-scratch contract as BucketFillMask.
-        // Ported from Grid3D.java BorderFindMask.
+        // Flood-fills from iStart through unmasked cells, setting pOut for
+        // the masked cells on the fill's frontier: the border of the masked
+        // region facing iStart. Same buffer contract as BucketFillMask.
         template <typename IsMaskFn>
         void BorderFindMask(bool                 *pOut,
                             int32_t              *pNearbyHood,

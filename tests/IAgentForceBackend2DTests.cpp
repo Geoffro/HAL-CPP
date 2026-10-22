@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include "GpuTestSupport.h"
+
 #include "Hal/Agents/CpuAgentForceBackend2D.h"
 #include "Hal/Agents/IAgentForceBackend2D.h"
 #include "Hal/Gpu/ComputeContext.h"
@@ -8,8 +10,8 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
-#include <string>
 #include <vector>
 
 namespace AgentForceBackendTestHelpers
@@ -104,27 +106,60 @@ TEST_CASE("Hal::CpuAgentForceBackend2D matches an independent brute-force all-pa
     AgentForceBackendTestHelpers::RunForceCheck(backend, 1e-12);
 }
 
-TEST_CASE("Hal::Gpu::GpuAgentForceBackend2D matches the same brute-force ground truth through the same call site, or reports why it can't")
+TEST_CASE("Hal::Gpu::GpuAgentForceBackend2D matches the same brute-force ground truth through the same call site")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-        Hal::Gpu::GpuAgentForceBackend2D backend(context,
-                                                 AgentForceBackendTestHelpers::g_gridDim,
-                                                 AgentForceBackendTestHelpers::g_gridDim,
-                                                 AgentForceBackendTestHelpers::g_agentCount);
-        AgentForceBackendTestHelpers::RunForceCheck(backend, 1e-3);
-
-        // Capacity/dimension misuse throws rather than silently
-        // misrendering.
-        std::vector<double> positions;
-        std::vector<double> radii;
-        AgentForceBackendTestHelpers::BuildScene(positions, radii);
-        std::vector<double> deltas;
-        CHECK_THROWS_AS(backend.AccumulateForces(positions, radii, deltas, 1.0, 1.0, 8, 8, true, true), std::invalid_argument);
+        return;
     }
-    catch (const std::runtime_error &e)
+    Hal::Gpu::ComputeContext &context = *pContext;
+    Hal::Gpu::GpuAgentForceBackend2D backend(context,
+                                             AgentForceBackendTestHelpers::g_gridDim,
+                                             AgentForceBackendTestHelpers::g_gridDim,
+                                             AgentForceBackendTestHelpers::g_agentCount);
+    AgentForceBackendTestHelpers::RunForceCheck(backend, 1e-3);
+
+    // Dimension and array-size misuse throws rather than silently
+    // misrendering.
+    std::vector<double> positions;
+    std::vector<double> radii;
+    AgentForceBackendTestHelpers::BuildScene(positions, radii);
+    std::vector<double> deltas;
+    CHECK_THROWS_AS(backend.AccumulateForces(positions, radii, deltas, 1.0, 1.0, 8, 8, true, true), std::invalid_argument);
+
+    positions.pop_back();
+    CHECK_THROWS_AS(backend.AccumulateForces(positions,
+                                             radii,
+                                             deltas,
+                                             1.0,
+                                             1.0,
+                                             AgentForceBackendTestHelpers::g_gridDim,
+                                             AgentForceBackendTestHelpers::g_gridDim,
+                                             true,
+                                             true),
+                    std::invalid_argument);
+}
+
+TEST_CASE("Hal::CpuAgentForceBackend2D rejects positions that don't hold two values per radius")
+{
+    Hal::CpuAgentForceBackend2D backend;
+    std::vector<double> positions = {1.0, 1.0, 2.0};
+    std::vector<double> radii = {0.5, 0.5};
+    std::vector<double> deltas;
+    CHECK_THROWS_AS(backend.AccumulateForces(positions, radii, deltas, 2.0, 1.0, 8, 8, false, false), std::invalid_argument);
+}
+
+TEST_CASE("Hal::CpuAgentForceBackend2D skips coincident agents instead of producing NaN")
+{
+    Hal::CpuAgentForceBackend2D backend;
+    std::vector<double> positions = {4.0, 4.0, 4.0, 4.0};
+    std::vector<double> radii = {0.5, 0.5};
+    std::vector<double> deltas;
+    backend.AccumulateForces(positions, radii, deltas, 2.0, 1.0, 8, 8, false, false);
+    REQUIRE(deltas.size() == 4);
+    for (double v : deltas)
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        CHECK(v == 0.0);
     }
 }

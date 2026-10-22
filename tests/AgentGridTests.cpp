@@ -1,20 +1,21 @@
 #include <doctest/doctest.h>
 
+#include "TestSupport.h"
+
 #include "Hal/Agents/AgentSQ2DUnstackable.h"
 #include "Hal/Grids/AgentGrid2D.h"
 #include "Hal/IO/BinaryReader.h"
 #include "Hal/IO/BinaryWriter.h"
 #include "Hal/Neighborhood.h"
+#include "Hal/Rand.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// Minimal agent used to exercise the object pool directly (birth, death,
-// iteration skipping dead/newly-born agents, CleanAgents compaction) —
-// independent of any model-specific logic.
-// ---------------------------------------------------------------------
+// Minimal agent for exercising the pool directly.
 
 class PoolTestGrid;
 
@@ -51,6 +52,14 @@ public:
     PoolTestGrid(int32_t xDim,
                  int32_t yDim)
         : Hal::AgentGrid2D<PoolTestAgent, PoolTestGrid>(xDim, yDim)
+    {
+    }
+
+    PoolTestGrid(int32_t xDim,
+                 int32_t yDim,
+                 bool    wrapX,
+                 bool    wrapY)
+        : Hal::AgentGrid2D<PoolTestAgent, PoolTestGrid>(xDim, yDim, wrapX, wrapY)
     {
     }
 
@@ -148,22 +157,11 @@ TEST_CASE("AgentGrid2D: CleanAgents compacts dead slots and a subsequent iterati
     CHECK(visited == 2);
 }
 
-// ---------------------------------------------------------------------
-// Game of Life, ported from Examples/GameOfLife/GOLGrid.java, as an
-// end-to-end check of MapHood + GetAgent + neighbor counting against a
-// known oscillator (a blinker) rather than against captured Java output —
-// the blinker's period-2 oscillation is the definition of Conway's Game
-// of Life, independent of this port entirely.
+// Game of Life as an end-to-end check of MapHood, GetAgent, and neighbor
+// counting against a blinker, whose period-2 oscillation is known.
 //
-// NOTE: GOLAgent and GOLGrid mutually reference each other (the agent
-// calls back into the grid for MapHood/GetAgent/GetTick, and the grid's
-// AgentGrid2D<GOLAgent> base stores GOLAgent objects by value). Unlike
-// Java, where declaration order never matters, C++ requires the forward-
-// declare-both / define-GOLAgent-first-with-out-of-line-methods /
-// define-GOLGrid-second pattern below whenever two classes reference each
-// other this way — worth keeping in mind for every future on-lattice
-// model ported into this codebase.
-// ---------------------------------------------------------------------
+// GOLAgent and GOLGrid reference each other, so both are forward-declared,
+// GOLAgent is defined first with out-of-line methods, and GOLGrid second.
 
 class GOLGrid;
 
@@ -211,11 +209,8 @@ public:
 
     void StepAgents()
     {
-        // Tick advances before stepping, matching Java's StepAgents (tick++
-        // first): GetCurrState() reads the buffer slot written as "next" by
-        // the previous call (or by initial setup, for the first call), so
-        // the state visible via GetCurrState() always lags one StepAgents()
-        // call behind the neighbor computation that produced it.
+        // The tick advances before stepping, so GetCurrState() reads the
+        // slot the previous call wrote as "next".
         IncTick();
         for (GOLAgent &agent : *this)
         {
@@ -348,7 +343,7 @@ TEST_CASE("AgentGrid2D::PopAt reports occupancy per square for unstackable agent
 
 TEST_CASE("AgentGrid2D::SaveAgents / LoadAgents round-trip agent positions and state through a file")
 {
-    const std::string path = "agentpool_roundtrip.bin";
+    const std::string path = TestHelpers::TempFilePath("hal_test_agentpool_roundtrip.bin");
 
     // Populate a grid with tagged agents at known squares.
     PoolTestGrid original(5, 5);
@@ -376,6 +371,212 @@ TEST_CASE("AgentGrid2D::SaveAgents / LoadAgents round-trip agent positions and s
     CHECK(loaded.GetAgent(4, 4) != nullptr);
     CHECK(loaded.GetAgent(4, 4)->Tag() == 30);
     CHECK(loaded.GetAgent(1, 1) == nullptr);
+
+    std::remove(path.c_str());
+}
+
+TEST_CASE("AgentSQ2DUnstackable::MoveSQ relocates an agent and frees its old square")
+{
+    PoolTestGrid grid(5, 5);
+    PoolTestAgent &agent = grid.NewAgentSQ(1, 1);
+
+    agent.MoveSQ(3, 2);
+    CHECK(agent.Xsq() == 3);
+    CHECK(agent.Ysq() == 2);
+    CHECK(agent.Isq() == grid.I(3, 2));
+    CHECK(grid.GetAgent(3, 2) == &agent);
+    CHECK(grid.GetAgent(1, 1) == nullptr);
+
+    agent.MoveSQ(grid.I(0, 4));
+    CHECK(agent.Xsq() == 0);
+    CHECK(agent.Ysq() == 4);
+    CHECK(grid.GetAgent(0, 4) == &agent);
+    CHECK(grid.GetAgent(3, 2) == nullptr);
+
+    grid.NewAgentSQ(2, 2);
+    CHECK_THROWS_AS(agent.MoveSQ(2, 2), std::runtime_error);
+}
+
+TEST_CASE("AgentSQ2DUnstackable::MoveSafeSQ wraps on wrapped axes and stays put on bounded ones")
+{
+    PoolTestGrid grid(5, 5, true, false);
+    PoolTestAgent &agent = grid.NewAgentSQ(0, 0);
+
+    agent.MoveSafeSQ(-1, -1);
+    CHECK(agent.Xsq() == 4);
+    CHECK(agent.Ysq() == 0);
+
+    agent.MoveSafeSQ(5, 7);
+    CHECK(agent.Xsq() == 0);
+    CHECK(agent.Ysq() == 0);
+    CHECK(grid.GetAgent(0, 0) == &agent);
+    CHECK(grid.Pop() == 1);
+}
+
+TEST_CASE("AgentSQ2DUnstackable::SwapPosition exchanges two agents' squares")
+{
+    PoolTestGrid grid(4, 4);
+    PoolTestAgent &a = grid.NewAgentSQ(0, 1);
+    PoolTestAgent &b = grid.NewAgentSQ(3, 2);
+
+    a.SwapPosition(b);
+    CHECK(a.Xsq() == 3);
+    CHECK(a.Ysq() == 2);
+    CHECK(b.Xsq() == 0);
+    CHECK(b.Ysq() == 1);
+    CHECK(grid.GetAgent(3, 2) == &a);
+    CHECK(grid.GetAgent(0, 1) == &b);
+}
+
+TEST_CASE("AgentSQ2DUnstackable: disposing an already dead agent throws and leaves the grid intact")
+{
+    PoolTestGrid grid(3, 3);
+    PoolTestAgent &agent = grid.NewAgentSQ(1, 1);
+    agent.Dispose();
+
+    PoolTestAgent &replacement = grid.NewAgentSQ(1, 1);
+    CHECK(&replacement == &agent);
+    replacement.Dispose();
+    CHECK_THROWS_AS(agent.Dispose(), std::runtime_error);
+    CHECK(grid.Pop() == 0);
+
+    PoolTestAgent &other = grid.NewAgentSQ(2, 2);
+    CHECK(grid.Pop() == 1);
+    CHECK(grid.GetAgent(2, 2) == &other);
+}
+
+TEST_CASE("AgentGrid2D::ShuffleAgents permutes the iteration order and keeps every agent")
+{
+    PoolTestGrid grid(10, 10);
+    for (int32_t i = 0; i < 50; i++)
+    {
+        grid.NewAgentSQ(i).SetTag(i);
+    }
+
+    Hal::Rand rand(3);
+    grid.ShuffleAgents(rand);
+
+    std::vector<int32_t> tags;
+    for (PoolTestAgent &agent : grid)
+    {
+        tags.push_back(agent.Tag());
+    }
+    REQUIRE(tags.size() == 50);
+    std::vector<int32_t> sorted = tags;
+    std::sort(sorted.begin(), sorted.end());
+    for (int32_t i = 0; i < 50; i++)
+    {
+        CHECK(sorted[static_cast<size_t>(i)] == i);
+    }
+    CHECK(!std::is_sorted(tags.begin(), tags.end()));
+}
+
+TEST_CASE("AgentGrid2D::GetAgentSafe and GetAgentsSafe wrap or reject out-of-bounds coordinates")
+{
+    PoolTestGrid wrapped(4, 4, true, true);
+    PoolTestAgent &agent = wrapped.NewAgentSQ(3, 0);
+    CHECK(wrapped.GetAgentSafe(-1, 4) == &agent);
+    std::vector<PoolTestAgent *> found;
+    wrapped.GetAgentsSafe(found, -1, 0);
+    REQUIRE(found.size() == 1);
+    CHECK(found[0] == &agent);
+
+    PoolTestGrid bounded(4, 4);
+    bounded.NewAgentSQ(0, 0);
+    CHECK(bounded.GetAgentSafe(-1, 0) == nullptr);
+    found.clear();
+    bounded.GetAgentsSafe(found, 0, 4);
+    CHECK(found.empty());
+}
+
+TEST_CASE("AgentBase::Age counts ticks since birth")
+{
+    PoolTestGrid grid(3, 3);
+    grid.IncTick();
+    PoolTestAgent &agent = grid.NewAgentSQ(0, 0);
+    CHECK(agent.BirthTick() == 1);
+    grid.IncTick();
+    grid.IncTick();
+    CHECK(agent.Age() == 2);
+}
+
+TEST_CASE("AgentGrid2D::SaveAgents / LoadAgents restore the tick and each agent's birth tick")
+{
+    const std::string path = TestHelpers::TempFilePath("hal_test_agentpool_ticks.bin");
+
+    PoolTestGrid original(4, 4);
+    original.NewAgentSQ(0, 0);
+    original.IncTick();
+    original.IncTick();
+    original.NewAgentSQ(1, 1);
+    original.IncTick();
+
+    {
+        Hal::BinaryWriter writer(path);
+        original.SaveAgents(writer, [](PoolTestAgent &, Hal::BinaryWriter &) {});
+    }
+
+    PoolTestGrid loaded(4, 4);
+    {
+        Hal::BinaryReader reader(path);
+        loaded.LoadAgents(reader, [](PoolTestAgent &, Hal::BinaryReader &) {});
+        CHECK(reader.IsGood());
+    }
+
+    CHECK(loaded.GetTick() == 3);
+    REQUIRE(loaded.GetAgent(0, 0) != nullptr);
+    REQUIRE(loaded.GetAgent(1, 1) != nullptr);
+    CHECK(loaded.GetAgent(0, 0)->Age() == 3);
+    CHECK(loaded.GetAgent(1, 1)->Age() == 1);
+
+    std::remove(path.c_str());
+}
+
+static void LoadNoFields(PoolTestAgent     &agent,
+                         Hal::BinaryReader &reader)
+{
+    (void)agent;
+    (void)reader;
+}
+
+static void WriteAgentHeader(const std::string &path,
+                             int32_t            pop,
+                             int32_t            iSq)
+{
+    Hal::BinaryWriter writer(path);
+    writer.WriteInt32(0);
+    writer.WriteInt32(pop);
+    writer.WriteInt32(iSq);
+    writer.WriteInt32(0);
+}
+
+TEST_CASE("AgentGrid2D::LoadAgents rejects truncated data, negative populations, and out-of-range squares")
+{
+    const std::string path = TestHelpers::TempFilePath("hal_test_agentpool_invalid.bin");
+
+    // Claims two agents but holds one.
+    WriteAgentHeader(path, 2, 5);
+    {
+        PoolTestGrid grid(4, 4);
+        Hal::BinaryReader reader(path);
+        CHECK_THROWS_AS(grid.LoadAgents(reader, LoadNoFields), std::runtime_error);
+    }
+
+    WriteAgentHeader(path, -1, 5);
+    {
+        PoolTestGrid grid(4, 4);
+        Hal::BinaryReader reader(path);
+        CHECK_THROWS_AS(grid.LoadAgents(reader, LoadNoFields), std::runtime_error);
+        CHECK(grid.Pop() == 0);
+    }
+
+    WriteAgentHeader(path, 1, 16);
+    {
+        PoolTestGrid grid(4, 4);
+        Hal::BinaryReader reader(path);
+        CHECK_THROWS_AS(grid.LoadAgents(reader, LoadNoFields), std::runtime_error);
+        CHECK(grid.Pop() == 0);
+    }
 
     std::remove(path.c_str());
 }

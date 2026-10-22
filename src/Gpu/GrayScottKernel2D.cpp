@@ -51,13 +51,26 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipeline();
-            CreateCommandObjects();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipeline();
+                CreateCommandObjects();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         GrayScottKernel2D::~GrayScottKernel2D()
+        {
+            Destroy();
+        }
+
+        void GrayScottKernel2D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -265,6 +278,8 @@ namespace Hal
                                          float               diffU,
                                          float               diffV)
         {
+            Internal::CheckSize(u.size(), static_cast<size_t>(m_length), "GrayScottKernel2D::RunSteps u");
+            Internal::CheckSize(v.size(), static_cast<size_t>(m_length), "GrayScottKernel2D::RunSteps v");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_length) * 2 * sizeof(float);
 
             // Interleave the two host fields into the staging vec2 layout.

@@ -1,11 +1,8 @@
-// Ported from Examples/Lenia/Orbium: the classic Lenia "orbium" glider on a
-// continuous cellular automaton driven by an FFT convolution (Lenia1Player).
-// A smooth ring kernel K convolves the state A into a potential U, and a
-// Gaussian growth map G(U) updates A. Four panels sit side by side: the
-// state A, the convolved field K*A, the growth field G(U), and the kernel K.
-//
-// The Java version's WriteGrowthField panel is reconstructed here as
-// G(GetConvolvedFieldVal(i)), avoiding the need for that accessor.
+// The Lenia "orbium" glider: a continuous cellular automaton driven by an
+// FFT convolution (Lenia1Player). A smooth ring kernel K convolves the
+// state A into a potential U, and a Gaussian growth map G(U) updates A.
+// Four panels sit side by side: the state A, the convolved field K*A, the
+// growth field G(K*A), and the kernel K.
 //
 // Live window by default; pass "headless" to run a bounded number of steps
 // and dump the final frame to orbium.png.
@@ -43,7 +40,7 @@ double G(double density)
     return 2.0 * std::exp(-(l * l) / k) - 1.0;
 }
 
-// 20x20 orbium initial condition (row-major, from the Java source).
+// 20x20 orbium initial condition (row-major).
 const double IC[20][20] = {
         {0,0,0,0,0,0,0.1,0.14,0.1,0,0,0.03,0.03,0,0,0.3,0,0,0,0},
         {0,0,0,0,0,0.08,0.24,0.3,0.3,0.18,0.14,0.15,0.16,0.15,0.09,0.2,0,0,0,0},

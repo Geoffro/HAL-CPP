@@ -1,12 +1,9 @@
 #version 450
 
-// Stable-fluids divergence pass — measures the divergence of the freshly
-// advected velocity field (central differences, clamped at the box walls)
-// as the right-hand side of the pressure Poisson solve
-// (FluidJacobi3D.comp). An analytic spherical source term is subtracted
-// inside sourceRadius of the source point: the projection then leaves
-// exactly that much outflow behind, which is how FluidKernel3D models an
-// explosion's radial blast wind without uploading a velocity field.
+// Stable-fluids divergence: central differences of the advected velocity
+// (clamped at the walls) as the right-hand side of the pressure solve. An
+// analytic source term is subtracted inside sourceRadius, so projection
+// leaves that much radial outflow (a blast wind) behind.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

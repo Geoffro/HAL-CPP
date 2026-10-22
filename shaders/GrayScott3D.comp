@@ -1,16 +1,8 @@
 #version 450
 
-// GPU-resident VOLUMETRIC Gray-Scott reaction-diffusion — the 3D
-// counterpart of GrayScott2D.comp. Two chemicals U and V diffuse and react
-// on a toroidal 3D grid; the Turing instability grows the sponge / coral /
-// gyroid morphologies the Gpu3DReactionDiffusion showcase renders as a
-// cloud of depth-tested spheres. One invocation per voxel, ping-ponged
-// between two vec2 buffers (x = U, y = V).
-//
-// The reaction is identical to the 2D kernel; only the Laplacian changes to
-// a 7-point 3D stencil (six face neighbours minus six times the centre),
-// which is isotropic enough for the volumetric patterns while staying cheap.
-// The grid is always toroidal so the structure tiles in every direction.
+// 3D Gray-Scott reaction-diffusion on a toroidal grid: the 2D reaction
+// with a 7-point Laplacian. One invocation per voxel, ping-ponged between
+// two vec2 buffers (x = U, y = V).
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

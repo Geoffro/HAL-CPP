@@ -11,6 +11,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(doctest)
 
 add_executable(HalTests
+    TestSupport.cpp
     LoggerTests.cpp
     MathUtilTests.cpp
     ColorTests.cpp
@@ -41,6 +42,7 @@ add_executable(HalTests
     ModularityTests.cpp
     MultiWellExperimentTests.cpp
     ComputeContextTests.cpp
+    GpuTestSupport.cpp
     DiffusionKernel2DTests.cpp
     AgentForceKernel2DTests.cpp
     IAgentForceBackend2DTests.cpp
@@ -49,6 +51,7 @@ add_executable(HalTests
     GrayScott3DKernelTests.cpp
     WaveKernel2DTests.cpp
     FlowFieldKernel3DTests.cpp
+    FluidKernel3DTests.cpp
     SlimeMold3DKernelTests.cpp
     Math3DTests.cpp
 )
@@ -83,11 +86,8 @@ endif()
 add_test(NAME HalTests COMMAND HalTests)
 
 # --- Coding standards checks -----------------------------------------------
-# Encodes docs/coding_standards.md: the heuristic Python linter for rules
-# clang-format/clang-tidy can't express (see tools/check_coding_standards.py's
-# module docstring), plus clang-format/clang-tidy themselves where available.
-# Registered as ctest tests so `ctest` surfaces standards violations the same
-# way it surfaces a failing unit test.
+# docs/coding_standards.md as ctest tests: the Python linter for rules
+# clang-format/clang-tidy can't express, plus those tools where available.
 set(HAL_STYLE_CHECK_DIRS
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/include
@@ -123,11 +123,8 @@ if (CLANG_FORMAT_EXE)
         COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror -style=file
                 ${HAL_CLANG_FORMAT_SOURCES}
     )
-    # The codebase hasn't been through a full clang-format pass yet, so this
-    # currently fails almost everywhere. Disabled from the default `ctest`
-    # run until that dedicated reformatting pass happens; run it explicitly
-    # with `ctest -R ClangFormatCheck --test-action Test` (or just invoke
-    # clang-format --dry-run directly on a path you're touching).
+    # Disabled by default: the tree isn't clang-format clean. Run explicitly
+    # with `ctest -R ClangFormatCheck --test-action Test`.
     set_tests_properties(ClangFormatCheck PROPERTIES DISABLED TRUE)
 else()
     message(STATUS "clang-format not found - ClangFormatCheck test will not be registered")
@@ -138,10 +135,8 @@ if (CLANG_TIDY_EXE)
         COMMAND ${CLANG_TIDY_EXE} -p ${CMAKE_BINARY_DIR}
                 ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
     )
-    # Needs a compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS) from a
-    # Makefile/Ninja configure, and hasn't been triaged against the current
-    # codebase yet. Disabled from the default `ctest` run for the same
-    # reason as ClangFormatCheck above; run explicitly once ready.
+    # Disabled by default: needs compile_commands.json from a Makefile/Ninja
+    # configure, and the tree isn't clang-tidy clean.
     set_tests_properties(ClangTidyCheck PROPERTIES DISABLED TRUE)
 else()
     message(STATUS "clang-tidy not found - ClangTidyCheck test will not be registered")

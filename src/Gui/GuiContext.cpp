@@ -17,6 +17,7 @@ namespace Hal
             IMGUI_CHECKVERSION();
             m_pImGuiContext = ImGui::CreateContext();
             m_pImPlotContext = ImPlot::CreateContext();
+            MakeCurrent();
 
             ImGuiIO &io = ImGui::GetIO();
             // No on-disk imgui.ini / log files — this is a library context,
@@ -115,6 +116,7 @@ namespace Hal
         {
             return ImGui::Button(pLabel);
         }
+
         bool GuiContext::StringInput(const char  *pLabel,
                                      std::string &value)
         {
@@ -128,6 +130,7 @@ namespace Hal
             }
             return false;
         }
+
         bool GuiContext::ComboBox(const char        *pLabel,
                                   int32_t           &current,
                                   const char *const *pItems,

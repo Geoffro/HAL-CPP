@@ -1,10 +1,6 @@
-// Ported from Examples/Template_Models/TemplateOnLattice2D: the minimal
-// on-lattice agent skeleton — a single cell random-walks its von-Neumann
-// neighborhood, recoloring itself each step. Meant as a starting point to
-// copy from, so it stays deliberately tiny.
-//
-// (Java uses the stackable AgentSQ2D; this port uses the unstackable base,
-// which is equivalent here since there is only ever one agent.)
+// Minimal on-lattice agent skeleton: a single cell random-walks its von
+// Neumann neighborhood, recoloring itself each step. A starting point to
+// copy from.
 //
 // Live window by default; pass "headless" to run a bounded number of steps
 // and dump the final frame to templateonlattice2d.png.

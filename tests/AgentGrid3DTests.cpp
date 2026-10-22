@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <vector>
 
 // ---------------------------------------------------------------------
@@ -36,6 +37,16 @@ public:
                    int32_t yDim,
                    int32_t zDim)
         : Hal::AgentGrid3D<PoolTestAgent3D, PoolTestGrid3D>(xDim, yDim, zDim)
+    {
+    }
+
+    PoolTestGrid3D(int32_t xDim,
+                   int32_t yDim,
+                   int32_t zDim,
+                   bool    wrapX,
+                   bool    wrapY,
+                   bool    wrapZ)
+        : Hal::AgentGrid3D<PoolTestAgent3D, PoolTestGrid3D>(xDim, yDim, zDim, wrapX, wrapY, wrapZ)
     {
     }
 
@@ -288,4 +299,45 @@ TEST_CASE("AgentGrid3D::GetAgentsRad EvalAgent and displacement-info overloads (
         CHECK(info[k].dist == doctest::Approx(std::sqrt(dx * dx + dy * dy + dz * dz)));
         CHECK(info[k].dist < rad);
     }
+}
+
+TEST_CASE("AgentSQ3DUnstackable: MoveSQ, MoveSafeSQ, and SwapPosition keep the occupancy grid consistent")
+{
+    PoolTestGrid3D grid(4, 4, 4, false, false, true);
+    PoolTestAgent3D &a = grid.NewAgentSQ(0, 0, 0);
+    PoolTestAgent3D &b = grid.NewAgentSQ(3, 3, 3);
+
+    a.MoveSQ(1, 2, 3);
+    CHECK(a.Xsq() == 1);
+    CHECK(a.Ysq() == 2);
+    CHECK(a.Zsq() == 3);
+    CHECK(grid.GetAgent(1, 2, 3) == &a);
+    CHECK(grid.GetAgent(0, 0, 0) == nullptr);
+
+    a.MoveSafeSQ(-1, 1, 4);
+    CHECK(a.Xsq() == 1);
+    CHECK(a.Ysq() == 1);
+    CHECK(a.Zsq() == 0);
+    CHECK(grid.GetAgent(1, 1, 0) == &a);
+
+    a.SwapPosition(b);
+    CHECK(grid.GetAgent(3, 3, 3) == &a);
+    CHECK(grid.GetAgent(1, 1, 0) == &b);
+    CHECK(b.Isq() == grid.I(1, 1, 0));
+
+    b.Dispose();
+    CHECK_THROWS_AS(b.Dispose(), std::runtime_error);
+    CHECK(grid.Pop() == 1);
+}
+
+TEST_CASE("AgentPT3D::MoveSafePT wraps on wrapped axes and keeps the old coordinate on bounded ones")
+{
+    ParticleGrid3D grid(5, 5, 5, true, false, true);
+    ParticleAgent3D &agent = grid.NewAgentPT(2.5, 2.5, 2.5);
+    agent.MoveSafePT(-0.5, -3.0, 5.25);
+    CHECK(agent.Xpt() == doctest::Approx(4.5));
+    CHECK(agent.Ypt() == doctest::Approx(2.5));
+    CHECK(agent.Zpt() == doctest::Approx(0.25));
+    CHECK(agent.Isq() == grid.I(4, 2, 0));
+    CHECK(grid.PopAt(4, 2, 0) == 1);
 }

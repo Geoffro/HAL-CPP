@@ -4,15 +4,9 @@
 
 namespace Hal
 {
-    // Bookkeeping shared by every agent type, ported from
-    // GridsAndAgents/AgentBase.java. Collapses AgentBase +
-    // AgentBaseSpatial's non-spatial bookkeeping into one class — the
-    // original's deeper hierarchy existed partly to support Java's
-    // reflection-based construction and partly to share code across many
-    // agent shapes; since TGrid/TAgent are compile-time template
-    // parameters here (see InternalAgentPool.h), Age()/Dispose() don't
-    // need virtual dispatch the way Java's abstract methods did (a given
-    // AgentGrid only ever holds exactly one concrete agent type).
+    // Bookkeeping shared by every agent type: liveness, birth tick, and the
+    // pool's list position and iteration state id. TGrid is the concrete
+    // grid type.
     template <typename TGrid>
     class AgentBase
     {

@@ -1,9 +1,6 @@
-// Ported from Examples/ColorBarGenerator: renders a labelled color bar for a
-// heat map. Java drives it from an interactive menu (width/height/min/max/
-// palette) and Util.DrawColorBar adds numeric tick labels; this port draws
-// one vertical bar per palette side by side over a fixed value range and
-// exports a PNG. Tick-label text is omitted (GridWindow has no text
-// rasterizer yet).
+// Renders a color bar per heat-map palette, side by side over a fixed
+// value range, and exports a PNG. No tick labels (GridWindow has no text
+// rasterizer).
 //
 // Live window by default; pass "headless" to only write colorbar.png.
 

@@ -6,11 +6,8 @@
 #include <cstdint>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// Ported from Tools/MultinomialCalc.java. The conditional-binomial
-// decomposition must conserve the population exactly and reproduce the
-// per-outcome expectation pop*prob in aggregate over many trials.
-// ---------------------------------------------------------------------
+// The conditional-binomial decomposition must conserve the population
+// exactly and reproduce pop*prob per outcome on average.
 
 TEST_CASE("MultinomialCalc conserves the population across a full set of outcomes")
 {
@@ -70,4 +67,17 @@ TEST_CASE("MultinomialCalc per-outcome mean tracks pop*prob over many trials")
         // Within ~3% of the expected count.
         CHECK(mean == doctest::Approx(expected).epsilon(0.03));
     }
+}
+
+TEST_CASE("MultinomialCalc handles populations beyond the int32 range")
+{
+    Hal::Rand            rng(3);
+    Hal::MultinomialCalc mn(rng);
+    const int64_t pop = 5000000000LL;
+    mn.Setup(pop);
+    int64_t a = mn.Sample(0.25);
+    int64_t b = mn.Sample(0.75);
+    CHECK((a + b) == pop);
+    CHECK(mn.GetPopRemaining() == 0);
+    CHECK(static_cast<double>(a) == doctest::Approx(pop * 0.25).epsilon(0.001));
 }

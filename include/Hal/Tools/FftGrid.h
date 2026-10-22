@@ -7,26 +7,14 @@
 
 namespace Hal
 {
-    // 2D complex grid with an in-place FFT, ported from
-    // Tools/Lenia/FFTGrid.java. The core use is fast kernel convolution
-    // (the mechanism behind Lenia's continuous neighborhood interaction):
-    // FFT the state grid and the (same-sized) kernel grid, multiply them
-    // elementwise, inverse-FFT, and take the real part.
-    //
-    // Both dimensions must be powers of two (the constructor throws
-    // std::invalid_argument otherwise — the Java original silently assumed
-    // it). Complex data is stored as two flat row-major (index =
-    // x*yDim + y) arrays, matching Grid2D's own indexing.
-    //
-    // Normalization is asymmetric, preserving the Java convention exactly:
-    // the forward transform (Fft2) is unnormalized and the inverse (Ifft2)
-    // divides by the total element count, so Ifft2(Fft2(x)) == x and an
-    // FFT-based circular convolution needs no extra scaling — see the tests
-    // for both. The 1D transform underneath is the same
-    // Hal::Internal::FftCore that Hal::Fft uses (which passes a different,
-    // unitary factor); this shares that implementation rather than
-    // duplicating it. The (positive-exponent) forward sign convention is
-    // likewise shared — see Hal::Fft's header.
+    // 2D complex grid with an in-place FFT, used for fast circular
+    // convolution: FFT the state and a same-sized kernel, multiply
+    // elementwise, inverse-FFT, and take the real part. Both dimensions
+    // must be powers of two (the constructor throws std::invalid_argument
+    // otherwise). Data is stored as real and imaginary arrays indexed
+    // x*yDim + y, like Grid2D. Fft2 is unnormalized and Ifft2 divides by
+    // the element count, so convolution needs no extra scaling. Sign
+    // convention as in Fft.h.
     class FftGrid
     {
     public:
@@ -38,12 +26,7 @@ namespace Hal
         FftGrid(const FftGrid &other) = delete;
         FftGrid &operator=(const FftGrid &other) = delete;
 
-        // Movable (so a std::vector<FftGrid> of per-pair kernels can be
-        // built, as LeniaNPlayer needs), but not copyable — the complex
-        // data arrays are potentially large and copies are rarely wanted.
-        // When a copy IS wanted (kernel snapshots — see
-        // LeniaNPlayer::StoreKernel), Clone() makes the deep copy
-        // explicit at the call site.
+        // Movable but not copyable; Clone() makes an explicit deep copy.
         FftGrid(FftGrid &&other) noexcept;
         FftGrid &operator=(FftGrid &&other) noexcept;
 

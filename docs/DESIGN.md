@@ -1,229 +1,174 @@
-# HAL C++/Vulkan Port — Design Doc
+# HAL C++/Vulkan — Design
 
 ## Attribution
 
 This project is a C++/Vulkan port of the **Hybrid Automata Library (HAL)**, a
-Java framework for hybrid (agent-based + PDE) simulation developed for
-mathematical oncology at the H. Lee Moffitt Cancer Center.
+framework for hybrid (agent-based + PDE) simulation developed for mathematical
+oncology at the H. Lee Moffitt Cancer Center.
 
 - Original project: <https://github.com/MathOnco/HAL> · <https://halloworld.org/>
 - Paper: Bravo et al., *PLOS Computational Biology* (2020),
   [10.1371/journal.pcbi.1007635](https://doi.org/10.1371/journal.pcbi.1007635)
-- License: MIT, Copyright (c) 2017 Rafael Ramon Bravo (see `hal-cpp/LICENSE`)
+- License: MIT, Copyright (c) 2017 Rafael Ramon Bravo (see `LICENSE`)
 
-## Why
+## Goals
 
-HAL's core simulation loops are single-threaded — Java's only parallelism is
-coarse, replicate-level task parallelism (`Util.MultiThread`); the per-tick
-agent/PDE loops never got fine-grained parallelism. Adding real GPU compute for
-those loops is the point of this rewrite, not just a language change (a C++
-preference is the secondary motive).
+The per-tick agent and PDE loops are the expensive part of a HAL model, and
+they are data-parallel. The library is built so those loops can run on the GPU
+(Vulkan compute) as well as the CPU, without changing model code.
 
-HAL is a **library, not an engine**: models own a plain `main()` and call HAL
-APIs procedurally each tick — no inversion of control, no framework-owned loop.
-This fits C++ well and is preserved exactly; the port introduces no
-engine/callback lifecycle that didn't already exist.
+HAL is a **library, not an engine**: a model owns a plain `main()` and calls
+HAL each tick. There is no framework-owned loop or callback lifecycle.
 
-## What ports directly vs. what needs redesign
+## Core data structures
 
-Most of HAL's core data structures are already data-oriented and embarrassingly
-parallel, so they translate to C++ (and later, compute shaders) with little
-structural change:
+- **Value grids** (`Grid1D/2D/3D<T>`): flat arrays with per-axis wrap flags.
+  Index `i = x * yDim + y` in 2D and `(x * yDim + y) * zDim + z` in 3D.
+- **PDE grids**: the committed field plus a delta buffer; operators and
+  `Set`/`Add` write deltas, and `Update()` commits them. Each cell reads only
+  the committed field and writes only its own delta, which is the shape of a
+  compute-shader stencil (one invocation per cell).
+- **Population grids**: counts with the same delta/commit pattern, iterating
+  occupied cells through a linked list when occupancy is sparse.
+- **Agent neighbor search**: agents are bucketed into grid squares; radius
+  queries walk the squares overlapping the query circle (a uniform-grid cell
+  list). The GPU builds the same buckets per dispatch with a count, prefix
+  sum, and scatter.
 
-- **Value grids** (`Grid1D/2D/3D<T>`): flattened arrays with wraparound flags —
-  a direct port.
-- **PDE grids**: double-buffered "current field + delta accumulator, commit on
-  `Update()`". Each cell reads only neighbor values from the read-only current
-  field and writes only its own delta slot — already the shape of a
-  compute-shader stencil kernel, one invocation per cell.
-- **Agent neighbor search**: agents are bucketed into square-grid cells (each a
-  linked list); radius queries walk the bounding box of overlapping cells. This
-  is a standard cell-list / uniform spatial hash — the same technique used in GPU
-  N-body/molecular-dynamics codes — porting directly to CPU and later to a
-  GPU-built bucket structure (counting sort + prefix sum per tick).
+## Agents
 
-Three Java-specific mechanisms have **no direct C++ equivalent** and are
-deliberately redesigned:
+An agent grid is a template on the agent type, and new agents are constructed
+as `TAgent(TGrid*)`. Agents live in a `std::deque` pool with a dead-agent free
+list and in-place reuse, so agent pointers stay valid as the pool grows.
+Iteration skips agents born after it started (each agent records the pool's
+iteration state id at birth).
 
-1. **Reflection-based agent construction.** Java grids take a `Class<T>` and
-   instantiate agents via `newInstance()`, reflectively injecting the owning
-   grid. The port makes the agent type a compile-time template parameter of
-   `AgentGrid<T>`, constructed by an explicit `T(Grid*)` constructor. Java needed
-   reflection here only because generics are erased at runtime; C++ templates
-   aren't, so the mechanism is simply unnecessary. The dead-agent free-list /
-   in-place-reuse pooling is kept (good for cache locality and stable GPU upload
-   buffers), with ownership by raw pointer/index into the pool. Agent storage
-   uses `std::deque<TAgent>` — it never invalidates references on growth (vector
-   would), matching the stability Java gets from an `ArrayList` of references.
+Agents are written against their *concrete* grid, so the grid takes itself as
+a CRTP parameter: `class GOLGrid : public AgentGrid2D<GOLAgent, GOLGrid>`.
+Because agent and grid refer to each other, `TGrid` is incomplete when an
+agent base class is instantiated. The rule in `include/Hal/Agents/`: **never
+name `TGrid::AgentType` in a member declaration, field type, or return
+type.** Store base-typed pointers (`AgentPT2D<TGrid>*`) and downcast inside
+function bodies; template methods on the pointer type (parameters) or on a
+defaulted `TSelf = TGrid` parameter (return types) so the lookup happens at
+the first call. Examples: `GOLAgent`/`GOLGrid` in `tests/AgentGridTests.cpp`
+and `SphericalAgent2D::Divide`.
 
-   *Implementation note (CRTP + C++ completeness):* a HAL agent is written
-   against its *concrete* grid type (reaching grid-specific fields), so
-   `AgentGrid2D<TAgent, TDerived>` takes the derived grid as a CRTP parameter
-   (`class GOLGrid : public AgentGrid2D<GOLAgent, GOLGrid>`). Because the agent
-   and grid reference each other by value/pointer, C++ hits a real
-   circular-completeness requirement that Java (reference semantics, order-
-   independent) never does. The rule followed throughout
-   `hal-cpp/include/Hal/Agents/`: **never spell `TGrid::AgentType` in a member
-   declaration, field, or return type** — those force nested-type lookup at
-   class-instantiation time, when `TGrid` is still incomplete. Store
-   self-referential `AgentPT2D<TGrid>*` for linked-list fields and downcast
-   inside bodies; template methods on the pointer type (params) or on a
-   `TSelf = TGrid` defaulted parameter (return types) so lookup defers to the
-   first call site. Worked examples: `GOLAgent`/`GOLGrid` in
-   `tests/AgentGridTests.cpp`; `SphericalAgent2D::Divide` for the return-type case.
+## Modules
 
-2. **Reflection-driven plugin dispatch (`ModuleSetManager`).** Java inspects a
-   module's overridden methods via `getDeclaredMethods()` to decide which
-   lifecycle hooks to invoke. The port (`Hal::ModuleSet<TModule, THook>`) instead
-   *declares* the hooks a module implements when it is added
-   (`AddModule(module, {Hook::Setup, Hook::OnDiv, ...})`), bucketing modules per
-   hook so `Iter(hook)` still visits only the relevant ones — same behavior,
-   explicit instead of reflected. The module base is an ordinary class with named
-   virtual hooks. `Hal::VarSetManager` / `Hal::IVarSet` port the per-module
-   parameter-slot allocator unchanged.
+`Hal::ModuleSet<TModule, THook>` composes optional model behavior from
+modules. Each module declares the hooks it implements when added
+(`AddModule(module, {Hook::Setup, Hook::OnDiv, ...})`), and `Iter(hook)`
+visits only those modules. `Hal::VarSetManager` / `Hal::IVarSet` give each
+module its own slots in a per-agent parameter array.
 
-3. **Save/load via Java object serialization.** Java serializes the live object
-   graph with `ObjectOutputStream`, then needs `SetupConstructors()` to rebuild
-   reflection handles that can't survive serialization. Since the port never uses
-   reflection for construction, this disappears — save/load is a plain versioned
-   binary dump (raw arrays + small header).
+## Save/load
 
-The GUI (Swing + immediate-mode OpenGL, ~5.2K LOC) is not portable and is
-replaced wholesale by Vulkan + GLFW + Dear ImGui/ImPlot. Only its *API shape* is
-replicated: pixel-writable grid surface, line plotting, palettes/heatmaps,
-parameter controls, and PNG/GIF export.
+Save/load is a raw native-endian binary dump with no format header or
+version: grids write their dimensions, wrap flags, and arrays; `Rand` writes
+its generator state; `AgentGrid2D::SaveAgents` writes the tick and each
+agent's square and birth tick around a per-agent callback for model fields.
+Files are meant to be reloaded on the same platform. `BinaryReader` logs any
+failed read, and grid and agent loads then throw rather than building from
+garbage, as they also do for invalid dimensions or square indices.
 
-## CPU/GPU backend abstraction
+## CPU/GPU backends
 
 Compute-heavy operations sit behind small strategy interfaces with CPU and
-Vulkan-compute implementations, so model code doesn't change with the active
-backend and CPU-vs-GPU comparison/timing is straightforward. As built these are
-three sibling interfaces (flat caller-owned arrays), not one god-interface:
+Vulkan implementations that take flat, caller-owned arrays:
 
-- `IDiffusionBackend2D` — explicit stencil (CPU + GPU)
-- `IAgentForceBackend2D` — cell-bucket neighborhood forces (CPU + GPU; the CPU
-  path mirrors the GPU kernel's four bucket passes)
-- `IAdiDiffusionBackend2D` — implicit ADI (CPU Thomas sweeps + GPU PCR, wrapped
-  axes via the same Sherman-Morrison decomposition)
+- `IDiffusionBackend2D`: explicit stencil
+- `IAgentForceBackend2D`: cell-bucket neighborhood forces (the CPU version
+  uses the same four passes as the GPU kernel)
+- `IAdiDiffusionBackend2D`: implicit ADI (Thomas sweeps on the CPU, parallel
+  cyclic reduction on the GPU; both handle periodic axes via Sherman-Morrison)
 
-`HalBackendBenchmark` times any of them CPU-vs-GPU through the tests' call sites.
+`HalBackendBenchmark` times each CPU vs. GPU.
 
-GPU memory goes through VMA (owned by `ComputeContext`): device-local SSBOs plus
-a persistently mapped staging buffer per kernel, with upload/compute/readback in
-a single fence-synchronized submission. For time-stepped compute, frames-in-
-flight pipelining is replaced by **GPU residency**: since successive steps depend
-on each other, `DiffusionKernel2D::RunSteps` chains N stencil+commit pass pairs
-in one command buffer — measured at 18–30× over CPU here, versus ~0.6× for the
-same stencil stepped one-at-a-time through the round-tripping interface. That
-gap, not raw kernel speed, is the design lesson: **the GPU pays off when the loop
-lives there.**
+GPU memory goes through VMA (owned by `ComputeContext`): device-local storage
+buffers plus a persistently mapped staging buffer per kernel, with upload,
+compute, and readback in one fence-synchronized submission.
 
-The same principle drives `AdiKernel2D::RunSteps`, `GrayScottKernel2D::RunSteps`
-(reaction-diffusion), `WaveKernel2D::RunSteps` (leapfrog wave equation), and the
-3D siblings `GrayScott3DKernel`, `FlowFieldKernel3D`, and `FluidKernel3D` — the
-last an incompressible stable-fluids smoke/fire solver (Stam 1999:
-semi-Lagrangian advection, buoyancy, Jacobi pressure projection) whose velocity
-and pressure fields never leave the device across calls; only the density/
-temperature scalars round-trip for seeding and rendering. These back a set of
-visual showcases (`GpuReactionDiffusion`, `GpuInkFlow`, `GpuSwarm`,
-`GpuSlimeMold`, `GpuWaveField`, and hardware-rendered `GpuAttractor3D`,
-`Gpu3DReactionDiffusion`, `GpuFlowField3D`, `GpuSupernova`; see
-`examples/README.md`) — the first examples designed around the GPU rather than
-ported from Java, leaning on residency for compute and, for 3D, on tens of
-thousands of depth-tested instanced spheres plus an additive depth-read-only
-glow pipeline (`Scene3DRenderContext::SphereGlow`) for volumetric fog and fire.
+Because successive time steps depend on each other, overlapping frames in
+flight doesn't help; keeping the loop **on the GPU** does.
+`DiffusionKernel2D::RunSteps` chains N stencil + commit passes in one command
+buffer, measured at 18–30× over the CPU, versus ~0.6× for the same stencil
+stepped one call at a time through the round-tripping interface.
+`AdiKernel2D`, `GrayScottKernel2D`, `WaveKernel2D`, and the 3D kernels
+(`GrayScott3DKernel`, `FlowFieldKernel3D`, `SlimeMold3DKernel`,
+`FluidKernel3D`) follow the same pattern. `FluidKernel3D` is a stable-fluids
+smoke/fire solver (Stam 1999: semi-Lagrangian advection, buoyancy, Jacobi
+pressure projection) whose velocity and pressure never leave the device; only
+the density and temperature round-trip. These drive the GPU showcases in
+`examples/README.md`.
 
 ## RNG
 
-Java wraps a vendored `SplittableRandom` for cheap independent streams (important
-for per-agent generation). The port keeps that *design goal* but implements it
-with a standard modern algorithm (splitmix64 / xoshiro256**). Bit-exact Java
-parity is not a goal; statistical correctness is verified instead.
+`Hal::Rng` is xoshiro256** seeded by splitmix64, with `Split()` deriving
+independent streams. `Hal::Rand` adds distribution sampling (Gaussian via the
+polar method; binomial via Bernoulli sums, inversion, or BTPE depending on n
+and p).
 
-## Threading: simulation vs. rendering
+## Threading
 
-Java mutates Swing components directly from the simulation thread — unsafe per
-Swing's own contract, but works for HAL's simple examples. The port defines this
-properly: the sim thread writes double-buffered state; the render loop reads a
-consistent snapshot.
+`Hal::MultiThread` runs independent replicates or sweep points across
+threads. For simulation/render separation, `Hal::TripleBuffer` hands state
+from the simulation thread to the render loop: the producer writes and
+publishes a back buffer, the consumer acquires the newest published one, and
+neither blocks or touches the other's slot.
 
-## Rendering contexts: parallel classes, not one generalized renderer
+## Rendering
 
-Two deliberately parallel render classes rather than one abstracted renderer:
+Two separate render classes, since they share almost no pipeline state:
 
-- `Hal::Gpu::WindowRenderContext` — 2D pixel-grid blitter (the `UIGrid`
-  equivalent): fixed textured quad, no depth, no MVP.
-- `Hal::Gpu::Scene3DRenderContext` — hardware 3D renderer (`OpenGL3DWindow`
-  successor): depth testing, an instanced unit-sphere mesh + line-list geometry,
-  an MVP push constant, Lambert shading.
+- `Hal::Gpu::WindowRenderContext`: a fixed-size texture drawn across the
+  window (the pixel-grid view), with an overlay hook for the ImGui layer.
+- `Hal::Gpu::Scene3DRenderContext`: depth-tested 3D with an instanced
+  unit-sphere mesh, line lists, additive glow, and Lambert shading. It mirrors
+  the software `examples/common/Scene3D` API and camera defaults.
 
-They share almost no pipeline state, so a shared abstraction would be all
-conditionals; each owns its own instance/device/swapchain (unification remains a
-legitimate follow-up). The 3D context mirrors the software `examples/common/Scene3D`
-API and camera defaults so a model can swap renderers without rereading scene
-code. Matrix math is a small hand-rolled `Mat4`/`Vec3` (`Math3D.h`), not GLM,
-with Vulkan clip-space conventions (depth [0,1], y down) baked in.
+Each owns its own Vulkan instance and device, separate from `ComputeContext`.
+Matrix math is a small `Mat4`/`Vec3` (`Math3D.h`) with Vulkan clip-space
+conventions (depth in [0,1], y down).
 
 ## Callback style
 
-Java leans on ~89 tiny `@FunctionalInterface` types for callbacks. Rather than a
-generic `std::function` everywhere, the port uses named function-pointer typedefs
-or small single-purpose callable structs per callback category (boundary
-condition, force response, agent predicate), mirroring the Java categories. Plain
-lambdas only where there's a clear local advantage.
-
-*Amendment (Phase 2):* neighborhood-iteration hooks (`MapHood`/`ApplyHood`/…)
-need to capture local state, which function pointers can't. These are instead
-templated on the caller's callable (deduced, not type-erased) — the compiler
-inlines a dedicated instantiation per call site, so it costs nothing at runtime
-and isn't the generic-`std::function` abstraction the standards warn against
-(same technique as `std::sort`'s comparator). Named function pointers remain
-right for callbacks *stored* across many calls (e.g. a PDE grid's boundary
-condition held as a field).
+- **Per-call hot-loop callbacks** (neighborhood hooks like
+  `MapHood`/`ApplyHood`, PDE boundary conditions, force laws, ODE
+  derivatives, agent predicates) are template parameters deduced at the call
+  site, so captured lambdas are inlined with no type erasure.
+- **Stored, runtime-replaceable callbacks** (Lenia kernel and growth
+  functions) are `std::function`.
 
 ## Logging and error handling
 
-Vulkan, file IO, and export failures must never fail silently. A small
-severity-leveled logger (Phase 0, since Phase 4's Vulkan setup depends on it) is
-used at every failure path instead of swallowing errors or relying on assertions.
+Vulkan, file IO, and export failures are never swallowed: they go through the
+severity-leveled `Hal::Logger`, then either throw (Vulkan setup, corrupt grid
+or agent loads) or return false (PNG/video export). API misuse, such as
+mismatched array sizes, throws.
 
-## Numerical methods carried over
+## Numerical methods
 
-- Explicit finite-difference diffusion (5/7-point stencil) and first-order upwind
-  advection, same CFL constraints as Java.
-- ADI implicit diffusion via the Thomas algorithm (tridiagonal solve per
-  row/column/pencil) — unconditionally stable, serial per pencil but parallel
-  across pencils, and the candidate for GPU cyclic reduction / PCR.
+- Explicit finite-difference diffusion (3/5/7-point stencils, uniform or
+  per-cell rates) and first-order upwind advection (uniform velocity, or
+  conservative flux form for per-cell velocity fields), with CFL checks.
+- Implicit ADI diffusion via the Thomas algorithm, one tridiagonal solve per
+  line. Dirichlet boundaries use a reflecting ghost cell on both the
+  explicit and implicit halves, so a field equal to the boundary value is a
+  fixed point.
+- ODEs: Euler, classical RK4, and adaptive Runge-Kutta-Fehlberg 4(5).
 
-*Correction (Phase 3):* an earlier research pass claimed Java's 3D ADI was dead
-code. It conflated a genuinely abandoned commented-out attempt in
-`PDEequations.java` with the real, live `Diffusion3DADI` in `ADIequations.java`
-(called by `PDEGrid3D.DiffusionADI`). The port ported the real one — 3D ADI did
-not need fresh design. A reminder to re-verify "dead code" claims against the
-call graph before scoping around them.
+## Video export
 
-## Improvements over the Java version
+`Hal::VideoWriter` writes MPEG-1 through the vendored single-header
+`jo_mpeg`, keeping the core free of codec dependencies. That stream doesn't
+play in QuickTime (use VLC/ffmpeg), so the example-layer recorder
+(`examples/common/Mp4Recorder`) writes H.264 MP4 through `ffmpeg` when it is
+on the PATH and falls back to `VideoWriter` otherwise. The 3D renderer's
+opt-in frame capture (`SetCaptureEnabled`/`ReadCapturedFrame`) feeds the same
+recorder.
 
-- Structure-of-arrays / data-oriented layout chosen upfront for GPU upload.
-- Compile-time-typed agents via templates — no runtime reflection, no erasure.
-- Real GPU compute for the per-tick agent/PDE loops (new capability).
-- Simpler save/load format (a consequence of not needing reflection).
-- Explicit, correct sim/render threading contract.
-- pybind11 instead of Py4J's socket bridge for Python-driven parameter sweeps.
+## Open decisions
 
-## Open design decisions
-
-- Whether ADI gets a GPU cyclic-reduction solver or stays CPU-only —
-  **deferred to end of project** per user decision (with the CPU/GPU diffusion
-  timing comparison).
-- ~~GIF vs. MP4/frame-dump export~~ **Decided**: built-in MPEG-1 via a vendored
-  single-header encoder (`third_party/jo_mpeg`) for the zero-dependency core
-  `Hal::VideoWriter`. Caveat: that raw MPEG-1 elementary stream won't play in
-  QuickTime (use VLC/ffmpeg). The example-layer recorder
-  (`examples/common/Mp4Recorder`) therefore prefers a real H.264 MP4 when
-  `ffmpeg` is on the PATH and falls back to the built-in encoder (`.mpg`)
-  otherwise — the core keeps its zero-dependency guarantee; shareable video is
-  opt-in. The hardware 3D renderer exposes opt-in frame capture
-  (`SetCaptureEnabled`/`ReadCapturedFrame`) to feed the same recorder.
-- CRTP vs. virtual dispatch for the agent hierarchy — pick whichever keeps the
-  neighbor-search hot path non-virtual (Phase 2).
+- Python bindings: pybind11 is planned for Python-driven parameter sweeps.
+- Sharing one Vulkan instance/device between compute and rendering.

@@ -35,6 +35,10 @@ namespace Hal
             {
                 throw std::invalid_argument("GpuAgentForceBackend2D::AccumulateForces called with dimensions differing from construction");
             }
+            if (positions.size() != (radii.size() * 2))
+            {
+                throw std::invalid_argument("GpuAgentForceBackend2D::AccumulateForces: positions must hold two values per radius");
+            }
             int32_t numAgents = static_cast<int32_t>(radii.size());
             if (numAgents > m_maxAgents)
             {

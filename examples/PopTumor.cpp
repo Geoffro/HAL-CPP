@@ -1,14 +1,12 @@
-// Ported from Examples/PopulationTumor/PopTumor: a count-based (mean-field)
-// tumor with four subpopulations per lattice site — wild-type plus two
-// single mutants (M1, M2) and the double mutant (MBOTH) — each a
-// PopulationGrid2D. Every tick each population divides (density-limited by
-// the total local count), dies, mutates a fraction of its divisions up the
-// mutation lattice, and migrates by multinomial diffusion. Four time
-// snapshots are drawn side by side, colored by subpopulation mix.
+// A count-based tumor with four subpopulations per lattice site
+// (wild-type, single mutants M1 and M2, and the double mutant MBOTH), each
+// a PopulationGrid2D. Every tick each population divides (density-limited
+// by the total local count), dies, mutates a fraction of its divisions,
+// and migrates by PopulationGrid2D::Diffusion. Four time snapshots are
+// drawn side by side, colored by subpopulation mix.
 //
-// Uses PopulationGrid2D::Diffusion (mean-field multinomial diffusion) and
-// ApplyOccupied. Live window by default; pass "headless" to dump the final
-// snapshot strip to poptumor.png.
+// Live window by default; pass "headless" to dump the final snapshot strip
+// to poptumor.png.
 
 #include "Hal/Color.h"
 #include "Hal/Grids/PopulationGrid2D.h"
@@ -89,25 +87,25 @@ public:
                 int32_t ctDiv;
                 if ((type == M1) || (type == M2))
                 {
-                    ctDiv = m_cellMn.Sample(m_divRateMut * density);
+                    ctDiv = static_cast<int32_t>(m_cellMn.Sample(m_divRateMut * density));
                 }
                 else if (type == MBOTH)
                 {
-                    ctDiv = m_cellMn.Sample(m_divRateDoubleMut * density);
+                    ctDiv = static_cast<int32_t>(m_cellMn.Sample(m_divRateDoubleMut * density));
                 }
                 else
                 {
-                    ctDiv = m_cellMn.Sample(m_divRate * density);
+                    ctDiv = static_cast<int32_t>(m_cellMn.Sample(m_divRate * density));
                 }
-                int32_t ctDie = m_cellMn.Sample(m_deathRate);
+                int32_t ctDie = static_cast<int32_t>(m_cellMn.Sample(m_deathRate));
                 int32_t ctM1mut = 0;
                 int32_t ctM2mut = 0;
                 int32_t ctBothmut = 0;
                 if (type == TUMOR)
                 {
                     m_cellMn.Setup(ctDiv);
-                    ctM1mut = m_cellMn.Sample(m_mutProb1);
-                    ctM2mut = m_cellMn.Sample(m_mutProb2);
+                    ctM1mut = static_cast<int32_t>(m_cellMn.Sample(m_mutProb1));
+                    ctM2mut = static_cast<int32_t>(m_cellMn.Sample(m_mutProb2));
                 }
                 else if (type == M1)
                 {

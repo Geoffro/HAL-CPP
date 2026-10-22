@@ -8,24 +8,12 @@
 
 namespace Hal
 {
-    // Reflection-free replacement for Java's ModuleSetManager (see
-    // docs/DESIGN.md — a deliberate redesign, not a faithful port). A model
-    // composes optional behavior from a set of modules, each of which
-    // implements some subset of a fixed set of hooks (Setup, OnStep, OnDiv,
-    // ...). At each hook point the model iterates only the modules that
-    // implement that hook.
-    //
-    // Java discovered which hooks a module implemented by reflecting over
-    // overridden methods. C++ has no such reflection, so which hooks a
-    // module implements is instead declared explicitly when it is added —
-    // the caller, which wrote the module, lists them. TModule is the base
-    // module type; THook is a caller-defined enum identifying the hooks
-    // (used as a map key, so any enum works).
-    //
-    // The set owns its modules (added as unique_ptr) and frees them on
-    // destruction; the per-hook lists and AddModule's return value are
-    // non-owning raw pointers into that storage, stable for the set's
-    // lifetime.
+    // A model's optional behaviors as a set of modules, each implementing
+    // some of a fixed set of hooks (Setup, OnStep, OnDiv, ...). The hooks a
+    // module implements are declared when it is added, and Iter(hook)
+    // visits only those modules. TModule is the module base type; THook is
+    // a caller-defined enum. The set owns its modules; the pointers it
+    // hands out stay valid for its lifetime.
     template <typename TModule, typename THook>
     class ModuleSet
     {

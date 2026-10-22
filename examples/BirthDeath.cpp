@@ -1,8 +1,8 @@
-// Ported from LEARN_HERE/Agents/BirthDeath: a stochastic birth/death model
-// on an AgentGrid2D seeded with a disc of cells. Each tick a cell may die
-// (freeing its square) or divide into a random empty Moore neighbor. The
-// model itself lives in models/BirthDeathModel.h (shared with
-// MultiwellExample); this file adds the visualization and run loop.
+// A stochastic birth/death model on an AgentGrid2D seeded with a disc of
+// cells. Each tick a cell may die (freeing its square) or divide into a
+// random empty Moore neighbor. The model lives in models/BirthDeathModel.h
+// (shared with MultiwellExample); this file adds the visualization and run
+// loop.
 //
 // Live window by default; pass "headless" to run without a window and dump
 // the final state to birthdeath.png.

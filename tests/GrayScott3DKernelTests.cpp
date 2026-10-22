@@ -1,12 +1,15 @@
 #include <doctest/doctest.h>
 
+#include "GpuTestSupport.h"
+
 #include "Hal/Gpu/ComputeContext.h"
 #include "Hal/Gpu/GrayScott3DKernel.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <memory>
 #include <stdexcept>
-#include <string>
 #include <vector>
 
 namespace GrayScott3DKernelTestsInternal
@@ -91,98 +94,108 @@ using namespace GrayScott3DKernelTestsInternal;
 
 TEST_CASE("Hal::Gpu::GrayScott3DKernel leaves the (U=1, V=0) fixed point unchanged")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-
-        const int32_t nx = 16;
-        const int32_t ny = 12;
-        const int32_t nz = 20;
-
-        Hal::Gpu::GrayScott3DKernel kernel(context, nx, ny, nz);
-
-        std::vector<float> u(static_cast<size_t>(nx * ny * nz), 1.0f);
-        std::vector<float> v(static_cast<size_t>(nx * ny * nz), 0.0f);
-
-        kernel.RunSteps(u, v, 20, 0.04f, 0.06f, 0.16f, 0.08f);
-
-        for (size_t i = 0; i < u.size(); i++)
-        {
-            CHECK(u[i] == doctest::Approx(1.0).epsilon(1e-6));
-            CHECK(v[i] == doctest::Approx(0.0).epsilon(1e-6));
-        }
+        return;
     }
-    catch (const std::runtime_error &e)
+    Hal::Gpu::ComputeContext &context = *pContext;
+
+    const int32_t nx = 16;
+    const int32_t ny = 12;
+    const int32_t nz = 20;
+
+    Hal::Gpu::GrayScott3DKernel kernel(context, nx, ny, nz);
+
+    std::vector<float> u(static_cast<size_t>(nx * ny * nz), 1.0f);
+    std::vector<float> v(static_cast<size_t>(nx * ny * nz), 0.0f);
+
+    kernel.RunSteps(u, v, 20, 0.04f, 0.06f, 0.16f, 0.08f);
+
+    for (size_t i = 0; i < u.size(); i++)
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        CHECK(u[i] == doctest::Approx(1.0).epsilon(1e-6));
+        CHECK(v[i] == doctest::Approx(0.0).epsilon(1e-6));
     }
 }
 
-TEST_CASE("Hal::Gpu::GrayScott3DKernel::RunSteps matches a CPU reference of the same update, or reports why it can't")
+TEST_CASE("Hal::Gpu::GrayScott3DKernel::RunSteps matches a CPU reference of the same update")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
+        return;
+    }
+    Hal::Gpu::ComputeContext &context = *pContext;
 
-        const int32_t nx = 16;
-        const int32_t ny = 12;
-        const int32_t nz = 20;
-        const int32_t steps = 24;
-        const float feed = 0.04f;
-        const float kill = 0.06f;
-        const float diffU = 0.16f;
-        const float diffV = 0.08f;
+    const int32_t nx = 16;
+    const int32_t ny = 12;
+    const int32_t nz = 20;
+    const int32_t steps = 24;
+    const float feed = 0.04f;
+    const float kill = 0.06f;
+    const float diffU = 0.16f;
+    const float diffV = 0.08f;
 
-        Hal::Gpu::GrayScott3DKernel kernel(context, nx, ny, nz);
+    Hal::Gpu::GrayScott3DKernel kernel(context, nx, ny, nz);
 
-        std::vector<float> u(static_cast<size_t>(nx * ny * nz), 1.0f);
-        std::vector<float> v(static_cast<size_t>(nx * ny * nz), 0.0f);
+    std::vector<float> u(static_cast<size_t>(nx * ny * nz), 1.0f);
+    std::vector<float> v(static_cast<size_t>(nx * ny * nz), 0.0f);
 
-        // A small V-seeded box at the center.
-        for (int32_t x = nx / 2 - 2; x < nx / 2 + 2; x++)
+    // A small V-seeded box at the center.
+    for (int32_t x = nx / 2 - 2; x < nx / 2 + 2; x++)
+    {
+        for (int32_t y = ny / 2 - 2; y < ny / 2 + 2; y++)
         {
-            for (int32_t y = ny / 2 - 2; y < ny / 2 + 2; y++)
+            for (int32_t z = nz / 2 - 2; z < nz / 2 + 2; z++)
             {
-                for (int32_t z = nz / 2 - 2; z < nz / 2 + 2; z++)
-                {
-                    size_t i = static_cast<size_t>(Flatten3(x, y, z, ny, nz));
-                    u[i] = 0.5f;
-                    v[i] = 0.25f;
-                }
+                size_t i = static_cast<size_t>(Flatten3(x, y, z, ny, nz));
+                u[i] = 0.5f;
+                v[i] = 0.25f;
             }
         }
-
-        std::vector<float> cpuA(static_cast<size_t>(nx * ny * nz) * 2);
-        std::vector<float> cpuB(static_cast<size_t>(nx * ny * nz) * 2);
-        for (int32_t i = 0; i < nx * ny * nz; i++)
-        {
-            cpuA[2 * static_cast<size_t>(i)] = u[static_cast<size_t>(i)];
-            cpuA[2 * static_cast<size_t>(i) + 1] = v[static_cast<size_t>(i)];
-        }
-
-        std::vector<float> *pSrc = &cpuA;
-        std::vector<float> *pDst = &cpuB;
-        for (int32_t step = 0; step < steps; step++)
-        {
-            CpuGrayScott3DStep(*pSrc, *pDst, nx, ny, nz, feed, kill, diffU, diffV);
-            std::vector<float> *pTmp = pSrc;
-            pSrc = pDst;
-            pDst = pTmp;
-        }
-
-        kernel.RunSteps(u, v, steps, feed, kill, diffU, diffV);
-
-        double maxDiff = 0.0;
-        for (int32_t i = 0; i < nx * ny * nz; i++)
-        {
-            double du = std::abs(static_cast<double>(u[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i)]));
-            double dv = std::abs(static_cast<double>(v[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i) + 1]));
-            maxDiff = std::max(maxDiff, std::max(du, dv));
-        }
-        CHECK(maxDiff < 1e-4);
     }
-    catch (const std::runtime_error &e)
+
+    std::vector<float> cpuA(static_cast<size_t>(nx * ny * nz) * 2);
+    std::vector<float> cpuB(static_cast<size_t>(nx * ny * nz) * 2);
+    for (int32_t i = 0; i < nx * ny * nz; i++)
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        cpuA[2 * static_cast<size_t>(i)] = u[static_cast<size_t>(i)];
+        cpuA[2 * static_cast<size_t>(i) + 1] = v[static_cast<size_t>(i)];
     }
+
+    std::vector<float> *pSrc = &cpuA;
+    std::vector<float> *pDst = &cpuB;
+    for (int32_t step = 0; step < steps; step++)
+    {
+        CpuGrayScott3DStep(*pSrc, *pDst, nx, ny, nz, feed, kill, diffU, diffV);
+        std::vector<float> *pTmp = pSrc;
+        pSrc = pDst;
+        pDst = pTmp;
+    }
+
+    kernel.RunSteps(u, v, steps, feed, kill, diffU, diffV);
+
+    double maxDiff = 0.0;
+    for (int32_t i = 0; i < nx * ny * nz; i++)
+    {
+        double du = std::abs(static_cast<double>(u[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i)]));
+        double dv = std::abs(static_cast<double>(v[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i) + 1]));
+        maxDiff = std::max(maxDiff, std::max(du, dv));
+    }
+    CHECK(maxDiff < 1e-4);
+}
+
+TEST_CASE("Hal::Gpu::GrayScott3DKernel rejects U or V fields of the wrong length")
+{
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
+    {
+        return;
+    }
+    Hal::Gpu::GrayScott3DKernel kernel(*pContext, 4, 4, 4);
+    std::vector<float> rightSize(64, 0.0f);
+    std::vector<float> wrongSize(63, 0.0f);
+    CHECK_THROWS_AS(kernel.RunSteps(wrongSize, rightSize, 1, 0.05f, 0.06f, 0.2f, 0.1f), std::invalid_argument);
+    CHECK_THROWS_AS(kernel.RunSteps(rightSize, wrongSize, 1, 0.05f, 0.06f, 0.2f, 0.1f), std::invalid_argument);
 }

@@ -14,36 +14,17 @@
 
 namespace Hal
 {
-    // Phylogeny tracking, ported from Tools/PhylogenyTracker/{Genome,
-    // PhylogenyTrackerInternal}.java. A Genome represents a distinct
-    // heritable state (e.g. a clone's mutation set); an instance is created
-    // once per new mutation and shared (by pointer) among all agents that
-    // carry it. The tree of parent/child genomes plus per-genome living
-    // population counts is the phylogeny.
-    //
-    // TDerived is the concrete genome subclass (CRTP), so model code can
-    // add its own inherited data:
-    //     class CellGenome : public Hal::Genome<CellGenome> { int m_nMutations; ... };
-    // Same self-referential template shape as AgentGrid2D<TAgent, TDerived>
-    // and its agents (see docs/DESIGN.md's CRTP notes) — TDerived is
-    // incomplete while Genome<TDerived> is defined, so its members are only
-    // ever pointers to TDerived and any TDerived member access lives in
-    // method bodies (instantiated later, when TDerived is complete).
-    //
-    // Ownership differs deliberately from the Java original, which leans on
-    // the garbage collector: here the PhylogenyTracker owns every genome
-    // (in a std::deque, whose growth never invalidates existing pointers,
-    // exactly as InternalAgentPool relies on) and frees them all when it is
-    // destroyed. Genomes are created via PhylogenyTracker::NewGenome, not
-    // `new`. See the note on RemoveGenomeFromTree for how leaf removal
-    // interacts with this.
-    //
-    // NOTE: the clone-recording / CSV-export machinery (Java's
-    // RecordClones / OutputClonesToCSV, with its up-tree population
-    // summing and per-timepoint Muller-plot output) is deferred — the tree
-    // structure and population tracking below are what agents interact with
-    // during a run and are independently verifiable; the CSV export is an
-    // analysis feature layered on top.
+    // Phylogeny tracking. A Genome is one heritable state (e.g. a clone's
+    // mutation set), created once per mutation and shared by pointer among
+    // the agents carrying it; the parent/child tree plus per-genome living
+    // populations is the phylogeny. TDerived is the concrete genome class
+    // (CRTP), e.g.
+    //     class CellGenome : public Hal::Genome<CellGenome> { ... };
+    // The tracker owns every genome (created with NewGenome) in a
+    // std::deque, so genome pointers stay valid for its lifetime. A genome
+    // whose population reaches zero is dead; with leaf removal on, dead
+    // childless genomes (and any resulting dead, childless ancestors) are
+    // pruned from the tree.
     template <typename TDerived>
     class PhylogenyTracker;
 
@@ -60,7 +41,8 @@ namespace Hal
               m_pPrevSibling(nullptr),
               m_pNext(nullptr),
               m_pPrev(nullptr),
-              m_pTracker(nullptr)
+              m_pTracker(nullptr),
+              m_alive(false)
         {
         }
 
@@ -95,10 +77,10 @@ namespace Hal
             return m_pTracker->m_pProgenitor;
         }
 
-        // Sets the living population for this genome. Adjusts the
-        // phylogeny-wide total, and — if the new population is zero —
-        // marks the genome dead (which, with leaf removal enabled, prunes
-        // it and any resulting dead ancestor branch from the tree).
+        // Sets this genome's living population and the phylogeny-wide
+        // total. Reaching zero kills the genome (see the class comment).
+        // Throws std::logic_error for a negative population or a positive
+        // one on a dead genome.
         void SetPop(int64_t pop)
         {
             if (m_pTracker == nullptr)
@@ -109,12 +91,21 @@ namespace Hal
             {
                 throw std::logic_error("Genome pop can't be decreased below 0");
             }
+            if (!m_alive && (pop > 0))
+            {
+                throw std::logic_error("Genome is dead; its pop can't be increased");
+            }
             m_pTracker->m_totalPop += pop - m_pop;
             m_pop = pop;
-            if (pop == 0)
+            if ((pop == 0) && m_alive)
             {
                 KillGenome();
             }
+        }
+
+        bool IsAlive() const
+        {
+            return m_alive;
         }
 
         void IncPop()
@@ -244,6 +235,11 @@ namespace Hal
                 pParent->m_pFirstChild = pLeftSib;
                 if ((pLeftSib == nullptr) && (pParent->m_pop == 0))
                 {
+                    if (pParent->m_alive)
+                    {
+                        pParent->m_alive = false;
+                        m_pTracker->m_nLivingGenomes--;
+                    }
                     pParent->RemoveGenomeFromTree();
                 }
             }
@@ -263,21 +259,23 @@ namespace Hal
             {
                 m_pNext->m_pPrev = m_pPrev;
             }
-            // NOTE: Java's RemoveGenomeFromTree never updates listFirst
-            // when removing the current head, leaving it dangling at a
-            // removed genome (a latent bug that re-links the removed node
-            // if another is created before the list head advances — see
-            // docs/JAVA_BUGS_FOUND.md). Fixed here by advancing the head.
             if (m_pTracker->m_pListFirst == Self())
             {
                 m_pTracker->m_pListFirst = m_pNext;
             }
+            if (m_pTracker->m_pListLast == Self())
+            {
+                m_pTracker->m_pListLast = m_pPrev;
+            }
+            m_pNext = nullptr;
+            m_pPrev = nullptr;
         }
 
-        // Marks this genome dead: decrements the living count and, with
-        // leaf removal enabled, prunes it if it is a leaf.
+        // Marks this genome dead and, with leaf removal on, prunes it if it
+        // is a leaf.
         void KillGenome()
         {
+            m_alive = false;
             m_pTracker->m_nLivingGenomes--;
             if (m_pTracker->m_removeEmptyLeaves && (m_pFirstChild == nullptr))
             {
@@ -294,6 +292,7 @@ namespace Hal
         TDerived *m_pNext;
         TDerived *m_pPrev;
         PhylogenyTracker<TDerived> *m_pTracker;
+        bool m_alive;
     };
 
     template <typename TDerived>
@@ -312,6 +311,7 @@ namespace Hal
               m_removeEmptyLeaves(removeEmptyLeaves),
               m_pProgenitor(nullptr),
               m_pListFirst(nullptr),
+              m_pListLast(nullptr),
               m_popRecords{},
               m_recordLabels{}
         {
@@ -324,14 +324,11 @@ namespace Hal
         PhylogenyTracker(const PhylogenyTracker &other) = delete;
         PhylogenyTracker &operator=(const PhylogenyTracker &other) = delete;
 
-        // Creates and takes ownership of a new genome. pParent is passed as
-        // the first argument to TDerived's constructor (so a subclass can
-        // read inherited data off it), followed by any extra args — i.e.
-        // TDerived(pParent, args...), matching the Java Genome(parent, ...)
-        // constructor shape. Pass pParent == nullptr to create the
-        // progenitor; every later genome passes the parent it mutated from.
-        // The new genome starts with population 0 — call IncPop() to add
-        // its first individual, mirroring the Java usage.
+        // Creates and takes ownership of a new genome constructed as
+        // TDerived(pParent, args...). Pass pParent == nullptr for the
+        // progenitor, otherwise the genome it mutated from. The genome
+        // starts alive with population 0; IncPop() adds its first
+        // individual.
         template <typename... Args>
         TDerived &NewGenome(TDerived *pParent,
                             Args     &&...args)
@@ -376,13 +373,12 @@ namespace Hal
             return m_removeEmptyLeaves;
         }
 
-        // Runs fn(TDerived&) on every genome still in the tracker's global
-        // list, in creation (id) order. Genomes pruned by leaf removal are
-        // skipped.
+        // Runs fn(TDerived&) on every genome still in the tree, in creation
+        // (id) order. Genomes pruned by leaf removal are skipped.
         template <typename GenomeFn>
         void ForEachGenome(GenomeFn fn) const
         {
-            TDerived *pGenome = m_pProgenitor;
+            TDerived *pGenome = m_pListLast;
             while (pGenome != nullptr)
             {
                 fn(*pGenome);
@@ -544,10 +540,10 @@ namespace Hal
             return result;
         }
 
-        // Zeroes clones whose peak inclusive population stays below cutoff,
-        // then breaks the kept inclusive totals back down (subtracting each
-        // clone from its parent) so surviving siblings' bands stack. Returns
-        // the per-clone peak populations.
+        // Zeroes clones whose peak inclusive population never exceeds
+        // cutoff, then breaks the kept inclusive totals back down
+        // (subtracting each clone from its parent) so surviving siblings'
+        // bands stack. Returns the per-clone peak populations.
         std::vector<int64_t> ThreshPops(std::vector<std::vector<int64_t>> &popsArr,
                                         const std::vector<int32_t>        &parentIDs,
                                         int64_t                            cutoff) const
@@ -562,7 +558,7 @@ namespace Hal
             }
             for (size_t i = 0; i < maxPops.size(); i++)
             {
-                if (maxPops[i] < cutoff)
+                if (maxPops[i] <= cutoff)
                 {
                     for (std::vector<int64_t> &pops : popsArr)
                     {
@@ -587,6 +583,7 @@ namespace Hal
                                TDerived *pParent)
         {
             pChild->m_pTracker = this;
+            pChild->m_alive = true;
             pChild->m_id = m_nGenomesEver;
             m_nGenomesEver++;
             m_nLivingGenomes++;
@@ -601,6 +598,7 @@ namespace Hal
             {
                 m_pProgenitor = pChild;
                 m_pListFirst = pChild;
+                m_pListLast = pChild;
             }
         }
 
@@ -612,6 +610,7 @@ namespace Hal
         bool m_removeEmptyLeaves;
         TDerived *m_pProgenitor;
         TDerived *m_pListFirst;
+        TDerived *m_pListLast;
         std::vector<std::vector<int64_t>> m_popRecords;
         std::vector<std::string> m_recordLabels;
     };

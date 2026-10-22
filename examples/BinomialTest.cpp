@@ -1,5 +1,5 @@
-// Headless port of LEARN_HERE/Other/BinomialTest.java: draw one binomial
-// sample with a huge n and confirm the sample mean fraction is near p.
+// Headless: draws one binomial sample with a huge n and confirms the
+// sample fraction is near p.
 
 #include "Hal/Rand.h"
 

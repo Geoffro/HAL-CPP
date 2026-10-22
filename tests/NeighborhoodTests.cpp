@@ -2,14 +2,12 @@
 
 #include "Hal/Neighborhood.h"
 
+#include <set>
 #include <utility>
 #include <vector>
 
-// Each hood table is [padding zeros, one per neighbor] followed by the
-// (x,y[,z]) offset pairs/triples themselves, so the total length is always
-// paddingCount + paddingCount * dims. These tests pin down that shape plus
-// a couple of known offset values, so a future refactor of MapHood's
-// consumers can't silently break the padding convention Phase 2 depends on.
+// Each hood table is one zero slot per neighbor followed by the offsets,
+// so its length is count * (dims + 1).
 
 TEST_CASE("VonNeumannHood has 4 neighbors (8 without origin, 5 with)")
 {
@@ -129,4 +127,41 @@ TEST_CASE("RectangleHood covers the full axis-aligned rectangle in padded layout
     CHECK(ctO == 15);
     CHECK(withOrigin[ctO + 0] == 0);
     CHECK(withOrigin[ctO + 1] == 0);
+}
+
+static void CheckHoodLayout(const std::vector<int32_t> &hood,
+                            int32_t                     dims,
+                            int32_t                     count,
+                            bool                        includeOrigin)
+{
+    REQUIRE(hood.size() == static_cast<size_t>(count * (dims + 1)));
+    std::set<std::vector<int32_t>> offsets;
+    for (int32_t i = 0; i < count; i++)
+    {
+        CHECK(hood[static_cast<size_t>(i)] == 0);
+        std::vector<int32_t> offset(hood.begin() + count + i * dims, hood.begin() + count + (i + 1) * dims);
+        offsets.insert(offset);
+    }
+    CHECK(offsets.size() == static_cast<size_t>(count));
+    bool hasOrigin = (offsets.count(std::vector<int32_t>(static_cast<size_t>(dims), 0)) == 1);
+    CHECK(hasOrigin == includeOrigin);
+}
+
+TEST_CASE("Hex, triangle, and remaining 3D hoods have the padded layout, unique offsets, and optional origin")
+{
+    for (int32_t origin = 0; origin < 2; origin++)
+    {
+        bool includeOrigin = (origin == 1);
+        CAPTURE(includeOrigin);
+        CheckHoodLayout(Hal::HexHoodEvenY(includeOrigin), 2, 6 + origin, includeOrigin);
+        CheckHoodLayout(Hal::HexHoodOddY(includeOrigin), 2, 6 + origin, includeOrigin);
+        CheckHoodLayout(Hal::TriangleHoodSameParity(includeOrigin), 2, 3 + origin, includeOrigin);
+        CheckHoodLayout(Hal::TriangleHoodDifParity(includeOrigin), 2, 3 + origin, includeOrigin);
+        CheckHoodLayout(Hal::SemiMooreHood3D(includeOrigin), 3, 18 + origin, includeOrigin);
+        CheckHoodLayout(Hal::CubicHoneyHood3DEvenZ(includeOrigin), 3, 14 + origin, includeOrigin);
+        CheckHoodLayout(Hal::CubicHoneyHood3DOddZ(includeOrigin), 3, 14 + origin, includeOrigin);
+        CheckHoodLayout(Hal::MooreHood3D(includeOrigin), 3, 26 + origin, includeOrigin);
+        CheckHoodLayout(Hal::VonNeumannHood3D(includeOrigin), 3, 6 + origin, includeOrigin);
+        CheckHoodLayout(Hal::DiagonalHood3D(includeOrigin), 3, 8 + origin, includeOrigin);
+    }
 }

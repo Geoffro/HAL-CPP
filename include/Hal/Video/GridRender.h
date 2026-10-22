@@ -8,17 +8,9 @@
 
 namespace Hal
 {
-    // Renders a scalar Grid2D<T> to a width*height RGBA8 pixel buffer (row-
-    // major, top-to-bottom) suitable for ExportPng/VideoWriter, via a
-    // caller-supplied value-to-color function returning a packed ARGB
-    // int32_t (Hal::Color.h's format) — the C++ equivalent of populating
-    // Java's UIGrid pixel buffer one cell at a time before ToPNG()/ToGIF().
-    //
-    // Grid y=0 is conventionally the bottom row (matching HAL's own
-    // Util.PNGtoGrid, which flips on load "so picture is right-side-up"),
-    // while image row 0 is the top, so this flips y when writing pixels —
-    // without it, exported images would come out upside down relative to
-    // how the grid's own coordinate system is normally reasoned about.
+    // Renders a Grid2D<T> to a width*height RGBA8 buffer for ExportPng or
+    // VideoWriter, mapping each value through colorFn to a packed ARGB
+    // color. Grid y is up, so grid y=0 becomes the bottom image row.
     template <typename T, typename ColorFn>
     std::vector<uint8_t> RenderGrid2DToRgba(const Grid2D<T> &grid,
                                            ColorFn           colorFn)

@@ -12,31 +12,12 @@ namespace Hal
 {
     namespace Gpu
     {
-        // GPU-backed 2D explicit diffusion, mirroring
-        // Hal::Internal::Diffusion2's no-boundary-condition path (see
-        // shaders/Diffusion2D.comp) — one compute-shader invocation per
-        // grid cell. Dirichlet boundaries and discontinuous rates remain
-        // deferred.
-        //
-        // Buffers are VMA-allocated: the field/delta SSBOs are
-        // device-local, with one
-        // persistently mapped host staging buffer carrying uploads and
-        // readbacks — no per-call vkMapMemory, and submissions wait on a
-        // fence rather than vkQueueWaitIdle.
-        //
-        // Two ways to run it:
-        //  - UploadField / ClearDeltas / Dispatch / DownloadDeltas — one
-        //    step per call with a host round-trip, the shape
-        //    IDiffusionBackend2D::Diffuse needs.
-        //  - RunSteps — N whole diffusion steps (each a diffusion pass
-        //    plus a DiffusionUpdate2D.comp commit pass) recorded into ONE
-        //    command buffer and submitted once: a single upload before
-        //    and readback after, no host round-trips between steps. This
-        //    is the batched answer to "frames-in-flight pipelining" for
-        //    time-stepped compute — successive steps depend on each
-        //    other, so overlapping independent frames doesn't apply;
-        //    keeping the chain GPU-resident is what removes the
-        //    per-step overhead.
+        // GPU explicit 2D diffusion matching Hal::Internal::Diffusion2's
+        // zero-flux/periodic form (shaders/Diffusion2D.comp). Two ways to run it:
+        //  - UploadField / ClearDeltas / Dispatch / DownloadDeltas: one step per
+        //    call with a host round trip (what IDiffusionBackend2D needs).
+        //  - RunSteps: many full steps (stencil plus commit) in one submission
+        //    with a single upload and readback, which is far faster.
         class DiffusionKernel2D
         {
         public:
@@ -55,11 +36,9 @@ namespace Hal
                           bool   wrapY);
             std::vector<float> DownloadDeltas() const;
 
-            // Runs `steps` full diffusion steps (stencil + committed
-            // update, like PDEGrid2D::Diffusion + Update per step)
-            // entirely on the GPU: field is uploaded once, evolved in
-            // place, and written back once. Pending deltas are cleared at
-            // the start.
+            // Runs `steps` full diffusion steps (like PDEGrid2D::Diffusion +
+            // Update) on the GPU; field is uploaded once and read back once.
+            // Pending deltas are cleared first.
             void RunSteps(std::vector<float> &field,
                           int32_t             steps,
                           float               diffRate,
@@ -67,6 +46,8 @@ namespace Hal
                           bool                wrapY);
 
         private:
+            void Destroy();
+
             void CreateBuffers();
             void CreateDescriptorObjects();
             void CreatePipelines();

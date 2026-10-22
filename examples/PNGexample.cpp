@@ -1,6 +1,5 @@
-// Ported from LEARN_HERE/Other/PNGexample: fill a small grid with a
-// greyscale ramp and write it to a PNG. Headless by nature (its whole point
-// is the file), so this one just writes pngexample.png and exits.
+// Headless: fills a small grid with a greyscale ramp and writes it to
+// pngexample.png.
 
 #include "Hal/Color.h"
 #include "Hal/Log/Logger.h"

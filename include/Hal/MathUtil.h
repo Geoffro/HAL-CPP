@@ -54,9 +54,8 @@ namespace Hal
                              double startY,
                              double endY);
 
-    // Rescale a per-unit-time probability to a probability over `duration`
-    // units, assuming independent trials: 1 - (1 - prob)^duration. From
-    // HAL's Util.ProbScale, used to convert per-day rates to per-timestep.
+    // Rescales a per-unit-time probability to a probability over `duration`
+    // units, assuming independent trials: 1 - (1 - prob)^duration.
     double ProbScale(double prob,
                      double duration);
 
@@ -82,10 +81,6 @@ namespace Hal
                                 double topLeft,
                                 double topRight);
 
-    // NOTE: HAL's Java GetBit had an operator-precedence bug
-    // (`v >> i % 1 != 0`, i.e. `v >> (i % 1)`) that made it ignore `i`
-    // entirely (see docs/JAVA_BUGS_FOUND.md #1). Implemented correctly
-    // here as `((v >> i) & 1) != 0`.
     bool GetBit(int32_t v,
                 int32_t i);
 
@@ -95,9 +90,6 @@ namespace Hal
     int32_t FlipBit(int32_t v,
                     int32_t i);
 
-    // NOTE: uses a 64-bit shift (`1LL << i`) rather than the Java
-    // version's `1 << i`, which silently truncates for i >= 32
-    // (see docs/JAVA_BUGS_FOUND.md #2).
     int64_t FlipBit(int64_t v,
                     int32_t i);
 

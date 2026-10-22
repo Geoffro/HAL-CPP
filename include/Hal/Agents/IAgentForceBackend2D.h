@@ -5,22 +5,13 @@
 
 namespace Hal
 {
-    // Strategy interface for the cell-bucket agent neighborhood force
-    // accumulation, mirroring IDiffusionBackend2D for the explicit
-    // diffusion stencil: model code holds a pointer to this and swaps a
-    // CPU or GPU implementation without changing call sites. The
-    // computation is the one Hal::Gpu::AgentForceKernel2D implements
-    // (itself mirroring AgentGrid2D::GetAgentsRadApprox's bucket scan and
-    // SphericalAgent2D::SumForces' interactionRad overload): for each
-    // agent, scan the bounding box of grid cells around it and sum a
-    // linear spring force (force = springConstant * ((rad_i + rad_j) -
-    // dist)) over every other agent closer than interactionRad, into a
-    // per-agent velocity delta.
-    //
-    // See Hal::CpuAgentForceBackend2D
-    // (include/Hal/Agents/CpuAgentForceBackend2D.h) and
-    // Hal::Gpu::GpuAgentForceBackend2D
-    // (include/Hal/Gpu/GpuAgentForceBackend2D.h) for the implementations.
+    // Strategy interface for cell-bucket agent force accumulation,
+    // implemented on the CPU (Hal::CpuAgentForceBackend2D) and the GPU
+    // (Hal::Gpu::GpuAgentForceBackend2D). For each agent, scans the grid
+    // cells around it and sums a linear spring force,
+    // springConstant * ((rad_i + rad_j) - dist), over every other agent
+    // closer than interactionRad (and not at the same position), as in
+    // SphericalAgent2D::SumForces.
     class IAgentForceBackend2D
     {
     public:
@@ -31,11 +22,9 @@ namespace Hal
         IAgentForceBackend2D &operator=(const IAgentForceBackend2D &other) = delete;
 
         // positions is a flat (x0, y0, x1, y1, ...) array; radii has one
-        // entry per agent (the agent count is radii.size()).
-        // velocityDeltas is resized to positions.size() and OVERWRITTEN
-        // with each agent's summed (vx, vy) force contribution — matching
-        // AgentForceKernel2D's per-dispatch semantics, not the diffusion
-        // interface's accumulate-into semantics.
+        // entry per agent. velocityDeltas is resized to positions.size() and
+        // overwritten (not accumulated) with each agent's (vx, vy). Throws
+        // std::invalid_argument unless positions.size() == 2 * radii.size().
         virtual void AccumulateForces(const std::vector<double> &positions,
                                       const std::vector<double> &radii,
                                       std::vector<double>       &velocityDeltas,

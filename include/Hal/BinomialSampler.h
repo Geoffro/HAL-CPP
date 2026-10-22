@@ -6,19 +6,11 @@ namespace Hal
 {
     class Rand;
 
-    // Binomial-distribution sampler, ported from HAL's
-    // Tools/Internal/Binomial.java. Combines three strategies depending on
-    // n*p, matching the Java original: direct Bernoulli-trial summation for
-    // small n, the "rk_binomial_inversion" algorithm (as used by NumPy) for
-    // small n*p, and the BTPE algorithm (Kachitvichyanukul & Schmeiser, via
-    // the Colt library) for the general case. BTPE caches intermediate
-    // values keyed on the last (n, p) pair, hence the member state.
-    //
-    // NOTE: the Java source declared `log_p`/`log_q`/`log_n` fields, a
-    // `logFactorial`/`logFactorials` helper, `SetNandPInt`/`SetNandPLong`,
-    // and no-argument `ColtInt`/`ColtLong` overloads that are never called
-    // anywhere in HAL (dead/unreferenced public API) — dropped here rather
-    // than ported.
+    // Binomial sampler combining three strategies by n and n*p: summed
+    // Bernoulli trials for small n (the *Fast variants only), inversion
+    // (NumPy's rk_binomial_inversion) when n*p or n*(1-p) is below 30, and
+    // BTPE (Kachitvichyanukul & Schmeiser) otherwise. BTPE caches its setup
+    // constants for the most recent (n, p).
     class BinomialSampler
     {
     public:
@@ -41,6 +33,7 @@ namespace Hal
                                     double   p,
                                     Rand    &rand);
 
+        // BTPE. Returns -1 if n*min(p, 1-p) is not positive.
         int32_t ColtInt(int32_t  n,
                         double   p,
                         Rand    &rand);
@@ -49,6 +42,8 @@ namespace Hal
                          double   p,
                          Rand    &rand);
 
+        // The Sample* methods throw std::invalid_argument if p is outside
+        // [0, 1].
         int32_t SampleIntFast(int32_t  n,
                               double   p,
                               Rand    &rand);
@@ -66,25 +61,20 @@ namespace Hal
                            Rand    &rand);
 
     private:
-        static double StirlingCorrection(int32_t k);
         static double StirlingCorrection(int64_t k);
+        static void CheckProbability(double p);
 
-        int32_t m_nLast;
-        int32_t m_nPrev;
-        int64_t m_nLastLong;
-        int64_t m_nPrevLong;
+        int64_t m_nLast;
+        int64_t m_nPrev;
         double m_par;
         double m_np;
         double m_p0;
         double m_q;
         double m_pLast;
         double m_pPrev;
-        int32_t m_b;
-        int32_t m_m;
-        int32_t m_nm;
-        int64_t m_bLong;
-        int64_t m_mLong;
-        int64_t m_nmLong;
+        int64_t m_b;
+        int64_t m_m;
+        int64_t m_nm;
         double m_pq;
         double m_rc;
         double m_ss;

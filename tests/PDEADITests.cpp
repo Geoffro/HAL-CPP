@@ -6,32 +6,16 @@
 
 #include <cmath>
 
-// ---------------------------------------------------------------------
-// The ADI (Crank-Nicolson) implicit solver also has an exact closed-form
-// effect on a periodic sinusoidal mode.
+// ADI has an exact effect on a periodic sinusoidal mode. In 1D (and per
+// axis in 2D) it is the Crank-Nicolson factor
 //
 //   lambda_CN(theta) = (1 - 2*r*sin(theta/2)^2) / (1 + 2*r*sin(theta/2)^2)
 //
-// where r = diffRate and theta = 2*pi*k/N — the standard Crank-Nicolson
-// amplification factor for the 1D case (diffScaleFactor=2). For 2D
-// (also diffScaleFactor=2), the directional-sweep scheme happens to make
-// a separable product mode's combined eigenvalue exactly the product of
-// the two per-axis lambda_CN factors: each axis's explicit half-step
-// only involves the *other* axis, matching the axis it's then solved
-// implicitly against, so the two passes decouple cleanly.
-//
-// That decoupling does NOT extend to 3D. 3D uses diffScaleFactor=3, and
-// each axis's explicit half-step involves the sum of the *other two*
-// axes (not just one), so the three sweeps' effects don't reduce to a
-// product of three independent single-axis factors. Deriving it directly
-// (with f(theta) = (4*r/3)*sin(theta/2)^2 for axes x,y,z in turn):
+// with r = diffRate and theta = 2*pi*k/N; a 2D product mode scales by the
+// product of the two axes' factors. In 3D each sweep's explicit half-step
+// covers the two other axes, so with f(theta) = (4*r/3)*sin(theta/2)^2:
 //
 //   lambda_3D = [(1-fy-fz)/(1+fx)] * [(1-fx-fz)/(1+fy)] * [(1-fx-fy)/(1+fz)]
-//
-// (first sweep explicit-diffuses along y,z then implicit-solves x;
-// second sweep explicit-diffuses the result along x,z then implicit-
-// solves y; third sweep explicit-diffuses along x,y then implicit-solves
-// z — each numerator picks up the two axes not yet implicitly resolved).
 namespace TestHelpers
 {
     double LambdaCN(double  diffRate,
@@ -229,5 +213,142 @@ TEST_CASE("PDEGrid1D::DiffusionADI with a constant Dirichlet boundary leaves a m
     {
         CAPTURE(x);
         CHECK(grid.Get(x) == doctest::Approx(4.0));
+    }
+}
+
+TEST_CASE("PDEGrid2D::DiffusionADI with a constant Dirichlet boundary leaves a matching-value flat field unchanged")
+{
+    Hal::PDEGrid2D grid(7, 5, false, false);
+    grid.SetAll(4.0);
+    grid.Update();
+
+    grid.DiffusionADI(0.9, 4.0);
+    grid.Update();
+
+    for (int32_t i = 0; i < grid.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(grid.Get(i) == doctest::Approx(4.0));
+    }
+}
+
+TEST_CASE("PDEGrid3D::DiffusionADI with a constant Dirichlet boundary leaves a matching-value flat field unchanged")
+{
+    Hal::PDEGrid3D grid(5, 4, 6, false, false, false);
+    grid.SetAll(4.0);
+    grid.Update();
+
+    grid.DiffusionADI(0.9, 4.0);
+    grid.Update();
+
+    for (int32_t i = 0; i < grid.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(grid.Get(i) == doctest::Approx(4.0));
+    }
+}
+
+TEST_CASE("PDEGrid2D::DiffusionADI with a Dirichlet boundary relaxes the interior to the boundary value")
+{
+    Hal::PDEGrid2D grid(8, 6, true, false);
+    for (int32_t step = 0; step < 400; step++)
+    {
+        grid.DiffusionADI(1.5, 2.0);
+        grid.Update();
+    }
+    for (int32_t i = 0; i < grid.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(grid.Get(i) == doctest::Approx(2.0).epsilon(1e-6));
+    }
+}
+
+TEST_CASE("PDEGrid3D::DiffusionADI with a Dirichlet boundary relaxes the interior to the boundary value")
+{
+    Hal::PDEGrid3D grid(5, 4, 6, false, true, false);
+    for (int32_t step = 0; step < 400; step++)
+    {
+        grid.DiffusionADI(1.5, 2.0);
+        grid.Update();
+    }
+    for (int32_t i = 0; i < grid.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(grid.Get(i) == doctest::Approx(2.0).epsilon(1e-6));
+    }
+}
+
+// With the left x boundary at 1 and the right at 3 (other edges matching),
+// the steady state is the line from 1 to 3 between the cell faces.
+static double DirichletRamp(int32_t x,
+                            int32_t xDim)
+{
+    if (x < 0)
+    {
+        return 1.0;
+    }
+    if (x >= xDim)
+    {
+        return 3.0;
+    }
+    return 1.0 + 2.0 * (x + 0.5) / xDim;
+}
+
+TEST_CASE("DiffusionADI with different Dirichlet values on each side holds the linear steady state, and 1D relaxes to it")
+{
+    const int32_t xDim = 6;
+
+    Hal::PDEGrid1D line(xDim, false);
+    Hal::PDEGrid2D plane(xDim, 4, false, false);
+    Hal::PDEGrid3D volume(xDim, 4, 3, false, false, false);
+    for (int32_t i = 0; i < volume.Length(); i++)
+    {
+        volume.Set(i, DirichletRamp(volume.ItoX(i), xDim));
+    }
+    for (int32_t i = 0; i < plane.Length(); i++)
+    {
+        plane.Set(i, DirichletRamp(plane.ItoX(i), xDim));
+    }
+    for (int32_t x = 0; x < xDim; x++)
+    {
+        line.Set(x, DirichletRamp(x, xDim));
+    }
+    line.Update();
+    plane.Update();
+    volume.Update();
+
+    line.DiffusionADI(0.9, [&](int32_t x) { return DirichletRamp(x, xDim); });
+    plane.DiffusionADI(0.9, [&](int32_t x, int32_t) { return DirichletRamp(x, xDim); });
+    volume.DiffusionADI(0.9, [&](int32_t x, int32_t, int32_t) { return DirichletRamp(x, xDim); });
+    line.Update();
+    plane.Update();
+    volume.Update();
+
+    for (int32_t x = 0; x < xDim; x++)
+    {
+        CAPTURE(x);
+        CHECK(line.Get(x) == doctest::Approx(DirichletRamp(x, xDim)));
+    }
+    for (int32_t i = 0; i < plane.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(plane.Get(i) == doctest::Approx(DirichletRamp(plane.ItoX(i), xDim)));
+    }
+    for (int32_t i = 0; i < volume.Length(); i++)
+    {
+        CAPTURE(i);
+        CHECK(volume.Get(i) == doctest::Approx(DirichletRamp(volume.ItoX(i), xDim)));
+    }
+
+    Hal::PDEGrid1D relaxing(xDim, false);
+    for (int32_t step = 0; step < 400; step++)
+    {
+        relaxing.DiffusionADI(1.5, [&](int32_t x) { return DirichletRamp(x, xDim); });
+        relaxing.Update();
+    }
+    for (int32_t x = 0; x < xDim; x++)
+    {
+        CAPTURE(x);
+        CHECK(relaxing.Get(x) == doctest::Approx(DirichletRamp(x, xDim)).epsilon(1e-6));
     }
 }

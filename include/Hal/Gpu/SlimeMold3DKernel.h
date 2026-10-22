@@ -12,9 +12,8 @@ namespace Hal
 {
     namespace Gpu
     {
-        // Physarum ("slime mold") rule parameters plus this-batch's random
-        // seed, packed into the two passes' push constants. See
-        // shaders/SlimeMold3DAgents.comp / SlimeMold3DField.comp.
+        // Physarum rule parameters and the batch's random seed (see
+        // shaders/SlimeMold3DAgents.comp and SlimeMold3DField.comp).
         struct SlimeMold3DParams
         {
             float    stepSize;      // grid units moved per step
@@ -28,22 +27,13 @@ namespace Hal
             uint32_t seed;          // base RNG seed for this batch
         };
 
-        // GPU-resident volumetric Physarum: a hybrid agent + diffusible-field
-        // model run entirely on the GPU. Hundreds of thousands of agents
-        // sense a 3D chemical field, steer up its gradient, step, and deposit
-        // (SlimeMold3DAgents.comp); the field then diffuses and decays
-        // (SlimeMold3DField.comp). The field ping-pongs between two
-        // device-local buffers and STAYS RESIDENT across frames — only the
-        // agent positions round-trip to the host each frame, to be rendered
-        // as depth-tested spheres by the GpuSlimeMold3D showcase.
+        // GPU 3D Physarum ("slime mold"): agents sense a chemical field, steer
+        // up its gradient, move, and deposit; the field then diffuses and decays.
+        // The field stays on the device across calls; agents are uploaded and
+        // read back each call.
         //
-        // Agents are 8 floats each: [0..2] position in grid coordinates
-        // [0, dim), [3] the field concentration the agent sits in (written
-        // back for colouring), [4..6] unit heading, [7] unused. Deposits are
-        // accumulated in a uint fixed-point buffer via atomicAdd and consumed
-        // (and cleared) by the field pass. Same VMA device-local + staging,
-        // fence-synchronized, GPU-resident-batching architecture as the other
-        // 3D kernels.
+        // Agents are 8 floats: [0..2] position in grid coordinates, [3] the field
+        // value at the agent (written back), [4..6] unit heading, [7] unused.
         class SlimeMold3DKernel
         {
         public:
@@ -57,20 +47,16 @@ namespace Hal
             SlimeMold3DKernel(const SlimeMold3DKernel &other) = delete;
             SlimeMold3DKernel &operator=(const SlimeMold3DKernel &other) = delete;
 
-            // Uploads `field` (xDim*yDim*zDim floats) into the current field
-            // buffer, replacing whatever was resident. Mainly for tests /
-            // deterministic setup; the showcase leaves the field at its
-            // construction-time zero and lets the agents grow it.
+            // Replaces the resident field with `field` (xDim*yDim*zDim floats).
             void SeedField(const std::vector<float> &field);
 
             // Downloads the current resident field (xDim*yDim*zDim floats).
             void ReadField(std::vector<float> &outField);
 
-            // Runs `steps` (agent pass, field pass) pairs GPU-resident in one
-            // submission. `agents` is 8*agentCount floats (see the class
-            // comment) uploaded before and read back after; `agentCount` may
-            // be <= the capacity (0 runs the field alone). The resident field
-            // is advanced in place across calls.
+            // Runs `steps` (agent pass, field pass) pairs in one submission.
+            // `agents` holds 8 floats per agent; agentCount may be 0 to advance only
+            // the field. Throws std::invalid_argument if agentCount exceeds the
+            // capacity or agents is too short.
             void RunSteps(std::vector<float>      &agents,
                           int32_t                  agentCount,
                           int32_t                  steps,
@@ -79,6 +65,8 @@ namespace Hal
             int32_t AgentCapacity() const { return m_agentCapacity; }
 
         private:
+            void Destroy();
+
             void CreateBuffers();
             void InitializeFieldBuffers();
             void CreateDescriptorObjects();

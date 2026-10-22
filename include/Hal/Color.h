@@ -6,20 +6,19 @@
 
 namespace Hal
 {
-    // Packed ARGB color integers, matching HAL's Java color representation
-    // (0xAARRGGBB) so ported model code and future GUI/export code (Phase 6)
-    // can reuse the same on-disk/in-memory color format.
+    // Colors are packed ARGB integers (0xAARRGGBB). Fractional channel
+    // inputs in [0, 1] map to 0..255.
 
-    // The named default colors from HAL's Util.java (fully opaque). Defined
-    // via Rgb() so their packing is identical to a computed color.
-    extern const int32_t RED;
-    extern const int32_t GREEN;
-    extern const int32_t BLUE;
-    extern const int32_t BLACK;
-    extern const int32_t WHITE;
-    extern const int32_t YELLOW;
-    extern const int32_t CYAN;
-    extern const int32_t MAGENTA;
+    // Fully opaque named colors, compile-time constants so they are safe to
+    // use during static initialization.
+    inline constexpr int32_t RED = static_cast<int32_t>(0xFFFF0000u);
+    inline constexpr int32_t GREEN = static_cast<int32_t>(0xFF00FF00u);
+    inline constexpr int32_t BLUE = static_cast<int32_t>(0xFF0000FFu);
+    inline constexpr int32_t BLACK = static_cast<int32_t>(0xFF000000u);
+    inline constexpr int32_t WHITE = static_cast<int32_t>(0xFFFFFFFFu);
+    inline constexpr int32_t YELLOW = static_cast<int32_t>(0xFFFFFF00u);
+    inline constexpr int32_t CYAN = static_cast<int32_t>(0xFF00FFFFu);
+    inline constexpr int32_t MAGENTA = static_cast<int32_t>(0xFFFF00FFu);
 
     int32_t Rgb(double r,
                 double g,
@@ -74,15 +73,6 @@ namespace Hal
                         int32_t a);
 
     int32_t InvertColor(int32_t color);
-
-    extern const int32_t kRed;
-    extern const int32_t kGreen;
-    extern const int32_t kBlue;
-    extern const int32_t kBlack;
-    extern const int32_t kWhite;
-    extern const int32_t kYellow;
-    extern const int32_t kCyan;
-    extern const int32_t kMagenta;
 
     // Returns a color from the d3 category20 palette based on index [0,19].
     int32_t CategoricalColor(int32_t index);
@@ -171,15 +161,13 @@ namespace Hal
     int32_t GreyScale(double val);
 
     // HSB (a.k.a. HSV) color space. hue/saturation/brightness are in [0,1]
-    // (hue wraps). Returns a packed ARGB int with full alpha. Matches the
-    // conversion java.awt.Color.HSBtoRGB used in HAL's Java Util.
+    // (hue wraps). Returns a packed ARGB int with full alpha.
     int32_t HsbColor(double  hue,
                      double  saturation,
                      double  brightness);
 
     // Writes the [hue, saturation, brightness] (each in [0,1]) of a packed
-    // color into pHsbOut[0..2]. Inverse of HsbColor; matches
-    // java.awt.Color.RGBtoHSB.
+    // color into pHsbOut[0..2]. Inverse of HsbColor.
     void ColorToHsb(int32_t  color,
                     double  *pHsbOut);
 }

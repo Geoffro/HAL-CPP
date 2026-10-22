@@ -6,14 +6,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// Off-lattice, stackable agents, ported from Examples-style usage of
-// AgentPT2D. See AgentGridTests.cpp for why GOLAgent/GOLGrid-style mutual
-// references need the forward-declare-both / define-agent-first pattern —
-// the same requirement applies here.
-// ---------------------------------------------------------------------
+// Off-lattice, stackable agents.
 
 class ParticleGrid;
 
@@ -275,9 +271,8 @@ TEST_CASE("AgentGrid2D::GetAgentsRad displacement-info overloads record wrap-awa
         CHECK(info[k].dist < rad);
     }
 
-    // Padding behavior when the output lists already hold entries from an
-    // earlier query (Java aligns displacementInfo[i] with retAgentList[i]
-    // by padding): re-run the same query into the same vectors.
+    // Re-running into the same vectors keeps displacementInfo[i] aligned
+    // with retAgentList[i].
     size_t firstCount = found.size();
     grid.GetAgentsRad(found, info, queryX, queryY, rad);
     REQUIRE(found.size() == 2 * firstCount);
@@ -310,4 +305,51 @@ TEST_CASE("AgentGrid2D::GetAgentsRad displacement-info overloads record wrap-awa
     {
         CHECK((pAgent->Tag() % 2) == 0);
     }
+}
+
+TEST_CASE("AgentPT2D::MoveSafePT wraps on wrapped axes and keeps the old coordinate on bounded ones")
+{
+    ParticleGrid grid(10, 10, true, false);
+    ParticleAgent &agent = grid.NewAgentPT(5.5, 5.5);
+
+    agent.MoveSafePT(-0.5, 12.0);
+    CHECK(agent.Xpt() == doctest::Approx(9.5));
+    CHECK(agent.Ypt() == doctest::Approx(5.5));
+    CHECK(agent.Isq() == grid.I(9, 5));
+    CHECK(grid.PopAt(9, 5) == 1);
+    CHECK(grid.PopAt(5, 5) == 0);
+}
+
+TEST_CASE("AgentGrid2D::NewAgentPTSafe wraps or falls back for out-of-bounds positions")
+{
+    ParticleGrid grid(10, 10, false, true);
+    ParticleAgent &agent = grid.NewAgentPTSafe(12.0, -1.0, 3.0, 4.0);
+    CHECK(agent.Xpt() == doctest::Approx(3.0));
+    CHECK(agent.Ypt() == doctest::Approx(9.0));
+    CHECK(grid.PopAt(3, 9) == 1);
+}
+
+TEST_CASE("AgentPT2D::MoveSQ centers the agent in its new square")
+{
+    ParticleGrid grid(6, 6);
+    ParticleAgent &agent = grid.NewAgentPT(1.2, 1.7);
+    agent.MoveSQ(4, 2);
+    CHECK(agent.Xpt() == doctest::Approx(4.5));
+    CHECK(agent.Ypt() == doctest::Approx(2.5));
+    CHECK(grid.PopAt(4, 2) == 1);
+    CHECK(grid.PopAt(1, 1) == 0);
+
+    agent.MoveSQ(grid.I(0, 5));
+    CHECK(agent.Xpt() == doctest::Approx(0.5));
+    CHECK(agent.Ypt() == doctest::Approx(5.5));
+}
+
+TEST_CASE("AgentPT2D: moving or disposing a dead agent throws")
+{
+    ParticleGrid grid(4, 4);
+    ParticleAgent &agent = grid.NewAgentPT(1.0, 1.0);
+    agent.Dispose();
+    CHECK_THROWS_AS(agent.MovePT(2.0, 2.0), std::runtime_error);
+    CHECK_THROWS_AS(agent.Dispose(), std::runtime_error);
+    CHECK(grid.Pop() == 0);
 }

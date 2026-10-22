@@ -1,6 +1,6 @@
-# Ported HAL example models. The visual ones use the reusable GridWindow
-# helper (a UIGrid analogue) and can be run live or, with a "headless"
-# argument, dumped to PNG/MP4. Headless-only demos link just the core libs.
+# Example models. The visual ones use the reusable GridWindow helper and can
+# be run live or, with a "headless" argument, dumped to PNG/MP4.
+# Headless-only demos link just the core libs.
 
 # Shared window/render helper for the visual examples.
 add_library(HalExamplesCommon

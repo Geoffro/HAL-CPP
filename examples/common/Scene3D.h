@@ -41,17 +41,16 @@ namespace Hal
             int32_t color;
         };
 
-        // A software 3D scene rendered into a GridWindow's pixel buffer — the
-        // analogue of HAL's Gui/OpenGL3DWindow, but CPU-rasterized so it
-        // reuses the same pixel-buffer stack as the 2D examples (no Vulkan 3D
-        // pipeline; see Hal::Gpu::Scene3DRenderContext for the hardware version).
+        // A software 3D scene rendered into a GridWindow's pixel buffer, reusing
+        // the 2D examples' pixel-buffer stack (see Hal::Gpu::Scene3DRenderContext
+        // for the hardware renderer).
         //
         // An orbit camera looks at the center of the domain box
-        // [0,xDim]x[0,yDim]x[0,zDim]. Queue spheres and line segments each
-        // frame, then Render() projects them, depth-sorts (painter's
-        // algorithm), and draws them (spheres as depth-scaled discs, lines via
-        // Bresenham). On a live window HandleInput() orbits with a left-mouse
-        // drag and zooms with the arrow/›‹ keys; headless uses a fixed angle.
+        // [0,xDim]x[0,yDim]x[0,zDim]. Queue spheres and line segments each frame,
+        // then Render() projects them, depth-sorts (painter's algorithm), and draws
+        // them (spheres as depth-scaled discs, lines via Bresenham). On a live
+        // window HandleInput() orbits with a left-mouse drag and zooms with the
+        // arrow keys; headless uses a fixed angle.
         class Scene3D
         {
         public:

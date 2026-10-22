@@ -1,7 +1,6 @@
 #pragma once
 
-// The BirthDeath agent model from LEARN_HERE/Agents/BirthDeath, extracted
-// into a header so it can be reused both as a standalone example and as a
+// The BirthDeath agent model, shared by the BirthDeath example and the
 // per-well model in MultiwellExample. Drawing is left to the caller (the
 // model only exposes GetAgent / color), keeping it GUI-independent.
 

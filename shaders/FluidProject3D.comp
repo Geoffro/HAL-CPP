@@ -1,13 +1,8 @@
 #version 450
 
-// Stable-fluids projection pass — subtracts the pressure gradient from
-// the velocity field (in place: only the voxel's own velocity is
-// written, and pressure is a separate read-only buffer), leaving the flow
-// divergence-free except for the deliberate source term injected by
-// FluidDivergence3D.comp. This is the pass that turns raw injected motion
-// into the swirling, billowing behavior smoke is known for. Velocity
-// components normal to the box walls are zeroed — the closed-box
-// condition matching the clamped stencils everywhere else.
+// Stable-fluids projection: subtracts the pressure gradient from the
+// velocity in place, leaving it divergence-free apart from the injected
+// source term. Velocity normal to the box walls is zeroed.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

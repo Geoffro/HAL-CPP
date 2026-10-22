@@ -8,17 +8,8 @@
 #include <stdexcept>
 #include <vector>
 
-// Direct O(n^2) DFT with the same unitary (1/sqrt(n)) normalization and
-// sign convention as Hal::Fft, used as an independent ground truth (a
-// different algorithm entirely, so agreement isn't a shared-bug artifact).
-//
-// NOTE on the sign: Hal::Fft's "direct" transform applies the twiddle
-// factor (cos(arg) - i*sin(arg)) with arg = -2*pi*p/n, which is
-// exp(+2*pi*i*p/n) — i.e. its forward direction uses the *positive*
-// exponent, the opposite of the textbook default. This is HAL's own
-// convention (self-consistent: inverse undoes forward, and the
-// convolution theorem holds — see the tests below), not a defect, so the
-// reference here matches it: sign = +1 for the direct transform.
+// Direct O(n^2) DFT with Hal::Fft's normalization and (positive-exponent)
+// sign convention, as an independent ground truth.
 static std::vector<std::complex<double>> ReferenceDft(const std::vector<std::complex<double>> &input,
                                                       bool                                     direct)
 {

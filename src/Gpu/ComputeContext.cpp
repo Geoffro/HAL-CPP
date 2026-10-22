@@ -21,18 +21,31 @@ namespace Hal
               m_computeQueueFamilyIndex(0),
               m_allocator(VK_NULL_HANDLE)
         {
-            Internal::CheckResult(volkInitialize(), "volkInitialize failed — is the Vulkan loader installed?");
-            CreateInstance();
-            volkLoadInstance(m_instance);
-            SelectPhysicalDevice();
-            CreateLogicalDevice();
-            volkLoadDevice(m_device);
-            vkGetDeviceQueue(m_device, m_computeQueueFamilyIndex, 0, &m_computeQueue);
-            CreateAllocator();
-            Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::ComputeContext initialized");
+            try
+            {
+                Internal::CheckResult(volkInitialize(), "volkInitialize failed — is the Vulkan loader installed?");
+                CreateInstance();
+                volkLoadInstance(m_instance);
+                SelectPhysicalDevice();
+                CreateLogicalDevice();
+                volkLoadDevice(m_device);
+                vkGetDeviceQueue(m_device, m_computeQueueFamilyIndex, 0, &m_computeQueue);
+                CreateAllocator();
+                Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::ComputeContext initialized");
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         ComputeContext::~ComputeContext()
+        {
+            Destroy();
+        }
+
+        void ComputeContext::Destroy()
         {
             if (m_allocator != VK_NULL_HANDLE)
             {
@@ -105,7 +118,7 @@ namespace Hal
 
             std::vector<const char *> enabledExtensions;
             VkInstanceCreateFlags createFlags = 0;
-            if (Internal::HasInstanceExtension(available, "VK_KHR_portability_enumeration"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_enumeration"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_enumeration");
                 createFlags |= 0x00000001; // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
@@ -179,7 +192,7 @@ namespace Hal
             vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &availableCount, available.data());
 
             std::vector<const char *> enabledExtensions;
-            if (Internal::HasDeviceExtension(available, "VK_KHR_portability_subset"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_subset"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_subset");
             }

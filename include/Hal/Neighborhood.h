@@ -5,15 +5,10 @@
 
 namespace Hal
 {
-    // Each function below returns a neighborhood-offset table centered on
-    // the origin. The layout is a leading run of zero-padding (as many
-    // slots as there are neighbors) followed by the actual (x,y[,z])
-    // offset pairs/triples. The padding exists because HAL's Agent
-    // MapHood() reuses the front of this same array as scratch space to
-    // write out computed neighbor grid-indices during a neighborhood
-    // query, rather than allocating a second array — that convention is
-    // carried over unchanged from the Java version since Phase 2's agent
-    // neighborhood code depends on this exact layout.
+    // Each function returns a neighborhood-offset table centered on the
+    // origin: one leading zero slot per neighbor, followed by the (x,y[,z])
+    // offsets. MapHood writes mapped grid indices into the leading slots,
+    // so a query needs no second array.
 
     std::vector<int32_t> VonNeumannHood(bool includeOrigin);
 

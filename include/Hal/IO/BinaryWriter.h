@@ -8,11 +8,10 @@
 
 namespace Hal
 {
-    // Minimal binary serialization writer, backing HAL's save/load
-    // support. Writes raw little-endian-native
-    // bytes with no cross-platform/cross-endianness translation — this is
-    // a deliberate simplification for saving and reloading state on the
-    // same machine, matching HAL's own scope, not an oversight.
+    // Minimal binary serialization writer. Writes raw native-endian bytes
+    // with no format header or byte-order translation, so files are only
+    // meant to be read back on the same platform. A failed write logs an
+    // error once and makes IsGood() return false.
     class BinaryWriter
     {
     public:
@@ -24,6 +23,9 @@ namespace Hal
 
         bool IsOpen() const;
 
+        // False once any write has failed.
+        bool IsGood() const;
+
         void WriteBool(bool value);
         void WriteInt32(int32_t value);
         void WriteInt64(int64_t value);
@@ -33,10 +35,12 @@ namespace Hal
 
         // Writes count trivially-copyable elements of pData verbatim.
         template <typename T>
-        void WriteArray(const T *pData, int32_t count)
+        void WriteArray(const T *pData,
+                        int32_t  count)
         {
             static_assert(std::is_trivially_copyable<T>::value, "WriteArray requires a trivially-copyable element type");
             m_stream.write(reinterpret_cast<const char *>(pData), static_cast<std::streamsize>(sizeof(T)) * count);
+            CheckStream();
         }
 
         template <typename T>
@@ -46,6 +50,10 @@ namespace Hal
         }
 
     private:
+        void CheckStream();
+
         std::ofstream m_stream;
+        std::string   m_path;
+        bool          m_loggedFailure;
     };
 }

@@ -1,8 +1,6 @@
-// Ported from LEARN_HERE/Agents/BirthDeathOffLattice: an off-lattice
-// (point) birth/death model. Cells live at continuous positions, die
-// randomly, divide (capped at 5 per square), and random-walk a little each
-// step. Java draws them with OpenGL2DWindow.Circle; here GridWindow.Circle
-// rasterizes each cell as a small disc.
+// An off-lattice (point) birth/death model. Cells live at continuous
+// positions, die randomly, divide (capped at 5 per square), and random-walk
+// a little each step; each is drawn as a small disc.
 //
 // Live window by default; pass "headless" to run a bounded number of steps
 // and dump the final frame to birthdeathofflattice.png.

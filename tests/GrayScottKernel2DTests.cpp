@@ -1,11 +1,14 @@
 #include <doctest/doctest.h>
 
+#include "GpuTestSupport.h"
+
 #include "Hal/Gpu/ComputeContext.h"
 #include "Hal/Gpu/GrayScottKernel2D.h"
 
 #include <cmath>
+#include <cstdint>
+#include <memory>
 #include <stdexcept>
-#include <string>
 #include <vector>
 
 namespace GrayScottKernel2DTestsInternal
@@ -17,12 +20,9 @@ namespace GrayScottKernel2DTestsInternal
         return (m < 0) ? (m + dim) : m;
     }
 
-    // Bit-for-bit CPU mirror of shaders/GrayScott2D.comp (same 9-point
-    // weighted Laplacian, same reaction, same clamp, same toroidal wrap),
-    // stepped in the same ping-pong order, so the GPU kernel can be checked
-    // against its own specification for the full nonlinear dynamics — the
-    // plumbing test (interleave, barriers, ping-pong, readback) an analytic
-    // eigenmode can't provide for a nonlinear system.
+    // CPU mirror of shaders/GrayScott2D.comp (same Laplacian, reaction,
+    // clamp, wrap, and ping-pong order) for checking the full nonlinear
+    // dynamics.
     void CpuGrayScottStep(const std::vector<float> &src,
                           std::vector<float>       &dst,
                           int32_t                   xDim,
@@ -78,29 +78,27 @@ using namespace GrayScottKernel2DTestsInternal;
 // or the buffer plumbing were wrong.
 TEST_CASE("Hal::Gpu::GrayScottKernel2D leaves the (U=1, V=0) fixed point unchanged")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-
-        const int32_t nx = 32;
-        const int32_t ny = 48;
-
-        Hal::Gpu::GrayScottKernel2D kernel(context, nx, ny);
-
-        std::vector<float> u(static_cast<size_t>(nx * ny), 1.0f);
-        std::vector<float> v(static_cast<size_t>(nx * ny), 0.0f);
-
-        kernel.RunSteps(u, v, 25, 0.055f, 0.062f, 0.16f, 0.08f);
-
-        for (size_t i = 0; i < u.size(); i++)
-        {
-            CHECK(u[i] == doctest::Approx(1.0).epsilon(1e-6));
-            CHECK(v[i] == doctest::Approx(0.0).epsilon(1e-6));
-        }
+        return;
     }
-    catch (const std::runtime_error &e)
+    Hal::Gpu::ComputeContext &context = *pContext;
+
+    const int32_t nx = 32;
+    const int32_t ny = 48;
+
+    Hal::Gpu::GrayScottKernel2D kernel(context, nx, ny);
+
+    std::vector<float> u(static_cast<size_t>(nx * ny), 1.0f);
+    std::vector<float> v(static_cast<size_t>(nx * ny), 0.0f);
+
+    kernel.RunSteps(u, v, 25, 0.055f, 0.062f, 0.16f, 0.08f);
+
+    for (size_t i = 0; i < u.size(); i++)
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        CHECK(u[i] == doctest::Approx(1.0).epsilon(1e-6));
+        CHECK(v[i] == doctest::Approx(0.0).epsilon(1e-6));
     }
 }
 
@@ -108,68 +106,80 @@ TEST_CASE("Hal::Gpu::GrayScottKernel2D leaves the (U=1, V=0) fixed point unchang
 // mirror above rather than the fixed point: seed a V blob and step both
 // forward, so any error in the 9-point stencil, the ping-pong ordering,
 // the interleave, or the barriers shows up as divergence.
-TEST_CASE("Hal::Gpu::GrayScottKernel2D::RunSteps matches a CPU reference of the same update, or reports why it can't")
+TEST_CASE("Hal::Gpu::GrayScottKernel2D::RunSteps matches a CPU reference of the same update")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-
-        const int32_t nx = 32;
-        const int32_t ny = 48;
-        const int32_t steps = 30;
-        const float feed = 0.055f;
-        const float kill = 0.062f;
-        const float diffU = 0.16f;
-        const float diffV = 0.08f;
-
-        Hal::Gpu::GrayScottKernel2D kernel(context, nx, ny);
-
-        std::vector<float> u(static_cast<size_t>(nx * ny), 1.0f);
-        std::vector<float> v(static_cast<size_t>(nx * ny), 0.0f);
-
-        // A small V-seeded square (with U depleted there), the standard
-        // Gray-Scott perturbation that grows into a pattern.
-        for (int32_t x = nx / 2 - 3; x < nx / 2 + 3; x++)
-        {
-            for (int32_t y = ny / 2 - 3; y < ny / 2 + 3; y++)
-            {
-                u[static_cast<size_t>(x * ny + y)] = 0.5f;
-                v[static_cast<size_t>(x * ny + y)] = 0.25f;
-            }
-        }
-
-        // Interleaved CPU state, ping-ponged the same way RunSteps chains.
-        std::vector<float> cpuA(static_cast<size_t>(nx * ny) * 2);
-        std::vector<float> cpuB(static_cast<size_t>(nx * ny) * 2);
-        for (int32_t i = 0; i < nx * ny; i++)
-        {
-            cpuA[2 * static_cast<size_t>(i)] = u[static_cast<size_t>(i)];
-            cpuA[2 * static_cast<size_t>(i) + 1] = v[static_cast<size_t>(i)];
-        }
-
-        std::vector<float> *pSrc = &cpuA;
-        std::vector<float> *pDst = &cpuB;
-        for (int32_t step = 0; step < steps; step++)
-        {
-            CpuGrayScottStep(*pSrc, *pDst, nx, ny, feed, kill, diffU, diffV);
-            std::vector<float> *pTmp = pSrc;
-            pSrc = pDst;
-            pDst = pTmp;
-        }
-
-        kernel.RunSteps(u, v, steps, feed, kill, diffU, diffV);
-
-        double maxDiff = 0.0;
-        for (int32_t i = 0; i < nx * ny; i++)
-        {
-            double du = std::abs(static_cast<double>(u[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i)]));
-            double dv = std::abs(static_cast<double>(v[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i) + 1]));
-            maxDiff = std::max(maxDiff, std::max(du, dv));
-        }
-        CHECK(maxDiff < 1e-4);
+        return;
     }
-    catch (const std::runtime_error &e)
+    Hal::Gpu::ComputeContext &context = *pContext;
+
+    const int32_t nx = 32;
+    const int32_t ny = 48;
+    const int32_t steps = 30;
+    const float feed = 0.055f;
+    const float kill = 0.062f;
+    const float diffU = 0.16f;
+    const float diffV = 0.08f;
+
+    Hal::Gpu::GrayScottKernel2D kernel(context, nx, ny);
+
+    std::vector<float> u(static_cast<size_t>(nx * ny), 1.0f);
+    std::vector<float> v(static_cast<size_t>(nx * ny), 0.0f);
+
+    // A small V-seeded square (with U depleted there), the standard
+    // Gray-Scott perturbation that grows into a pattern.
+    for (int32_t x = nx / 2 - 3; x < nx / 2 + 3; x++)
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        for (int32_t y = ny / 2 - 3; y < ny / 2 + 3; y++)
+        {
+            u[static_cast<size_t>(x * ny + y)] = 0.5f;
+            v[static_cast<size_t>(x * ny + y)] = 0.25f;
+        }
     }
+
+    // Interleaved CPU state, ping-ponged the same way RunSteps chains.
+    std::vector<float> cpuA(static_cast<size_t>(nx * ny) * 2);
+    std::vector<float> cpuB(static_cast<size_t>(nx * ny) * 2);
+    for (int32_t i = 0; i < nx * ny; i++)
+    {
+        cpuA[2 * static_cast<size_t>(i)] = u[static_cast<size_t>(i)];
+        cpuA[2 * static_cast<size_t>(i) + 1] = v[static_cast<size_t>(i)];
+    }
+
+    std::vector<float> *pSrc = &cpuA;
+    std::vector<float> *pDst = &cpuB;
+    for (int32_t step = 0; step < steps; step++)
+    {
+        CpuGrayScottStep(*pSrc, *pDst, nx, ny, feed, kill, diffU, diffV);
+        std::vector<float> *pTmp = pSrc;
+        pSrc = pDst;
+        pDst = pTmp;
+    }
+
+    kernel.RunSteps(u, v, steps, feed, kill, diffU, diffV);
+
+    double maxDiff = 0.0;
+    for (int32_t i = 0; i < nx * ny; i++)
+    {
+        double du = std::abs(static_cast<double>(u[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i)]));
+        double dv = std::abs(static_cast<double>(v[static_cast<size_t>(i)]) - static_cast<double>((*pSrc)[2 * static_cast<size_t>(i) + 1]));
+        maxDiff = std::max(maxDiff, std::max(du, dv));
+    }
+    CHECK(maxDiff < 1e-4);
+}
+
+TEST_CASE("Hal::Gpu::GrayScottKernel2D rejects U or V fields of the wrong length")
+{
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
+    {
+        return;
+    }
+    Hal::Gpu::GrayScottKernel2D kernel(*pContext, 4, 4);
+    std::vector<float> rightSize(16, 0.0f);
+    std::vector<float> wrongSize(15, 0.0f);
+    CHECK_THROWS_AS(kernel.RunSteps(wrongSize, rightSize, 1, 0.05f, 0.06f, 0.2f, 0.1f), std::invalid_argument);
+    CHECK_THROWS_AS(kernel.RunSteps(rightSize, wrongSize, 1, 0.05f, 0.06f, 0.2f, 0.1f), std::invalid_argument);
 }

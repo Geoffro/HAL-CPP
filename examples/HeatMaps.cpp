@@ -1,6 +1,5 @@
-// Ported from LEARN_HERE/Other/HeatMaps: paints the six channel-permutation
-// heat maps (RGB, RBG, GRB, GBR, BRG, BGR) as horizontal ramps, one row
-// each, to compare the palettes side by side.
+// Paints the six channel-permutation heat maps (RGB, RBG, GRB, GBR, BRG,
+// BGR) as horizontal ramps, one row each, to compare the palettes.
 //
 // Live window by default; pass "headless" to dump the swatches to
 // heatmaps.png.

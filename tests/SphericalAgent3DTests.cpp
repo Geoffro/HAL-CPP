@@ -105,3 +105,48 @@ TEST_CASE("SphericalAgent3D: Divide places the daughter divRadius away and moves
     CHECK(parent.Zpt() == doctest::Approx(10.0));
     CHECK(grid.Pop() == 2);
 }
+
+static double LinearOverlap3D(double       touchDist,
+                              CellAgent3D &other)
+{
+    (void)other;
+    return (touchDist > 0) ? (touchDist * 0.5) : 0.0;
+}
+
+TEST_CASE("SphericalAgent3D: the displacement-info SumForces overload matches the radius-search overload")
+{
+    CellGrid3D grid(20, 20, 20);
+    CellAgent3D &a = grid.NewAgentPT(9.0, 10.0, 10.0);
+    CellAgent3D &b = grid.NewAgentPT(11.0, 10.5, 9.5);
+    a.DefaultInit(2.0);
+    b.DefaultInit(2.0);
+
+    double sumRadius = a.SumForces(10.0, LinearOverlap3D);
+    double xVelRadius = a.XVel();
+    double zVelRadius = a.ZVel();
+
+    a.SetVelocity(0.0, 0.0, 0.0);
+    std::vector<CellAgent3D *> neighbors;
+    std::vector<Hal::AgentDisplacementInfo3D> info;
+    grid.GetAgentsRad(neighbors, info, a.Xpt(), a.Ypt(), a.Zpt(), 10.0);
+    double sumInfo = a.SumForces(neighbors, info, LinearOverlap3D);
+
+    CHECK(sumInfo == doctest::Approx(sumRadius));
+    CHECK(a.XVel() == doctest::Approx(xVelRadius));
+    CHECK(a.ZVel() == doctest::Approx(zVelRadius));
+    CHECK(a.XVel() < 0.0);
+}
+
+TEST_CASE("SphericalAgent3D: agents at the same position exert no force instead of producing NaN")
+{
+    CellGrid3D grid(10, 10, 10);
+    CellAgent3D &a = grid.NewAgentPT(5.0, 5.0, 5.0);
+    CellAgent3D &b = grid.NewAgentPT(5.0, 5.0, 5.0);
+    a.DefaultInit(1.0);
+    b.DefaultInit(1.0);
+
+    a.SumForces(3.0, LinearOverlap3D);
+    CHECK(a.XVel() == 0.0);
+    CHECK(a.YVel() == 0.0);
+    CHECK(a.ZVel() == 0.0);
+}

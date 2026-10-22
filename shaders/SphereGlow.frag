@@ -1,14 +1,10 @@
 #version 450
 
-// Soft additive glow for the translucent sphere pipeline
-// (Scene3DRenderContext::SphereGlow): instead of Lambert shading, the
-// fragment fades from full brightness where the surface faces the camera
-// to nothing at the silhouette, so an instance reads as a soft round puff
-// of light with no hard edge. Drawn additively with depth writes off —
-// overlapping puffs accumulate like fog or fire glow, in any draw order.
-// pc.lightDir is the renderer's headlight direction (domain center toward
-// the camera), which serves as the view direction here; the instance
-// color's alpha carries the glow intensity.
+// Soft additive glow (Scene3DRenderContext::SphereGlow): brightest where
+// the surface faces the camera, fading to nothing at the silhouette, drawn
+// additively without depth writes so overlapping glows accumulate in any
+// order. pc.lightDir (the headlight) serves as the view direction; the
+// instance color's alpha is the intensity.
 
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec4 inColor;

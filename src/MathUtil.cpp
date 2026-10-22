@@ -149,27 +149,31 @@ namespace Hal
     int32_t FlipBit(int32_t v,
                     int32_t i)
     {
-        return v ^ (1 << i);
+        return static_cast<int32_t>(static_cast<uint32_t>(v) ^ (1u << i));
     }
 
     int64_t FlipBit(int64_t v,
                     int32_t i)
     {
-        return v ^ (1LL << i);
+        return static_cast<int64_t>(static_cast<uint64_t>(v) ^ (1ull << i));
     }
 
     int32_t SetBit(int32_t v,
                    int32_t i,
                    bool    val)
     {
-        return val ? (v | (1 << i)) : (v & ~(1 << i));
+        uint32_t mask = 1u << i;
+        uint32_t bits = static_cast<uint32_t>(v);
+        return static_cast<int32_t>(val ? (bits | mask) : (bits & ~mask));
     }
 
     int64_t SetBit(int64_t v,
                    int32_t i,
                    bool    val)
     {
-        return val ? (v | (1LL << i)) : (v & ~(1LL << i));
+        uint64_t mask = 1ull << i;
+        uint64_t bits = static_cast<uint64_t>(v);
+        return static_cast<int64_t>(val ? (bits | mask) : (bits & ~mask));
     }
 
     double Dist(double x1,

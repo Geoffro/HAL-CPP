@@ -4,10 +4,7 @@
 
 namespace Hal
 {
-    // CPU implementation of IDiffusionBackend2D: a thin wrapper over the
-    // existing Hal::Internal::Diffusion2 stencil (see
-    // include/Hal/Pde/PDEequations.h) — no new numerics, just the
-    // interface adapter.
+    // CPU IDiffusionBackend2D over Hal::Internal::Diffusion2.
     class CpuDiffusionBackend2D : public IDiffusionBackend2D
     {
     public:

@@ -8,21 +8,11 @@ namespace Hal
 {
     namespace Internal
     {
-        // Explicit finite-difference diffusion/advection stencils, ported
-        // from Tools/Internal/PDEequations.java (the homogeneous-rate
-        // overloads only — the discontinuous/spatially-varying-rate
-        // overloads are deferred).
-        //
-        // Each axis has two variants: a no-boundary-condition version
-        // (zero-flux/Neumann — contributes nothing across a non-wrapped
-        // edge) and a version taking a boundary-condition callable
-        // (Dirichlet — reflects the boundary value with a factor of 2).
-        // These are genuinely different formulas, not the same formula
-        // with a "BC that returns 0" plugged in (see the two branches
-        // below), so they're kept as separate functions per
-        // docs/DESIGN.md's callback-style note: hot-loop hooks like this
-        // are templated on the caller's callable type rather than
-        // std::function, for zero-overhead captured lambdas.
+        // Explicit finite-difference diffusion/advection stencils. Each
+        // neighbor-difference helper has a zero-flux form (nothing crosses
+        // a non-wrapped edge) and a Dirichlet form taking a boundary
+        // callable: an off-grid neighbor is a ghost cell reflecting the
+        // boundary value, contributing (bc - center) * 2.
 
         double Delta1D(const double *pField,
                        double        centerVal,
@@ -306,9 +296,7 @@ namespace Hal
                         bool          wrapY,
                         bool          wrapZ);
 
-        // Per-cell-array lookups at a possibly off-grid neighbor: in-bounds
-        // value, wrapped value if that axis wraps, otherwise 0 (zero-flux).
-        // The 3D analogues of DisplacedX2D/DisplacedY2D.
+        // 3D analogues of DisplacedX2D/DisplacedY2D.
         double DisplacedX3D(const double *pVals,
                             int32_t       x,
                             int32_t       y,
@@ -524,20 +512,15 @@ namespace Hal
 
         // --- Advection (first-order upwind, per-cell velocity field) ---
         //
-        // The spatially-varying-velocity analogue of the uniform-velocity
-        // advection above, ported from Java's per-cell-array Advection1/2/3
-        // overloads. Unlike the uniform version's upwind-delta form, these
-        // use the conservative flux form (per-face upwind fluxes summed
-        // into each cell), matching Java: with a varying velocity the two
-        // are no longer equivalent, and the flux form is what conserves
-        // mass. Off-grid velocities on a non-wrapping axis are 0 (no flux
-        // through the wall) in the zero-flux forms; the BC forms take a
-        // Dirichlet callable per quantity (field, and each velocity
-        // component), exactly as Java does.
+        // Conservative flux form: per-face upwind fluxes summed into each
+        // cell, so mass is conserved under a varying velocity. pXVels[i] is
+        // the velocity on cell i's +x face. Off-grid velocities on a
+        // non-wrapping axis are 0 (no flux through the wall) in the
+        // zero-flux forms; the BC forms take a Dirichlet callable for the
+        // field and for each velocity component.
 
         // Value from a per-cell array at a possibly off-grid x: in-bounds
-        // value, wrapped value if the axis wraps, otherwise 0 (zero-flux).
-        // The 1D analogue of DisplacedX2D/DisplacedY2D.
+        // value, wrapped value if the axis wraps, otherwise 0.
         double Displaced1D(const double *pVals,
                            int32_t       x,
                            int32_t       xDim,
@@ -798,10 +781,6 @@ namespace Hal
             }
         }
 
-        // z goes through DisplacedZ3D with the correct coordinates and
-        // wrap flag — the Java original's z-handling bugs (fixed in the
-        // zero-flux version in PDEequations.cpp) are fixed here too; see
-        // docs/JAVA_BUGS_FOUND.md #18.
         template <typename BCFn, typename XVelBCFn, typename YVelBCFn, typename ZVelBCFn>
         void Advection3(const double *pField,
                         double       *pDeltas,

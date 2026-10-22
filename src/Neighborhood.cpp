@@ -50,10 +50,8 @@ namespace Hal
     std::vector<int32_t> CircleHood(bool   includeOrigin,
                                     double radius)
     {
-        // Collect (x,y) pairs, origin first if requested (Java lists it at
-        // index 0 and the scan skips (0,0)). Then prepend `ct` padding
-        // slots so the layout matches MooreHood et al.: ct leading ints
-        // reused as MapHood scratch, followed by ct coordinate pairs.
+        // Origin first if requested, then the scanned offsets; the padding
+        // slots are prepended last.
         double  distSq = radius * radius;
         int32_t min = static_cast<int32_t>(std::floor(-radius));
         int32_t max = static_cast<int32_t>(std::ceil(radius));

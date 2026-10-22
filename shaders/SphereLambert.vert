@@ -1,15 +1,9 @@
 #version 450
 
-// Instanced unit-sphere vertex shader for the hardware Scene3D renderer
-// (Hal::Gpu::Scene3DRenderContext). Binding 0 carries the shared unit
-// sphere mesh (one position per vertex — for a unit sphere centered at
-// the origin the normal IS the position, so no separate normal
-// attribute); binding 1 advances per instance with each queued sphere's
-// center/radius and color.
-//
-// The push-constant block is shared with Line3D.vert (same pipeline
-// layout): mvp at offset 0, lightDir at offset 64 (used by
-// SphereLambert.frag).
+// Instanced unit sphere for Scene3DRenderContext. Binding 0 is the shared
+// mesh (position doubles as normal); binding 1 advances per instance with
+// center/radius and color. Push constants are shared with Line3D.vert:
+// mvp at offset 0, lightDir at 64.
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec4 inCenterRadius;

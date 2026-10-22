@@ -1,15 +1,9 @@
 #version 450
 
-// GPU port of SphericalAgent2D::SumForces' interactionRad overload (see
-// include/Hal/Agents/SphericalAgent2D.h) — one invocation per agent,
-// scanning the same bounding-box-of-cells pattern as
-// AgentGrid2D::GetAgentsRadApprox via the buckets built by
-// AgentCellCount/AgentPrefixSum/AgentScatter, using a linear spring force
-// law (force = springConstant * touchDist) in place of the CPU version's
-// arbitrary overlapFun callable — GLSL has no first-class function
-// values, so the force law is a shader parameter for now rather than a
-// caller-supplied callback. Non-linear force laws are a follow-up (either
-// a shader variant or an exponent push constant), not a design dead end.
+// SphericalAgent2D::SumForces with a linear spring force
+// (force = springConstant * touchDist): one invocation per agent, scanning
+// the cells around it through the buckets built by AgentCellCount,
+// AgentPrefixSum, and AgentScatter.
 
 layout(local_size_x = 256) in;
 

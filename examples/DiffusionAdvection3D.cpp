@@ -1,7 +1,6 @@
-// Ported from LEARN_HERE/Diffusibles/DiffusionAdvection3D: a 3D diffusible
-// released at the center of a periodic box, transported by advection along
-// x and z while spreading by diffusion. Java's UIGrid.DrawPDEGridXY shows
-// the XY plane; here we draw the mid-z slice as a heat map.
+// A 3D diffusible released at the center of a periodic box, transported
+// by advection along x and z while spreading by diffusion. The mid-z slice
+// is drawn as a heat map.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final slice to diffusionadvection3d.png.

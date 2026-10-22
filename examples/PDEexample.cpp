@@ -1,9 +1,7 @@
-// Ported from Examples/_4PDEexample: a block of source agents and a
-// scattering of sink agents impose fixed concentrations on a diffusible
-// PDE field, which is stirred by time-varying circular advection and a
-// pulsing diffusion rate. The Java version overlays the two views with
-// alpha blending; here they sit side by side (sources/sinks left,
-// concentration field right).
+// A block of source agents and scattered sink agents impose fixed
+// concentrations on a diffusible PDE field, stirred by time-varying
+// circular advection and a pulsing diffusion rate. Sources and sinks are
+// drawn on the left, the concentration field on the right.
 //
 // Live window by default; pass "headless" to dump the final frame to
 // pdeexample.png.

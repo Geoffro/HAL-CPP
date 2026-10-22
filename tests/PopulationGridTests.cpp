@@ -6,6 +6,7 @@
 #include "Hal/Rand.h"
 #include "Hal/Tools/MultinomialCalc.h"
 
+#include <algorithm>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -181,4 +182,60 @@ TEST_CASE("PopulationGrid2D::Diffusion conserves total population and spreads a 
     CHECK(cells.Get(10, 10) < startPop);
     int64_t neighborSum = cells.Get(9, 10) + cells.Get(11, 10) + cells.Get(10, 9) + cells.Get(10, 11);
     CHECK(neighborSum > 0);
+}
+
+TEST_CASE("PopulationGrid2D<int64_t>::Diffusion moves counts beyond the int32 range without truncation")
+{
+    Hal::Rand                      rng(9);
+    Hal::MultinomialCalc           mn(rng);
+    Hal::PopulationGrid2D<int64_t> cells(5, 5, true, true);
+
+    const int64_t startPop = 6000000000LL;
+    cells.Set(2, 2, startPop);
+    cells.Update();
+    cells.Diffusion(0.1, mn);
+    cells.Update();
+
+    CHECK(cells.Pop() == startPop);
+    int64_t total = 0;
+    for (int32_t i = 0; i < cells.Length(); i++)
+    {
+        total += cells.Get(i);
+    }
+    CHECK(total == startPop);
+    double moved = static_cast<double>(cells.Get(3, 2));
+    CHECK(moved == doctest::Approx(startPop * 0.1).epsilon(0.01));
+}
+
+TEST_CASE("PopulationGridBase::SetupSparseIndices switches to sparse iteration and keeps pending deltas")
+{
+    Hal::PopulationGrid2D<int32_t> grid(40, 40);
+    grid.Set(3, 4, 5);
+    grid.Update();
+    grid.Add(7, 7, 2);
+    grid.Add(3, 4, 1);
+
+    grid.SetupSparseIndices();
+    grid.Update();
+
+    CHECK(grid.Get(7, 7) == 2);
+    CHECK(grid.Get(3, 4) == 6);
+    CHECK(grid.Pop() == 8);
+    CHECK(grid.OccupiedArea() == 2);
+
+    std::vector<int32_t> occupied;
+    for (int32_t i : grid)
+    {
+        occupied.push_back(i);
+    }
+    std::sort(occupied.begin(), occupied.end());
+    CHECK(occupied == std::vector<int32_t>{grid.I(3, 4), grid.I(7, 7)});
+}
+
+TEST_CASE("PopulationGridBase::ApplyOccupied throws if the action calls Update")
+{
+    Hal::PopulationGrid1D<int32_t> grid(10);
+    grid.Set(1, 3);
+    grid.Update();
+    CHECK_THROWS_AS(grid.ApplyOccupied([&](int32_t, int32_t) { grid.Update(); }), std::runtime_error);
 }

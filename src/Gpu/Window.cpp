@@ -28,14 +28,9 @@ namespace Hal
         {
             if (Internal::g_windowRefCount == 0)
             {
-                // glfwInitVulkanLoader sets an *init hint*, which glfwInit()
-                // reads once and then discards — it has no effect if called
-                // any later. It must run first so GLFW uses the same
-                // vkGetInstanceProcAddr volk already resolved, instead of
-                // dlopen-ing its own copy of the Vulkan loader (which can
-                // fail to find a loader installed somewhere not on GLFW's
-                // own search path, e.g. Homebrew's /usr/local/lib on macOS,
-                // even though volk found it fine).
+                // An init hint, so it must precede glfwInit: GLFW then uses
+                // volk's loader instead of searching for its own copy, which
+                // can miss loaders volk finds (e.g. Homebrew's on macOS).
                 Internal::CheckResult(volkInitialize(), "volkInitialize failed — is the Vulkan loader installed?");
                 glfwInitVulkanLoader(vkGetInstanceProcAddr);
 
@@ -51,15 +46,18 @@ namespace Hal
             m_pHandle = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
             if (m_pHandle == nullptr)
             {
+                Internal::g_windowRefCount--;
+                if (Internal::g_windowRefCount == 0)
+                {
+                    glfwTerminate();
+                }
                 Logger::Instance().Log(LogSeverity::Error, "glfwCreateWindow failed to create a window titled \"" + title + "\"");
                 throw std::runtime_error("glfwCreateWindow failed");
             }
 
             // Scroll and resize events only arrive through callbacks, so
-            // buffer them on the Window for ConsumeScrollY/
-            // ConsumeFramebufferResized. imgui_impl_glfw (wired in by
-            // WindowGuiRenderer, after this constructor) chains any
-            // previously installed callbacks, so both can coexist.
+            // they are buffered here. imgui_impl_glfw chains these
+            // callbacks when installed later.
             glfwSetWindowUserPointer(m_pHandle, this);
             glfwSetScrollCallback(m_pHandle, ScrollCallback);
             glfwSetFramebufferSizeCallback(m_pHandle, FramebufferSizeCallback);

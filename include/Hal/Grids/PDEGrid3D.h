@@ -14,9 +14,7 @@
 
 namespace Hal
 {
-    // 3D reaction-diffusion-advection grid — see PDEGrid2D.h for the
-    // rationale behind the double-buffered field/deltas/Update() design
-    // and what's deferred from this port.
+    // 3D reaction-diffusion-advection grid (see PDEGrid2D.h).
     class PDEGrid3D : public GridGeometry3D
     {
     public:
@@ -62,14 +60,18 @@ namespace Hal
             return m_deltas;
         }
 
-        // Restores field/deltas/updateCt directly (e.g. after loading a
-        // saved simulation) — field and
-        // deltas must each already be Length()-sized, matching this
-        // grid's own dimensions.
+        // Restores field, pending deltas, and update count (e.g. after
+        // loading). Throws std::invalid_argument unless both arrays hold
+        // Length() values.
         void SetState(const std::vector<double> &field,
                       const std::vector<double> &deltas,
                       int32_t                    updateCt)
         {
+            if ((static_cast<int32_t>(field.size()) != Length()) ||
+                (static_cast<int32_t>(deltas.size()) != Length()))
+            {
+                throw std::invalid_argument("PDEGrid::SetState arrays must match the grid length");
+            }
             m_field = field;
             m_deltas = deltas;
             m_updateCt = updateCt;
@@ -456,9 +458,6 @@ namespace Hal
             return outOfBoundsValue;
         }
 
-        // NOTE: Java's PDEGrid3D.GradientZ displaced z via DisplacedY3D,
-        // which bounds-checks the Y dimension instead of Z (a bug, see
-        // docs/JAVA_BUGS_FOUND.md) — this checks the Z axis correctly.
         double DisplacedFieldZ(int32_t x,
                                int32_t y,
                                int32_t z,

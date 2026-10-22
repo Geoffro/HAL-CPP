@@ -1,28 +1,22 @@
 #version 450
 
-// One ADI directional sweep (half of Hal::Internal::Diffusion2DADI's
-// step), solved per line with PCR — parallel cyclic reduction — in
-// shared memory: the GPU tridiagonal solve that was Phase 4's original
-// stretch goal (docs/PHASED_PORT.md Phase 9).
+// One ADI directional sweep (half of a Hal::Internal::Diffusion2DADI step),
+// each line solved with parallel cyclic reduction (PCR) in shared memory.
 //
-// One workgroup per line. axis == 0: for each row y, solve along x
-// (the RHS is the explicit half-step in y, matching
-// ExplicitDiffusionY2ADI); axis == 1: for each column x, solve along y
-// (RHS from ExplicitDiffusionX2ADI). Coefficients match ADISolveRow's
-// no-BC path exactly: interior diagonal 1 + r, off-diagonals -r/2,
-// non-wrap end diagonals 1 + r/2; a wrapped solve axis goes through the
-// same Sherman-Morrison rank-1 decomposition TdmaSolver::TDMAperiodic
-// uses (gamma = -b0), with both right-hand sides (the data and the
-// correction vector u = [gamma, 0, ..., alpha]) sharing one PCR
-// reduction — the a/b/c eliminations are RHS-independent.
+// One workgroup per line. axis == 0: for each row y, solve along x with
+// the explicit half-step in y as the RHS (ExplicitDiffusionY2ADI);
+// axis == 1: for each column x, solve along y (ExplicitDiffusionX2ADI).
+// Coefficients match ADISolveRow's zero-flux path: interior diagonal 1 + r,
+// off-diagonals -r/2, non-wrapped end diagonals 1 + r/2. A wrapped solve
+// axis uses TdmaSolver::TDMAperiodic's Sherman-Morrison decomposition
+// (gamma = -b0), with both right-hand sides (the data and the correction
+// vector u = [gamma, 0, ..., alpha]) sharing one PCR reduction.
 //
-// PCR: log2(n) rounds; each round eliminates every equation's coupling
-// at the current stride using its two strided neighbors, so after the
-// last round every equation is diagonal (x_i = d_i / b_i). Out-of-range
-// neighbors read as identity rows (a = c = 0, b = 1, d = 0), which
-// handles arbitrary (non-power-of-two) lengths. The whole line lives in
-// shared memory, so the line length is capped at MAX_LINE (checked
-// host-side against the device's workgroup limits at kernel creation).
+// PCR: log2(n) rounds, each eliminating every equation's coupling at the
+// current stride using its two strided neighbors, until every equation is
+// diagonal (x_i = d_i / b_i). Out-of-range neighbors read as identity rows
+// (a = c = 0, b = 1, d = 0), so any length works. The whole line lives in
+// shared memory, capping its length at MAX_LINE.
 
 layout(local_size_x = 1024) in;
 

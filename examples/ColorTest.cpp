@@ -1,5 +1,5 @@
-// Headless port of LEARN_HERE/Other/ColorTest.java: walk a packed ARGB
-// color through the channel getters/setters and print it at each step.
+// Headless: walks a packed ARGB color through the channel getters and
+// setters, printing it at each step.
 
 #include "Hal/Color.h"
 

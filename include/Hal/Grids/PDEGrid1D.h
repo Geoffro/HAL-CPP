@@ -14,9 +14,7 @@
 
 namespace Hal
 {
-    // 1D reaction-diffusion-advection grid — see PDEGrid2D.h for the
-    // rationale behind the double-buffered field/deltas/Update() design
-    // and what's deferred from this port.
+    // 1D reaction-diffusion-advection grid (see PDEGrid2D.h).
     class PDEGrid1D : public GridGeometry1D
     {
     public:
@@ -54,14 +52,18 @@ namespace Hal
             return m_deltas;
         }
 
-        // Restores field/deltas/updateCt directly (e.g. after loading a
-        // saved simulation) — field and
-        // deltas must each already be Length()-sized, matching this
-        // grid's own dimensions.
+        // Restores field, pending deltas, and update count (e.g. after
+        // loading). Throws std::invalid_argument unless both arrays hold
+        // Length() values.
         void SetState(const std::vector<double> &field,
                       const std::vector<double> &deltas,
                       int32_t                    updateCt)
         {
+            if ((static_cast<int32_t>(field.size()) != Length()) ||
+                (static_cast<int32_t>(deltas.size()) != Length()))
+            {
+                throw std::invalid_argument("PDEGrid::SetState arrays must match the grid length");
+            }
             m_field = field;
             m_deltas = deltas;
             m_updateCt = updateCt;

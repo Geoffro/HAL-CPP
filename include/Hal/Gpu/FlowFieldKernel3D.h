@@ -12,18 +12,9 @@ namespace Hal
 {
     namespace Gpu
     {
-        // GPU advection of a fixed pool of particles through a 3D
-        // Arnold-Beltrami-Childress (ABC) flow (see shaders/FlowField3D.comp)
-        // — a divergence-free, chaotically mixing velocity field. The solver
-        // behind the GpuFlowField3D showcase, which renders the tracers as a
-        // luminous 3D web of depth-tested spheres.
-        //
-        // A single device-local position buffer (vec4 per particle: xyz =
-        // position, w = speed) is advanced in place, one dispatch per
-        // sub-step, several sub-steps chained GPU-resident in one submission.
-        // The particles round-trip per frame only because the host renders
-        // them; the advection itself never leaves the device between the
-        // upload and readback of a batch.
+        // GPU advection of particles through a 3D Arnold-Beltrami-Childress
+        // (ABC) flow, a divergence-free chaotic velocity field
+        // (shaders/FlowField3D.comp).
         class FlowFieldKernel3D
         {
         public:
@@ -48,6 +39,8 @@ namespace Hal
             int32_t ParticleCount() const { return m_particleCount; }
 
         private:
+            void Destroy();
+
             void CreateBuffers();
             void CreateDescriptorObjects();
             void CreatePipeline();

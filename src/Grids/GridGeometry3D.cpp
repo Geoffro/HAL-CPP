@@ -88,8 +88,6 @@ namespace Hal
         {
             x = Wrap(x, m_xDim);
         }
-        // NOTE: HAL's Java WrapI wrapped y using Xdim() instead of Ydim()
-        // (a bug, see docs/JAVA_BUGS_FOUND.md #4); fixed here.
         if (m_wrapY)
         {
             y = Wrap(y, m_yDim);
@@ -183,8 +181,6 @@ namespace Hal
     double GridGeometry3D::DispX(double x1,
                                  double x2) const
     {
-        // NOTE: same sign-flip port bug as GridGeometry2D::DispX, fixed the
-        // same way — see the comment there.
         if (m_wrapX)
         {
             return DispWrap(x1, x2, m_xDim);
@@ -205,8 +201,6 @@ namespace Hal
     double GridGeometry3D::DispZ(double z1,
                                  double z2) const
     {
-        // NOTE: HAL's Java DispZ checked IsWrapY() instead of IsWrapZ()
-        // (a bug, see docs/JAVA_BUGS_FOUND.md #5); fixed here.
         if (m_wrapZ)
         {
             return DispWrap(z1, z2, m_zDim);
@@ -361,9 +355,6 @@ namespace Hal
         }
         if (!InDim(z, m_zDim))
         {
-            // NOTE: HAL's Java GetHoodI assigned the wrapped z value into y
-            // instead of z here (a bug, see docs/JAVA_BUGS_FOUND.md #6),
-            // corrupting y and leaving z unwrapped; fixed here.
             if (m_wrapZ)
             {
                 z = Wrap(z, m_zDim);

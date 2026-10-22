@@ -1,5 +1,7 @@
 #include "Hal/Gpu/GpuAdiDiffusionBackend2D.h"
 
+#include "Hal/Pde/IDiffusionBackend2D.h"
+
 #include <stdexcept>
 
 namespace Hal
@@ -31,6 +33,7 @@ namespace Hal
             {
                 throw std::invalid_argument("GpuAdiDiffusionBackend2D::DiffuseADI called with dimensions differing from construction");
             }
+            Hal::Internal::CheckFieldSizes(field, deltas, xDim, yDim, "GpuAdiDiffusionBackend2D::DiffuseADI");
 
             std::vector<float> floatField(field.size());
             for (size_t k = 0; k < field.size(); k++)

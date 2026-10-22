@@ -9,13 +9,13 @@ namespace Hal
     {
     }
 
-    void MultinomialCalc::Setup(int32_t pop)
+    void MultinomialCalc::Setup(int64_t pop)
     {
         m_popRemaining = pop;
         m_probRemaining = 1.0;
     }
 
-    int32_t MultinomialCalc::Sample(double prob)
+    int64_t MultinomialCalc::Sample(double prob)
     {
         if ((m_popRemaining == 0) || (prob == 0.0))
         {
@@ -23,14 +23,24 @@ namespace Hal
         }
         if ((m_probRemaining - prob) <= 0.0)
         {
-            int32_t ret = m_popRemaining;
+            int64_t ret = m_popRemaining;
             m_popRemaining = 0;
             m_probRemaining -= prob;
             return ret;
         }
-        int32_t popSelected = m_rng.Binomial(m_popRemaining, prob / m_probRemaining);
+        int64_t popSelected = m_rng.Binomial(m_popRemaining, prob / m_probRemaining);
         m_probRemaining -= prob;
         m_popRemaining -= popSelected;
         return popSelected;
+    }
+
+    int64_t MultinomialCalc::GetPopRemaining() const
+    {
+        return m_popRemaining;
+    }
+
+    double MultinomialCalc::GetProbRemaining() const
+    {
+        return m_probRemaining;
     }
 }

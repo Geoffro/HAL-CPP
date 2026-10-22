@@ -6,18 +6,10 @@
 #include <cstdint>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// Flood-fill mask helpers ported from Interfaces/Grid3D.java. The geometry
-// makes the expected result countable by hand: a solid 3x3x3 masked cube
-// sits in the interior of a 5x5x5 grid, so under von-Neumann connectivity
-// its 27 cells are all mutually reachable, and its outward-facing shell is
-// exactly the 26 surface cells (every cube cell except the fully-enclosed
-// center).
-//
-// Note the faithful Java quirk (JAVA_BUGS_FOUND.md #17): BucketFillMask
-// never marks the seed cell itself in `out`, so filling from the cube's
-// center yields the other 26 cube cells, not all 27.
-// ---------------------------------------------------------------------
+// A solid 3x3x3 masked cube inside a 5x5x5 grid: under von Neumann
+// connectivity its 27 cells are mutually reachable, and its outward shell
+// is the 26 surface cells. BucketFillMask doesn't mark the seed, so
+// filling from the center yields 26 cells.
 
 // True for the 3x3x3 cube spanning [1,3] on each axis.
 static bool InCube(int32_t x,

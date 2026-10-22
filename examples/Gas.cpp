@@ -1,7 +1,6 @@
-// Ported from Examples/GasPopulationGrid/Gas: many off-lattice particles
-// undergoing Brownian motion, visualized as a per-cell density heat map
-// (PopAt counts how many particles share a square). Starting as a point
-// mass at the center, the gas diffuses to fill the domain.
+// Many off-lattice particles in Brownian motion, drawn as a per-square
+// density heat map (PopAt counts the particles sharing a square). Starting
+// as a point mass at the center, the gas diffuses to fill the domain.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final density to gas.png.

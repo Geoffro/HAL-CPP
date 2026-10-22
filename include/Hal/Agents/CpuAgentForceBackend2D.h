@@ -7,15 +7,10 @@
 
 namespace Hal
 {
-    // CPU implementation of IAgentForceBackend2D. Deliberately mirrors
-    // the GPU kernel's four passes rather than reusing the
-    // SphericalAgent2D machinery (which needs a whole agent grid/pool):
-    // count agents per cell, prefix-sum the counts into offsets, scatter
-    // agent indices into their cells' slot ranges, then per agent scan
-    // the bounding box of cells around it and sum the linear spring
-    // force — so the two backends walk the same buckets in the same
-    // structure and can be compared to float precision. Scratch buffers
-    // are class members reused across calls.
+    // CPU IAgentForceBackend2D. Uses the same four passes as the GPU kernel
+    // (count agents per cell, prefix-sum into offsets, scatter indices,
+    // per-agent scan and force sum) so the two backends agree to float
+    // precision. Scratch buffers are reused across calls.
     class CpuAgentForceBackend2D : public IAgentForceBackend2D
     {
     public:

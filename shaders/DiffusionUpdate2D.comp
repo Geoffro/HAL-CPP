@@ -1,14 +1,9 @@
 #version 450
 
-// The GPU-resident equivalent of PDEGrid2D::Update() for the diffusion
-// field: commit the accumulated deltas into the field and clear them.
-// This is what lets DiffusionKernel2D::RunSteps chain N diffusion steps
-// inside one command buffer with no host round-trips between steps —
-// the "pipelining" answer for dependent-step compute (see the kernel's
-// header comment).
-//
-// Shares Diffusion2D.comp's push-constant block (same pipeline layout;
-// only the dimensions are read here).
+// PDEGrid2D::Update() for the diffusion field: commits the accumulated
+// deltas into the field and clears them, so DiffusionKernel2D::RunSteps can
+// chain steps in one submission. Shares Diffusion2D.comp's push constants
+// (only the dimensions are read).
 
 layout(local_size_x = 256) in;
 

@@ -80,7 +80,7 @@ namespace Hal
     {
         if (m_wrapX)
         {
-            return DispWrap(x2, x1, m_xDim);
+            return DispWrap(x1, x2, m_xDim);
         }
         return x2 - x1;
     }

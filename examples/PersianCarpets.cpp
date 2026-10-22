@@ -1,9 +1,8 @@
-// Ported from Examples/PersianModel/PersianCarpets: a spatial cooperator vs
-// defector evolutionary game. Each cell's fitness is the payoff summed over
-// its Moore neighborhood; every cell then synchronously adopts the type of
-// its fittest pNeighbor. From a single central defector this produces the
-// intricate self-similar "Persian carpet" patterns. Cells are colored by
-// their (previous type -> next type) transition.
+// A spatial cooperator vs. defector evolutionary game. Each cell's fitness
+// is the payoff summed over its Moore neighborhood; every cell then
+// synchronously adopts the type of its fittest neighbor. A single central
+// defector grows the self-similar "Persian carpet" patterns. Cells are
+// colored by their (previous type -> next type) transition.
 //
 // Live window by default; pass "headless" to dump the final carpet to
 // persiancarpets.png.

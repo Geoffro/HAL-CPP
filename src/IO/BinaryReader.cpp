@@ -5,11 +5,14 @@
 namespace Hal
 {
     BinaryReader::BinaryReader(const std::string &path)
-        : m_stream(path, std::ios::binary)
+        : m_stream(path, std::ios::binary),
+          m_path(path),
+          m_loggedFailure(false)
     {
         if (!m_stream.is_open())
         {
             Logger::Instance().Log(LogSeverity::Error, "BinaryReader failed to open file for reading: " + path);
+            m_loggedFailure = true;
         }
     }
 
@@ -20,6 +23,20 @@ namespace Hal
     bool BinaryReader::IsOpen() const
     {
         return m_stream.is_open();
+    }
+
+    bool BinaryReader::IsGood() const
+    {
+        return m_stream.is_open() && !m_stream.fail();
+    }
+
+    void BinaryReader::CheckStream()
+    {
+        if (m_stream.fail() && !m_loggedFailure)
+        {
+            Logger::Instance().Log(LogSeverity::Error, "BinaryReader read failed or ran past the end of: " + m_path);
+            m_loggedFailure = true;
+        }
     }
 
     bool BinaryReader::ReadBool()

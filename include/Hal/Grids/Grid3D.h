@@ -9,11 +9,7 @@
 
 namespace Hal
 {
-    // Templated 3D value grid — see Grid2D.h for the rationale behind
-    // collapsing HAL's per-type Grid3Ddouble/Grid3Dint/etc. into one
-    // template.
-    //
-    // NOTE: Gradient methods are deferred to Phase 3 (PDEequations).
+    // 3D value grid of T (see Grid2D.h).
     template <typename T>
     class Grid3D : public GridGeometry3D
     {

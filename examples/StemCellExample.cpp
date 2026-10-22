@@ -1,12 +1,9 @@
-// Ported from Examples/_2StemCellExample: a stem-cell-driven tissue where
-// stem cells divide indefinitely (probabilistically producing another stem
-// cell) while non-stem cells have a finite division budget (divs, a
-// telomere-shortening analogue) before they can no longer divide and die.
-// Cells divide into empty Moore neighbors and die randomly.
-//
-// The Java version wraps this in an interactive parameter menu; this port
-// uses that menu's default parameters directly. Stem cells draw red,
-// non-stem cells shade blue by remaining division budget.
+// A stem-cell-driven tissue: stem cells divide indefinitely (sometimes
+// producing another stem cell), while non-stem cells have a finite
+// division budget (a telomere-shortening analogue) before they stop
+// dividing and die. Cells divide into empty Moore neighbors and die
+// randomly. Stem cells draw red; non-stem cells shade blue by remaining
+// budget.
 //
 // Live window by default; pass "headless" to dump the final tissue to
 // stemcellexample.png.

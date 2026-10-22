@@ -54,30 +54,39 @@ namespace Hal
               m_renderFinishedSemaphore(VK_NULL_HANDLE),
               m_inFlightFence(VK_NULL_HANDLE)
         {
-            // volkInitialize() and glfwInitVulkanLoader() already happened
-            // in Window's constructor (they must run before glfwInit(),
-            // which Window owns — see Window.cpp) — volk's function
-            // pointers are already populated by the time a Window exists
-            // for this WindowRenderContext to be built against.
-            CreateInstance();
-            volkLoadInstance(m_instance);
-            CreateSurface();
-            SelectPhysicalDevice();
-            CreateLogicalDevice();
-            volkLoadDevice(m_device);
-            vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
-            vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
-            CreateSwapchain();
-            CreateRenderPass();
-            CreateFramebuffers();
-            CreateCommandObjects();
-            CreateTextureResources();
-            CreateGraphicsPipeline();
-            CreateSyncObjects();
-            Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::WindowRenderContext initialized");
+            try
+            {
+                // Window's constructor already ran volkInitialize().
+                CreateInstance();
+                volkLoadInstance(m_instance);
+                CreateSurface();
+                SelectPhysicalDevice();
+                CreateLogicalDevice();
+                volkLoadDevice(m_device);
+                vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
+                vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
+                CreateSwapchain();
+                CreateRenderPass();
+                CreateFramebuffers();
+                CreateCommandObjects();
+                CreateTextureResources();
+                CreateGraphicsPipeline();
+                CreateSyncObjects();
+                Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::WindowRenderContext initialized");
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         WindowRenderContext::~WindowRenderContext()
+        {
+            Destroy();
+        }
+
+        void WindowRenderContext::Destroy()
         {
             if (m_device != VK_NULL_HANDLE)
             {
@@ -221,7 +230,7 @@ namespace Hal
 
             std::vector<const char *> enabledExtensions = Window::RequiredInstanceExtensions();
             VkInstanceCreateFlags createFlags = 0;
-            if (Internal::HasInstanceExtension(available, "VK_KHR_portability_enumeration"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_enumeration"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_enumeration");
                 createFlags |= 0x00000001; // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
@@ -325,7 +334,7 @@ namespace Hal
             vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &availableCount, available.data());
 
             std::vector<const char *> enabledExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-            if (Internal::HasDeviceExtension(available, "VK_KHR_portability_subset"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_subset"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_subset");
             }
@@ -603,10 +612,7 @@ namespace Hal
             viewInfo.subresourceRange.layerCount = 1;
             Internal::CheckResult(vkCreateImageView(m_device, &viewInfo, nullptr, &m_textureImageView), "vkCreateImageView failed");
 
-            // Nearest filtering, not linear: this is a blocky pixel-grid
-            // visualization (matching HAL's own UIGrid), not a photo — linear
-            // filtering would blur cell boundaries rather than showing them
-            // crisply.
+            // Nearest filtering so cell boundaries stay crisp.
             VkSamplerCreateInfo samplerInfo = {};
             samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
             samplerInfo.magFilter = VK_FILTER_NEAREST;
@@ -757,6 +763,7 @@ namespace Hal
         void WindowRenderContext::UpdateTexture(const std::vector<uint8_t> &pixelsRgba)
         {
             VkDeviceSize textureSize = static_cast<VkDeviceSize>(m_textureWidth) * static_cast<VkDeviceSize>(m_textureHeight) * 4;
+            Internal::CheckSize(pixelsRgba.size(), static_cast<size_t>(textureSize), "WindowRenderContext::UpdateTexture pixelsRgba");
 
             void *pMapped = nullptr;
             Internal::CheckResult(vkMapMemory(m_device, m_stagingMemory, 0, textureSize, 0, &pMapped), "vkMapMemory (texture staging) failed");

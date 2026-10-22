@@ -5,18 +5,11 @@
 
 namespace Hal
 {
-    // Strategy interface so model code can pick a CPU or GPU explicit-
-    // diffusion implementation without changing call sites (the
-    // IComputeBackend pattern). Operates on
-    // flat, caller-owned field/delta arrays (matching
-    // Hal::Internal::Diffusion2's raw-pointer signature and
-    // Diffusion2D.comp's SSBO layout) rather than a PDEGrid2D directly, so
-    // a single interface covers both a plain array and a PDEGrid2D's own
-    // backing storage.
-    //
-    // See Hal::CpuDiffusionBackend2D (include/Hal/Pde/CpuDiffusionBackend2D.h)
-    // and Hal::Gpu::GpuDiffusionBackend2D
-    // (include/Hal/Gpu/GpuDiffusionBackend2D.h) for the two implementations.
+    // Strategy interface for one explicit 2D diffusion step, implemented on
+    // the CPU (Hal::CpuDiffusionBackend2D) and the GPU
+    // (Hal::Gpu::GpuDiffusionBackend2D) so model code is backend-agnostic.
+    // Operates on flat, caller-owned field/delta arrays (index x*yDim + y),
+    // e.g. a PDEGrid2D's own storage.
     class IDiffusionBackend2D
     {
     public:
@@ -26,10 +19,10 @@ namespace Hal
         IDiffusionBackend2D(const IDiffusionBackend2D &other) = delete;
         IDiffusionBackend2D &operator=(const IDiffusionBackend2D &other) = delete;
 
-        // Adds one explicit-diffusion step's contribution into deltas
-        // (deltas[i] += ...), matching Hal::Internal::Diffusion2 and
-        // Diffusion2D.comp's accumulate-not-overwrite semantics — callers
-        // are responsible for clearing deltas first if that's not wanted.
+        // Adds one step's contribution into deltas (deltas[i] += ...); clear
+        // deltas first if accumulation isn't wanted. Throws
+        // std::invalid_argument unless field and deltas hold xDim*yDim
+        // values.
         virtual void Diffuse(const std::vector<double> &field,
                              std::vector<double>       &deltas,
                              double                     diffRate,
@@ -38,4 +31,16 @@ namespace Hal
                              bool                       wrapX,
                              bool                       wrapY) = 0;
     };
+
+    namespace Internal
+    {
+        // Throws std::invalid_argument (after logging) unless field and
+        // deltas both hold xDim*yDim values. Shared by the diffusion
+        // backends.
+        void CheckFieldSizes(const std::vector<double> &field,
+                             const std::vector<double> &deltas,
+                             int32_t                    xDim,
+                             int32_t                    yDim,
+                             const char                *pCaller);
+    }
 }

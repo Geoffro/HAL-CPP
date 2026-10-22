@@ -6,14 +6,25 @@
 #include "Hal/IO/BinaryReader.h"
 #include "Hal/IO/BinaryWriter.h"
 
+#include <cstdint>
+
 namespace Hal
 {
-    // Free-function Save/Load pairs for the value grid family. Each
-    // Save writes dims, wrap
-    // flags, then the raw field array; each Load reconstructs a
-    // matching grid and reads the field back into it. Kept outside the
-    // grid classes themselves since they're generic over T and don't need
-    // access to anything private beyond the existing GetField() accessor.
+    namespace Internal
+    {
+        // Throws std::runtime_error (after logging) if reader has failed, a
+        // loaded dimension is not positive, or the grid's length would
+        // overflow int32_t.
+        void CheckLoadedDims(const BinaryReader &reader,
+                             int32_t             xDim,
+                             int32_t             yDim,
+                             int32_t             zDim,
+                             const char         *pWhat);
+    }
+
+    // Save/Load for the value grids: dimensions, wrap flags, then the raw
+    // field. Load throws std::runtime_error on a failed read or invalid
+    // dimensions.
     template <typename T>
     void SaveGrid1D(BinaryWriter    &writer,
                     const Grid1D<T> &grid)
@@ -28,8 +39,10 @@ namespace Hal
     {
         int32_t xDim = reader.ReadInt32();
         bool wrapX = reader.ReadBool();
+        Internal::CheckLoadedDims(reader, xDim, 1, 1, "LoadGrid1D");
         Grid1D<T> grid(xDim, wrapX);
         reader.ReadArray(grid.GetField());
+        Internal::CheckLoadedDims(reader, xDim, 1, 1, "LoadGrid1D");
         return grid;
     }
 
@@ -51,8 +64,10 @@ namespace Hal
         int32_t yDim = reader.ReadInt32();
         bool wrapX = reader.ReadBool();
         bool wrapY = reader.ReadBool();
+        Internal::CheckLoadedDims(reader, xDim, yDim, 1, "LoadGrid2D");
         Grid2D<T> grid(xDim, yDim, wrapX, wrapY);
         reader.ReadArray(grid.GetField());
+        Internal::CheckLoadedDims(reader, xDim, yDim, 1, "LoadGrid2D");
         return grid;
     }
 
@@ -78,8 +93,10 @@ namespace Hal
         bool wrapX = reader.ReadBool();
         bool wrapY = reader.ReadBool();
         bool wrapZ = reader.ReadBool();
+        Internal::CheckLoadedDims(reader, xDim, yDim, zDim, "LoadGrid3D");
         Grid3D<T> grid(xDim, yDim, zDim, wrapX, wrapY, wrapZ);
         reader.ReadArray(grid.GetField());
+        Internal::CheckLoadedDims(reader, xDim, yDim, zDim, "LoadGrid3D");
         return grid;
     }
 }

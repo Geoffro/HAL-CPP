@@ -1,19 +1,10 @@
 #version 450
 
-// GPU particle advection through a 3D Arnold-Beltrami-Childress (ABC) flow —
-// the steady, divergence-free velocity field
+// Particle advection through the Arnold-Beltrami-Childress (ABC) flow
 //   v = ( A sin z + C cos y,  B sin x + A cos z,  C sin y + B cos x )
-// on the periodic domain [0, 2*pi)^3. ABC flow is a classic example of
-// Lagrangian chaos: massless tracers dropped into it weave through invariant
-// tubes and chaotic sheets, tracing a tangled luminous web. This is the
-// solver behind the GpuFlowField3D showcase, which renders the advected
-// particles as depth-tested spheres.
-//
-// Each invocation advances one particle by RK2 and wraps it back into the
-// domain; positions are stored as vec4 (xyz = position, w = current speed,
-// which the host uses to colour the particle). No cross-particle coupling,
-// so it is a pure map over the position buffer — the embarrassingly parallel
-// case the GPU eats for breakfast.
+// on the periodic domain [0, 2*pi)^3, a steady, divergence-free, chaotic
+// field. Each invocation advances one particle by RK2 and wraps it into
+// the domain; positions are vec4 (xyz = position, w = current speed).
 
 layout(local_size_x = 256) in;
 

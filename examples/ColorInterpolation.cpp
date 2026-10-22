@@ -1,7 +1,7 @@
-// Ported from LEARN_HERE/Other/ColorInterpolation: bilinearly interpolates
-// four corner colors across the grid (Interpolate2D per RGB component),
-// producing a smooth 2D color field. Always writes colorinterpolation.png;
-// also shows a window unless run with "headless".
+// Bilinearly interpolates four corner colors across the grid
+// (Interpolate2D per RGB component), producing a smooth 2D color field.
+// Always writes colorinterpolation.png; also shows a window unless run
+// with "headless".
 
 #include "Hal/Color.h"
 #include "Hal/Log/Logger.h"

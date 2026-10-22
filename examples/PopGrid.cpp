@@ -1,8 +1,6 @@
-// Ported from LEARN_HERE/Agents/PopGrid: a count-based (mean-field)
-// diffusion of a large population across a PopulationGrid2D. Each occupied
-// cell hands a multinomial share of its count to each von-Neumann neighbor,
-// so an initial point mass spreads out like a random walk. Counts move
-// through the delta buffer and are committed by Update() each tick.
+// Count-based diffusion of a large population across a PopulationGrid2D.
+// Each occupied cell hands a multinomial share of its count to each von
+// Neumann neighbor, so an initial point mass spreads like a random walk.
 //
 // Live window by default; pass "headless" to run a bounded number of steps
 // and dump the final frame to popgrid.png.
@@ -47,7 +45,7 @@ int main(int argc, char **argv)
                 mn.Setup(cells.Get(i));
                 for (int32_t j = 0; j < numMoves; j++)
                 {
-                    int32_t movePop = mn.Sample(0.1);
+                    int32_t movePop = static_cast<int32_t>(mn.Sample(0.1));
                     cells.Add(i, -movePop);
                     cells.Add(hood[j], movePop);
                 }

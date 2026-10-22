@@ -1,8 +1,8 @@
-// Headless port of LEARN_HERE/Other/NonSpatialABM.java: a non-spatial
-// agent-based model of a mutating population tracked as per-mutation-class
-// counts. Each step every class dies, divides (density-limited), and passes
-// a fraction of its divisions up to the next mutation class as binomial
-// draws. Prints the population vector periodically.
+// Headless: a non-spatial model of a mutating population tracked as
+// per-mutation-class counts. Each step every class dies, divides
+// (density-limited), and passes a fraction of its divisions to the next
+// mutation class, all as binomial draws. Prints the population vector
+// periodically.
 
 #include "Hal/Rand.h"
 
@@ -70,8 +70,7 @@ int main()
     startPops[0] = 100;
     NonSpatialAbm model(startPops);
 
-    // Java prints every one of 100000 steps; here we print every 1000 to
-    // keep the output readable while running the same number of steps.
+    // Print every 1000th step to keep the output readable.
     for (int32_t i = 0; i < 100000; i++)
     {
         model.Step(rng);

@@ -108,32 +108,43 @@ namespace Hal
               m_captureWidth(0),
               m_captureHeight(0)
         {
-            // volkInitialize() and glfwInitVulkanLoader() already ran in
-            // Window's constructor (they must precede glfwInit(), which
-            // Window owns — see Window.cpp).
-            CreateInstance();
-            volkLoadInstance(m_instance);
-            CreateSurface();
-            SelectPhysicalDevice();
-            CreateLogicalDevice();
-            volkLoadDevice(m_device);
-            vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
-            vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
-            CreateSwapchain();
-            CreateDepthResources();
-            CreateRenderPass();
-            CreateFramebuffers();
-            CreateSphereMesh();
-            EnsureSphereCapacity(g_initialSphereCapacity);
-            EnsureLineCapacity(g_initialLineVertexCapacity);
-            EnsureGlowCapacity(g_initialSphereCapacity);
-            CreatePipelines();
-            CreateCommandObjects();
-            CreateSyncObjects();
-            Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::Scene3DRenderContext initialized");
+            try
+            {
+                // Window's constructor already ran volkInitialize().
+                CreateInstance();
+                volkLoadInstance(m_instance);
+                CreateSurface();
+                SelectPhysicalDevice();
+                CreateLogicalDevice();
+                volkLoadDevice(m_device);
+                vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
+                vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
+                CreateSwapchain();
+                CreateDepthResources();
+                CreateRenderPass();
+                CreateFramebuffers();
+                CreateSphereMesh();
+                EnsureSphereCapacity(g_initialSphereCapacity);
+                EnsureLineCapacity(g_initialLineVertexCapacity);
+                EnsureGlowCapacity(g_initialSphereCapacity);
+                CreatePipelines();
+                CreateCommandObjects();
+                CreateSyncObjects();
+                Logger::Instance().Log(LogSeverity::Info, "Hal::Gpu::Scene3DRenderContext initialized");
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         Scene3DRenderContext::~Scene3DRenderContext()
+        {
+            Destroy();
+        }
+
+        void Scene3DRenderContext::Destroy()
         {
             if (m_device != VK_NULL_HANDLE)
             {
@@ -421,7 +432,7 @@ namespace Hal
 
             std::vector<const char *> enabledExtensions = Window::RequiredInstanceExtensions();
             VkInstanceCreateFlags createFlags = 0;
-            if (Internal::HasInstanceExtension(available, "VK_KHR_portability_enumeration"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_enumeration"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_enumeration");
                 createFlags |= 0x00000001; // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
@@ -525,7 +536,7 @@ namespace Hal
             vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &availableCount, available.data());
 
             std::vector<const char *> enabledExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-            if (Internal::HasDeviceExtension(available, "VK_KHR_portability_subset"))
+            if (Internal::HasExtension(available, "VK_KHR_portability_subset"))
             {
                 enabledExtensions.push_back("VK_KHR_portability_subset");
             }

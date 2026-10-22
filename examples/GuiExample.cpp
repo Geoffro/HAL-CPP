@@ -1,13 +1,9 @@
-// Ported from LEARN_HERE/Other/GuiExample: a parameter-menu demo showing
-// each input widget kind (bool, double, int, string, combo-box, and a file
-// path) plus a Print button that logs the current values. Java uses the
-// UI*Input widgets; this uses the Dear ImGui-backed Hal::Gui::GuiContext
-// (the file chooser is an editable text path — there is no native file
-// dialog).
+// A parameter-menu demo of each input widget (bool, double, int, string,
+// combo box, and a file path as editable text) plus a Print button that
+// logs the current values, built on Hal::Gui::GuiContext.
 //
-// Interactive only (like GuiDemo): it opens a live window and needs a
-// display, so there is no headless mode. Build it and run it to try the
-// controls; click Print to log the values.
+// Interactive only (like GuiDemo): it needs a display, so there is no
+// headless mode.
 
 #include "Hal/Color.h"
 #include "Hal/Gpu/Window.h"

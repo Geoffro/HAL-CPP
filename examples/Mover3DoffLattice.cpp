@@ -1,6 +1,5 @@
-// Ported from LEARN_HERE/Agents/mover3DoffLattice: a single off-lattice
-// (point) agent random-walking in continuous 3D space, drawn as a red sphere
-// in a blue wireframe box via the software Scene3D renderer.
+// A single off-lattice agent random-walking in continuous 3D space, drawn
+// as a red sphere in a blue wireframe box with the software Scene3D.
 //
 // Live window by default (drag to orbit, up/down to zoom); pass "headless"
 // to run a bounded number of steps and dump the final frame to

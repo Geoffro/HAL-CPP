@@ -1,11 +1,7 @@
 #version 450
 
-// Generates a single triangle covering the whole viewport from
-// gl_VertexIndex alone (0, 1, 2) — the standard "fullscreen triangle"
-// trick, avoiding a vertex/index buffer entirely for what's just a
-// textured rectangle. outUV runs 0..2 on each axis; the swapchain's
-// scissor/rasterizer clips everything outside the visible 0..1 portion,
-// which is exactly the on-screen rectangle.
+// One triangle covering the viewport, from gl_VertexIndex alone (no vertex
+// buffer). outUV runs 0..2; clipping leaves the visible 0..1 rectangle.
 
 layout(location = 0) out vec2 outUV;
 

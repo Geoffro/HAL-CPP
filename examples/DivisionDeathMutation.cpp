@@ -1,7 +1,7 @@
-// Ported from Examples/_1DivisionDeathMutation: a growing tumor whose cells
-// divide into empty von-Neumann neighbors, die, and occasionally mutate.
-// Each mutation both recolors the cell (CategoricalColor) and confers a
-// multiplicative division advantage, so fitter clones sweep outward.
+// A growing tumor whose cells divide into empty von Neumann neighbors,
+// die, and occasionally mutate. Each mutation recolors the cell
+// (CategoricalColor) and multiplies its division rate, so fitter clones
+// sweep outward.
 //
 // Live window by default; pass "headless" to dump the final state to
 // divisiondeathmutation.png.

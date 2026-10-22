@@ -2,12 +2,7 @@
 
 #include "Hal/Log/Logger.h"
 
-// jo_mpeg's own single-header convention: defining
-// JO_MPEG_HEADER_FILE_ONLY before including it gives just the
-// jo_write_mpeg() declaration, not its (non-static, extern-linkage)
-// implementation — so this translation unit can call it without also
-// defining it, avoiding a duplicate-symbol clash with
-// JoMpegImpl.cpp (the one place that does compile the implementation).
+// Declarations only; JoMpegImpl.cpp compiles the implementation.
 #define JO_MPEG_HEADER_FILE_ONLY
 #include "jo_mpeg/jo_mpeg.h"
 #undef JO_MPEG_HEADER_FILE_ONLY
@@ -42,13 +37,24 @@ namespace Hal
         return m_pFile != nullptr;
     }
 
-    void VideoWriter::AddFrame(const std::vector<uint8_t> &pixelsRgba)
+    bool VideoWriter::AddFrame(const std::vector<uint8_t> &pixelsRgba)
     {
         if (m_pFile == nullptr)
         {
-            return;
+            return false;
+        }
+        size_t expectedSize = static_cast<size_t>(m_width) * static_cast<size_t>(m_height) * 4;
+        if (pixelsRgba.size() != expectedSize)
+        {
+            Logger::Instance().Log(LogSeverity::Error, "VideoWriter::AddFrame: pixel buffer doesn't match the video's RGBA8 frame size");
+            return false;
         }
         jo_write_mpeg(m_pFile, pixelsRgba.data(), m_width, m_height, m_fps);
-        std::fflush(m_pFile);
+        if (std::fflush(m_pFile) != 0)
+        {
+            Logger::Instance().Log(LogSeverity::Error, "VideoWriter::AddFrame: write failed");
+            return false;
+        }
+        return true;
     }
 }

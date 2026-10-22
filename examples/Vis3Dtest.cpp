@@ -1,6 +1,5 @@
-// Ported from LEARN_HERE/Other/vis3Dtest: a minimal 3D-window smoke test —
-// three colored spheres placed along the axes inside a wireframe box. Uses
-// the software Scene3D renderer.
+// A minimal 3D-window smoke test: three colored spheres along the axes
+// inside a wireframe box, using the software Scene3D renderer.
 //
 // Live window by default (drag to orbit, up/down to zoom); pass "headless"
 // to render one frame to vis3dtest.png.

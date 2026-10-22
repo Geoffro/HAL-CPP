@@ -1,7 +1,6 @@
-// Ported from LEARN_HERE/Other/LockExample: several threads writing to one
-// file concurrently, serialized by a lock so their multi-line messages
-// don't interleave. Java uses Util.MultiThread + a ReentrantLock; the C++
-// port uses Hal::MultiThread + std::mutex.
+// Several threads (Hal::MultiThread) writing to one file concurrently,
+// serialized by a std::mutex so their multi-line messages don't
+// interleave.
 //
 // Headless: writes LockExample.txt and prints a summary.
 

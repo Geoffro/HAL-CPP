@@ -9,16 +9,9 @@
 #include <stdexcept>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// The explicit diffusion stencil has an exact closed-form effect on a
-// periodic sinusoidal mode: for field[x] = sin(2*pi*k*x/N), one step of
-// Diffusion(diffRate) scales the mode by exactly
-// lambda = 1 - 4*diffRate*sin(pi*k/N)^2 (from
-// sin(a+b)+sin(a-b) = 2*sin(a)*cos(b)). This gives a ground-truth check
-// of the stencil's correctness — not just "the error shrinks with
-// refinement" — and is the discrete analogue of the analytic
-// eigenfunction decay HAL's own ConvergenceTesting harness probes.
-// ---------------------------------------------------------------------
+// For field[x] = sin(2*pi*k*x/N), one step of Diffusion(diffRate) scales
+// the mode by exactly lambda = 1 - 4*diffRate*sin(pi*k/N)^2, an exact
+// ground truth for the stencil.
 
 TEST_CASE("PDEGrid1D::Diffusion exactly matches the analytic eigenmode decay factor (periodic)")
 {
@@ -199,12 +192,7 @@ TEST_CASE("PDEGrid1D::Diffusion with a constant Dirichlet boundary leaves a matc
     }
 }
 
-// ---------------------------------------------------------------------
-// Gradient methods (central difference of the committed field), including
-// regression coverage for two Java bugs the port fixes: PDEGrid2D's
-// GradientY wrapped Y with the X-axis flag, and PDEGrid3D's GradientZ
-// bounds-checked the Y dimension instead of Z.
-// ---------------------------------------------------------------------
+// Gradients: central differences of the committed field.
 
 TEST_CASE("PDEGrid2D gradients: central difference of a linear field, interior")
 {
@@ -241,11 +229,9 @@ TEST_CASE("PDEGrid2D gradients: reflecting boundary off-grid, and Dirichlet over
     CHECK(grid.GradientX(0, 1, 10.0) == doctest::Approx(1.0 - 10.0));
 }
 
-TEST_CASE("PDEGrid2D GradientY wraps along Y, not X (regression for the Java wrap bug)")
+TEST_CASE("PDEGrid2D GradientY wraps along Y using the Y wrap flag")
 {
-    // Wrap only in Y, not X. A field varying in y so the wrap direction is
-    // observable: Java's GradientY used the X wrap flag, which here is
-    // false, so it would reflect instead of wrap.
+    // Wrap only in Y; a field varying in y makes the wrap observable.
     Hal::PDEGrid2D grid(4, 4, false, true);
     for (int32_t x = 0; x < 4; x++)
     {
@@ -280,12 +266,9 @@ TEST_CASE("PDEGrid3D gradients: central difference of a linear field, interior")
     CHECK(grid.GradientZ(1, 1, 1) == doctest::Approx(2.0));
 }
 
-TEST_CASE("PDEGrid3D GradientZ uses the Z axis at the boundary (regression for the Java dimension bug)")
+TEST_CASE("PDEGrid3D GradientZ applies the Z boundary at z=0")
 {
-    // f = 100x + 10y + z. Java's GradientZ displaced z via a Y-axis check,
-    // so at z=0 it read neighboring cells (x,y+/-1) instead of applying the
-    // z boundary — a wrong result. The correct reflecting value is field
-    // at z=0 itself.
+    // f = 100x + 10y + z; past z=0 the reflecting value is field at z=0.
     Hal::PDEGrid3D grid(4, 4, 4);
     for (int32_t x = 0; x < 4; x++)
     {
@@ -581,15 +564,10 @@ TEST_CASE("PDEGrid1D per-cell-velocity advection transports a pulse one cell dow
     CHECK(grid.Get(5) == doctest::Approx(0.0));
 }
 
-TEST_CASE("PDEGrid3D per-cell z-velocity advection matches per-pencil 1D advection (regression for the Java z-axis bugs)")
+TEST_CASE("PDEGrid3D per-cell z-velocity advection matches per-pencil 1D advection")
 {
     // Velocities purely along z, varying with z, on a non-wrapping grid:
-    // each (x, y) pencil must evolve exactly like the 1D per-cell scheme
-    // applied to that pencil. Java's per-cell Advection3 fails this: its
-    // z lookups went through the Y-axis helper (mis-indexing at both z
-    // boundaries — out of bounds at the last cell), read the z-minus
-    // velocity from the center cell, and wrapped the z edge by the x
-    // axis's flag (docs/JAVA_BUGS_FOUND.md #18).
+    // each (x, y) pencil must evolve exactly like the 1D per-cell scheme.
     const int32_t nx = 3;
     const int32_t ny = 3;
     const int32_t nz = 6;
@@ -600,8 +578,7 @@ TEST_CASE("PDEGrid3D per-cell z-velocity advection matches per-pencil 1D advecti
     for (int32_t z = 0; z < nz; z++)
     {
         zPencilField[static_cast<size_t>(z)] = 1.0 + 0.5 * z;
-        // Negative velocity at the far z end exercises the exact lookup
-        // that read past the end of the array in Java.
+        // Negative velocity at the far z end exercises the last-cell lookup.
         zPencilVels[static_cast<size_t>(z)] = (z >= nz / 2) ? -0.2 : 0.15;
     }
 
@@ -672,4 +649,43 @@ TEST_CASE("PDEGrid1D per-cell-velocity advection with Dirichlet boundaries admit
     CHECK(grid.Get(0) == doctest::Approx(vel * boundaryVal));
     CHECK(grid.Get(1) == doctest::Approx(0.0));
     CHECK(grid.Get(2) == doctest::Approx(0.0));
+}
+
+TEST_CASE("PDEGrid MaxDelta, MaxDeltaScaled, and SetNonNegative inspect pending deltas")
+{
+    Hal::PDEGrid2D grid(3, 3);
+    grid.SetAll(2.0);
+    grid.Update();
+    grid.Add(0, 0, -5.0);
+    grid.Add(1, 1, 1.0);
+    CHECK(grid.MaxDelta() == doctest::Approx(5.0));
+    CHECK(grid.MaxDeltaScaled(0.0) == doctest::Approx(2.5));
+    CHECK(grid.MaxDeltaScaled(3.0) == doctest::Approx(1.0));
+
+    grid.SetNonNegative();
+    grid.Update();
+    CHECK(grid.Get(0, 0) == doctest::Approx(0.0));
+    CHECK(grid.Get(1, 1) == doctest::Approx(3.0));
+    CHECK(grid.GetMin() == doctest::Approx(0.0));
+    CHECK(grid.GetMax() == doctest::Approx(3.0));
+
+    Hal::PDEGrid1D line(4);
+    line.SetAll(1.0);
+    line.Update();
+    line.Add(3, -2.0);
+    CHECK(line.MaxDelta() == doctest::Approx(2.0));
+    line.SetNonNegative();
+    line.Update();
+    CHECK(line.Get(3) == doctest::Approx(0.0));
+
+    Hal::PDEGrid3D volume(2, 2, 2);
+    volume.SetAll(1.0);
+    volume.Update();
+    volume.Scale(1, 1, 1, 3.0);
+    volume.Mul(0, 0, 0, -2.0);
+    CHECK(volume.MaxDelta() == doctest::Approx(2.0));
+    volume.SetNonNegative();
+    volume.Update();
+    CHECK(volume.Get(1, 1, 1) == doctest::Approx(3.0));
+    CHECK(volume.Get(0, 0, 0) == doctest::Approx(0.0));
 }

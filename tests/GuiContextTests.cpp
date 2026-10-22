@@ -5,20 +5,13 @@
 #include "imgui.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
-// These run headlessly: the GUI core builds ImGui/ImPlot frames and
-// produces draw data with no window or GPU backend attached (the context
-// builds the font atlas up front so NewFrame works). The tests verify the
-// integration is wired correctly by checking that real geometry is
-// produced and that the controls pass values through, rather than
-// simulating pixel-level clicks (which ImGui's multi-frame input state
-// machine makes brittle to drive from a test).
-//
-// NOTE: ImGui hides an auto-sized window on its first frame while it
-// measures the content, so geometry only appears from the second frame on
-// — the tests build a few frames before asserting, as a real render loop
-// would.
+// Headless: frames are built with no window or GPU backend, and the tests
+// check that geometry is produced and controls pass values through. ImGui
+// hides an auto-sized window on its first frame, so each test builds a few
+// frames before asserting.
 
 TEST_CASE("Hal::Gui::GuiContext builds a frame of controls and produces draw data")
 {
@@ -112,4 +105,35 @@ TEST_CASE("Hal::Gui::GuiContext supports repeated frames and a fresh context eac
         // By the last frame the window is measured and visible.
         CHECK(pDrawData->TotalVtxCount > 0);
     }
+}
+
+TEST_CASE("Hal::Gui::GuiContext configures its own ImGui context even when another is current")
+{
+    Hal::Gui::GuiContext first;
+    Hal::Gui::GuiContext second;
+    second.MakeCurrent();
+    CHECK(ImGui::GetIO().IniFilename == nullptr);
+    CHECK(ImGui::GetIO().LogFilename == nullptr);
+}
+
+TEST_CASE("Hal::Gui::GuiContext text and combo controls build without input")
+{
+    Hal::Gui::GuiContext gui;
+    std::string text = "hello";
+    int32_t choice = 1;
+    const char *items[3] = {"a", "b", "c"};
+    for (int32_t frame = 0; frame < 3; frame++)
+    {
+        gui.BeginFrame(640, 480, 1.0 / 60.0);
+        if (gui.BeginPanel("Inputs"))
+        {
+            CHECK_FALSE(gui.StringInput("Name", text));
+            CHECK_FALSE(gui.ComboBox("Pick", choice, items, 3));
+        }
+        gui.EndPanel();
+        gui.EndFrame();
+    }
+    CHECK(text == "hello");
+    CHECK(choice == 1);
+    CHECK(gui.DrawData()->TotalVtxCount > 0);
 }

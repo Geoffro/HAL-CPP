@@ -17,24 +17,18 @@ namespace Hal
     {
         class Mp4Recorder;
 
-        // A drop-in analogue of HAL's Gui/GridWindow (a UIGrid backed by a
-        // window): a scaleFactor-magnified pixel grid you paint one cell at a
-        // time with SetPix, then present with TickPause. It mirrors the Java
-        // API closely so the ported example models read almost identically.
+        // A scaleFactor-magnified pixel grid painted one cell at a time with
+        // SetPix and presented with TickPause.
         //
-        // With active == true it opens a real Vulkan/GLFW window and TickPause
-        // uploads the pixel buffer and draws a frame. With active == false no
-        // window is created at all (nothing to display, e.g. on a headless
-        // run) — SetPix/Clear still populate the buffer, TickPause becomes a
-        // no-op, and you capture output with ToPng / RecordFrame instead. This
-        // is the same active/headless split Java's `active` constructor flag
-        // provides, and lets a model be flipped between a live window and a
-        // PNG/MP4 dump by toggling one argument.
+        // With active == true it opens a Vulkan/GLFW window and TickPause uploads
+        // and draws a frame. With active == false no window is created: SetPix and
+        // Clear still fill the buffer, TickPause does nothing, and output is
+        // captured with ToPng / RecordFrame, so one argument switches a model
+        // between a live window and a PNG/MP4 dump.
         //
-        // Coordinates follow HAL's convention: x in [0,xDim), y in [0,yDim)
-        // with y == 0 the BOTTOM row. Colors are packed ARGB int32_t values
-        // (see Hal/Color.h). The stored image is flipped so both the on-screen
-        // texture and exported PNGs come out right-side-up.
+        // x is in [0,xDim) and y in [0,yDim) with y == 0 the bottom row; colors
+        // are packed ARGB. The stored image is flipped so the on-screen texture
+        // and exported PNGs are right-side-up.
         class GridWindow
         {
         public:
@@ -76,10 +70,8 @@ namespace Hal
             // (the buffer is already image-oriented).
             void SetPixels(const std::vector<uint8_t> &rgba);
 
-            // Draw a filled disc centered at continuous coords (x, y) with the
-            // given radius, all in grid/cell units (one cell == one texture
-            // pixel). The C++ analogue of OpenGL2DWindow.Circle for off-lattice
-            // agents drawn at their real positions.
+            // Draws a filled disc centered at continuous (x, y), in cell units (one
+            // cell == one texture pixel), e.g. for off-lattice agents.
             void Circle(double  x,
                         double  y,
                         double  radius,

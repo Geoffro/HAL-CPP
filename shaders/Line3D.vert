@@ -1,10 +1,7 @@
 #version 450
 
-// Line-geometry vertex shader for the hardware Scene3D renderer: one
-// world-space position + color per vertex, drawn as a line list (the
-// domain wireframe box and any model line segments). Shares
-// SphereLambert.vert's push-constant layout so both pipelines use one
-// pipeline layout; lines are unlit, so only mvp is read here.
+// Unlit line-list geometry for Scene3DRenderContext; shares
+// SphereLambert.vert's push constants but reads only mvp.
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec4 inColor;

@@ -8,12 +8,7 @@
 
 namespace Hal
 {
-    // Mean-field/count-based 2D population grid, ported from
-    // GridsAndAgents/PopulationGrid2D.java (and PopulationGridLong2D.java,
-    // collapsed into this one template on TCount — see PopulationGridBase.h).
-    //
-    // NOTE: Diffusion() is deferred to Phase 3 (depends on MultinomialCalc
-    // and PopulationGridPDEequations, neither ported yet).
+    // 2D count-based population grid (see PopulationGridBase.h).
     template <typename TCount>
     class PopulationGrid2D : public GridGeometry2D, public PopulationGridBase<TCount>
     {
@@ -36,6 +31,8 @@ namespace Hal
         ~PopulationGrid2D()
         {
         }
+
+        using GridGeometry2D::Length;
 
         TCount Get(int32_t x,
                    int32_t y) const
@@ -75,18 +72,16 @@ namespace Hal
 
         using PopulationGridBase<TCount>::Move;
 
-        // Mean-field diffusion: each occupied cell's population is split
-        // multinomially among the four von-Neumann directions, each moved
-        // with probability diffRate (the remainder stays put). Movement goes
-        // through the delta buffer, so call Update() afterward. Zero-flux at
-        // non-wrapping boundaries (those agents stay home — no sample drawn,
-        // matching PopulationGridPDEequations.Diffusion2 with no boundary
-        // condition). Ported from PopulationGrid2D.Diffusion.
+        // Stochastic diffusion: each occupied cell's population is split
+        // multinomially among the four von Neumann neighbors, each with
+        // probability diffRate; the rest stay. Moves go through the delta
+        // buffer, so call Update() afterward. Individuals that would cross a
+        // non-wrapping edge stay put.
         void Diffusion(double           diffRate,
                        MultinomialCalc &mn)
         {
             this->ApplyOccupied([&](int32_t i, TCount ct) {
-                mn.Setup(static_cast<int32_t>(ct));
+                mn.Setup(static_cast<int64_t>(ct));
                 int32_t x = ItoX(i);
                 int32_t y = ItoY(i);
                 DiffuseX(x + 1, y, i, diffRate, mn);
@@ -116,7 +111,6 @@ namespace Hal
                 this->Add(centerI, -c);
                 this->Add(xw * Ydim() + y, c);
             }
-            // else zero-flux: the agents stay in the center cell.
         }
 
         void DiffuseY(int32_t          x,
@@ -138,7 +132,6 @@ namespace Hal
                 this->Add(centerI, -c);
                 this->Add(x * Ydim() + yw, c);
             }
-            // else zero-flux: the agents stay in the center cell.
         }
     };
 }

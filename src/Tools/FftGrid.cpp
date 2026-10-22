@@ -160,9 +160,7 @@ namespace Hal
 
     void FftGrid::Ifft2()
     {
-        // Inverse: each pass divides by that pass's length, giving a total
-        // 1/(xDim*yDim) factor — matching Java's radice = 1/sqrt(n*n) = 1/n
-        // per pass.
+        // Inverse: each pass divides by its own length, 1/(xDim*yDim) total.
         TransformRows(false, 1.0 / static_cast<double>(m_yDim));
         TransformColumns(false, 1.0 / static_cast<double>(m_xDim));
     }

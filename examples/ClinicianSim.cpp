@@ -1,13 +1,11 @@
-// Ported from Examples/ClinicianSim/ExampleModelInteractive: a drug-treated
-// tumor of sensitive (blue) and resistant (green) cells that the user treats
-// interactively. A drug PDE diffuses in from the boundary while treatment is
-// on; sensitive cells die in proportion to local drug, resistant ones do not.
-// The population of each type is charted over time.
+// A drug-treated tumor of sensitive (blue) and resistant (green) cells
+// that the user treats interactively. A drug PDE diffuses in from the
+// boundary while treatment is on; sensitive cells die in proportion to
+// local drug, resistant ones do not. Each type's population is charted.
 //
-// Driven by the reduced InteractiveModel port (see common/InteractiveModel):
-// live, press 1 to toggle the drug on/off. Pass "headless" to run a scripted
-// schedule (drug on after a warm-up) and dump the final frame to
-// cliniciansim.png plus the final populations.
+// Live (via common/InteractiveModel), press 1 to toggle the drug. Pass
+// "headless" to run a scripted schedule (drug on after a warm-up) and dump
+// the final frame to cliniciansim.png plus the final populations.
 
 #include "Hal/Agents/AgentSQ2DUnstackable.h"
 #include "Hal/Color.h"

@@ -211,10 +211,8 @@ namespace Hal
                 {
                     int32_t i = x * yDim + y;
                     double  centerVal = pField[i];
-                    // Per-face rates, matching the Java stencil: the +x/+y
-                    // face uses the center cell's rate except at a non-wrap
-                    // boundary (where the off-grid rate, 0, applies); the
-                    // -x/-y face uses the neighbor cell's rate.
+                    // The +x/+y face uses this cell's rate (0 past a
+                    // non-wrapped edge); the -x/-y face uses the neighbor's.
                     double dp1x = ((x == (xDim - 1)) && !wrapX) ? DisplacedX2D(pDiffRatesX, x + 1, y, xDim, yDim, wrapX) : pDiffRatesX[i];
                     double dm1x = DisplacedX2D(pDiffRatesX, x - 1, y, xDim, yDim, wrapX);
                     double dp1y = ((y == (yDim - 1)) && !wrapY) ? DisplacedY2D(pDiffRatesY, x, y + 1, xDim, yDim, wrapY) : pDiffRatesY[i];
@@ -309,10 +307,8 @@ namespace Hal
                     {
                         int32_t i = x * yDim * zDim + y * zDim + z;
                         double  centerVal = pField[i];
-                        // Per-face rates, matching the Java stencil: the +x/+y/+z
-                        // face uses the center cell's rate except at a non-wrap
-                        // boundary (off-grid rate 0); the -x/-y/-z face uses the
-                        // neighbor cell's rate.
+                        // The + face uses this cell's rate (0 past a
+                        // non-wrapped edge); the - face uses the neighbor's.
                         double dp1x = ((x == (xDim - 1)) && !wrapX) ? DisplacedX3D(pDiffRatesX, x + 1, y, z, xDim, yDim, zDim, wrapX) : pDiffRatesX[i];
                         double dm1x = DisplacedX3D(pDiffRatesX, x - 1, y, z, xDim, yDim, zDim, wrapX);
                         double dp1y = ((y == (yDim - 1)) && !wrapY) ? DisplacedY3D(pDiffRatesY, x, y + 1, z, xDim, yDim, zDim, wrapY) : pDiffRatesY[i];
@@ -489,10 +485,8 @@ namespace Hal
         {
             for (int32_t x = 0; x < xDim; x++)
             {
-                // Upwind flux through each cell face: the +x face uses the
-                // center cell's velocity except at a non-wrap boundary
-                // (where the off-grid velocity, 0, applies — no flux
-                // through the wall); the -x face uses the neighbor's.
+                // The +x face uses this cell's velocity (0 past a
+                // non-wrapped edge); the -x face uses the neighbor's.
                 double xVelP = ((x == (xDim - 1)) && !wrapX) ? Displaced1D(pXVels, x + 1, xDim, wrapX) : pXVels[x];
                 double xVelM = Displaced1D(pXVels, x - 1, xDim, wrapX);
                 double centerVal = pField[x];
@@ -578,14 +572,6 @@ namespace Hal
             }
         }
 
-        // NOTE: the Java original's z-direction handling here was broken
-        // three ways (docs/JAVA_BUGS_FOUND.md #18): it looked z-neighbors
-        // up through the Y-axis helper (which bounds-checks y, so an
-        // off-grid z silently mis-indexed into the next row — or clean off
-        // the end of the array), read the z-minus face velocity from the
-        // center cell instead of z-1, and passed wrapX where wrapZ
-        // belongs. All fixed below: z goes through DisplacedZ3D with the
-        // correct coordinates and wrap flag, symmetric with x and y.
         void Advection3(const double *pField,
                         double       *pDeltas,
                         const double *pXVels,

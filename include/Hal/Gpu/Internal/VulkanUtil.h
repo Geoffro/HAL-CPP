@@ -2,6 +2,7 @@
 
 #include <volk.h>
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -16,28 +17,30 @@ namespace Hal
     {
         namespace Internal
         {
-            // Throws std::runtime_error (after logging via Hal::Logger) if
-            // result != VK_SUCCESS. Shared by every Hal::Gpu translation
-            // unit so Vulkan call sites stay a single line.
+            // Throws std::runtime_error (after logging) if
+            // result != VK_SUCCESS.
             void CheckResult(VkResult    result,
                              const char *pMessage);
 
-            // Finds a memory type index on physicalDevice satisfying both
-            // typeFilter (a bitmask, as returned by
-            // vkGetBufferMemoryRequirements/vkGetImageMemoryRequirements)
-            // and properties. Shared by every Hal::Gpu context/kernel that
-            // allocates its own buffers or images — takes plain handles
-            // rather than a Hal::Gpu::ComputeContext so it's equally usable
-            // from WindowRenderContext, which owns a separate device.
+            // Throws std::invalid_argument (after logging pMessage) unless
+            // condition holds.
+            void CheckArgument(bool        condition,
+                               const char *pMessage);
+
+            // Throws std::invalid_argument (after logging) unless
+            // actual == expected. pWhat names the call and argument.
+            void CheckSize(size_t      actual,
+                           size_t      expected,
+                           const char *pWhat);
+
+            // Finds a memory type index satisfying both typeFilter (from
+            // vkGet*MemoryRequirements) and properties.
             uint32_t FindMemoryType(VkPhysicalDevice       physicalDevice,
                                     uint32_t               typeFilter,
                                     VkMemoryPropertyFlags  properties);
 
-            // Creates a buffer and a bound, dedicated memory allocation for
-            // it. Still used by the window render contexts, which own
-            // devices without a VMA allocator; the compute kernels allocate
-            // through the VMA helpers below instead. outMemory receives the
-            // allocation, which the caller owns and must free.
+            // Creates a buffer with its own bound memory allocation (for
+            // devices without a VMA allocator). The caller owns outMemory.
             VkBuffer CreateBuffer(VkPhysicalDevice       physicalDevice,
                                   VkDevice               device,
                                   VkDeviceSize           size,
@@ -45,19 +48,16 @@ namespace Hal
                                   VkMemoryPropertyFlags  properties,
                                   VkDeviceMemory        &outMemory);
 
-            // VMA-allocated device-local buffer (VMA picks the memory
-            // type, preferring device-local; no host access). outAllocation
-            // is freed with DestroyBufferVma.
+            // VMA-allocated buffer preferring device-local memory, freed
+            // with DestroyBufferVma.
             VkBuffer CreateDeviceBufferVma(VmaAllocator        allocator,
                                            VkDeviceSize        size,
                                            VkBufferUsageFlags  usage,
                                            VmaAllocation      &outAllocation);
 
-            // VMA-allocated, persistently mapped host staging buffer:
-            // ppMapped receives the mapping, valid for the buffer's whole
-            // lifetime (no per-use vkMapMemory/vkUnmapMemory), host-
-            // coherent. Readable and writable from the host (upload and
-            // readback staging share one helper).
+            // VMA-allocated host-coherent staging buffer, readable and
+            // writable from the host and mapped for its whole lifetime
+            // (ppMapped receives the mapping).
             VkBuffer CreateStagingBufferVma(VmaAllocator        allocator,
                                             VkDeviceSize        size,
                                             VkBufferUsageFlags  usage,
@@ -68,20 +68,13 @@ namespace Hal
                                   VkBuffer      buffer,
                                   VmaAllocation allocation);
 
-            // Reads an entire binary file (a compiled .spv shader) into
-            // memory. Shared by every Hal::Gpu kernel that loads a shader
-            // module.
+            // Reads an entire binary file (a compiled .spv shader).
             std::vector<char> ReadFile(const std::string &path);
 
-            // True if pName appears in available (as returned by
-            // vkEnumerateInstance/DeviceExtensionProperties). Shared by
-            // every Hal::Gpu context that opportunistically enables an
-            // extension only if the instance/device actually advertises
-            // it (e.g. MoltenVK's portability extensions).
-            bool HasInstanceExtension(const std::vector<VkExtensionProperties> &available,
-                                      const char                               *pName);
-            bool HasDeviceExtension(const std::vector<VkExtensionProperties> &available,
-                                    const char                               *pName);
+            // True if pName appears in available (from
+            // vkEnumerateInstance/DeviceExtensionProperties).
+            bool HasExtension(const std::vector<VkExtensionProperties> &available,
+                              const char                               *pName);
         }
     }
 }

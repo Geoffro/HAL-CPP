@@ -1,13 +1,10 @@
-// Ported from Examples/Lenia/OrbiumNPlayer: a two-channel ("N-player")
-// Lenia, where each channel's growth depends on the convolved potentials of
-// both channels through a payoff matrix (a game-theoretic coupling). Panels
-// show each channel's state field (greyscale) and all four pairwise
-// convolved fields K_ij * A_j (jet).
+// Two-channel ("N-player") Lenia: each channel's growth depends on the
+// convolved potentials of both channels through a payoff matrix. Panels
+// show each channel's state (greyscale) and all four pairwise convolved
+// fields K_ij * A_j (jet).
 //
-// Java also renders kernel and growth-field panels; LeniaNPlayer has no
-// WriteGrowthField accessor in this port, so those are omitted. Live window
-// by default; pass "headless" to run fewer steps and dump the final panels
-// to orbiumnplayer.png.
+// Live window by default; pass "headless" to run fewer steps and dump the
+// final panels to orbiumnplayer.png.
 
 #include "Hal/Color.h"
 #include "Hal/Grids/Grid2D.h"

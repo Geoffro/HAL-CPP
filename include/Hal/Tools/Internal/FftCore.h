@@ -11,14 +11,10 @@ namespace Hal
         // 1D FFT and the 2D FftGrid for up-front size validation.
         int32_t Log2PowerOfTwo(int32_t n);
 
-        // In-place radix-2 FFT on split real/imag arrays, applying the given
-        // per-element normalization factor at the end. The transform core
-        // shared by Hal::Fft (which passes 1/sqrt(n) for its unitary
-        // convention) and Hal::FftGrid (which passes the asymmetric
-        // forward-raw / inverse-1/n factors the Java FFTGrid uses). Throws
-        // std::invalid_argument if the array length is not a power of two.
-        // direct == true is the forward transform; see Hal::Fft's header for
-        // the (positive-exponent) sign convention both share.
+        // In-place radix-2 FFT on split real/imag arrays, scaling every
+        // element by normFactor at the end. Shared by Hal::Fft and
+        // Hal::FftGrid (see Fft.h for the sign convention). Throws
+        // std::invalid_argument if the length is not a power of two.
         void FftCore(std::vector<double> &xReal,
                      std::vector<double> &xImag,
                      bool                 direct,

@@ -2,6 +2,8 @@
 
 #include "Hal/MathUtil.h"
 
+#include <cstdint>
+
 TEST_CASE("Bound clamps values into the inclusive [min, max] range")
 {
     CHECK(Hal::Bound(5, 0, 10) == 5);
@@ -81,4 +83,36 @@ TEST_CASE("ProbScale converts a per-unit probability to a longer duration")
     CHECK(Hal::ProbScale(0.5, 2.0) == doctest::Approx(0.75));
     // A certain event stays certain.
     CHECK(Hal::ProbScale(1.0, 5.0) == doctest::Approx(1.0));
+}
+
+TEST_CASE("Bit helpers handle the sign bit")
+{
+    CHECK(Hal::GetBit(Hal::SetBit(static_cast<int32_t>(0), 31, true), 31));
+    CHECK(Hal::FlipBit(static_cast<int32_t>(0), 31) == INT32_MIN);
+    CHECK(Hal::SetBit(static_cast<int32_t>(-1), 31, false) == INT32_MAX);
+    CHECK(Hal::FlipBit(static_cast<int64_t>(0), 63) == INT64_MIN);
+    CHECK(Hal::SetBit(static_cast<int64_t>(-1), 63, false) == INT64_MAX);
+}
+
+TEST_CASE("InterpolateLinear, Interpolate2DNoBound, and InDim")
+{
+    CHECK(Hal::InterpolateLinear(15.0, 10.0, 20.0, 100.0, 200.0) == doctest::Approx(150.0));
+    CHECK(Hal::Interpolate2DNoBound(0.5, 0.5, 0.0, 2.0, 4.0, 6.0) == doctest::Approx(3.0));
+    CHECK(Hal::Interpolate2DNoBound(2.0, 0.0, 0.0, 1.0, 0.0, 1.0) == doctest::Approx(2.0));
+    CHECK(Hal::InDim(0, 5));
+    CHECK_FALSE(Hal::InDim(5, 5));
+    CHECK_FALSE(Hal::InDim(-0.1, 5.0));
+    CHECK(Hal::InDim(4.9, 5.0));
+}
+
+TEST_CASE("Normalize scales a vector to unit length and NormSquared matches Norm")
+{
+    double v[3] = {3.0, 0.0, 4.0};
+    CHECK(Hal::NormSquared(v, 3) == doctest::Approx(25.0));
+    CHECK(Hal::NormSquared(3.0, 4.0) == doctest::Approx(25.0));
+    CHECK(Hal::NormSquared(1.0, 2.0, 2.0) == doctest::Approx(9.0));
+    CHECK(Hal::NormSquared(1.0, 1.0, 1.0, 1.0) == doctest::Approx(4.0));
+    Hal::Normalize(v, 3);
+    CHECK(Hal::Norm(v, 3) == doctest::Approx(1.0));
+    CHECK(v[2] == doctest::Approx(0.8));
 }

@@ -9,28 +9,13 @@
 
 namespace Hal
 {
-    // Runs runFn(runIndex) for runIndex in [0, numRuns), with at most
-    // numThreads running concurrently — ported from Util.MultiThread. The
-    // intended use is coarse replicate/parameter-sweep parallelism: each
-    // run is independent and typically writes its result into its own slot
-    // of a shared array (index runIndex), so no synchronization between
-    // runs is needed. runFn is a template callable (not a std::function or
-    // named-interface object, per docs/DESIGN.md's callback-style rule),
-    // called concurrently from several threads, so it must be safe to
-    // invoke that way (independent per-run writes are; shared mutable
-    // state is the caller's responsibility, exactly as in the Java
-    // original).
-    //
-    // Work is pulled from a shared atomic counter rather than pre-assigned,
-    // so uneven run durations still balance across threads. numThreads-1
-    // worker threads are spawned and the calling thread runs work too, so
-    // numThreads == 1 executes serially on the caller with no threads
-    // spawned.
-    //
-    // Improvement over the Java version, whose ExecutorService silently
-    // drops exceptions thrown by a run: if any run throws, the first such
-    // exception is re-thrown from MultiThread after all runs finish (the
-    // remaining runs still execute — they are independent).
+    // Runs runFn(runIndex) for runIndex in [0, numRuns) on up to numThreads
+    // threads, for independent replicate/parameter-sweep runs. runFn is
+    // called concurrently, so shared mutable state is the caller's
+    // responsibility. Runs are pulled from a shared counter, so uneven run
+    // times still balance; the calling thread does work too, so
+    // numThreads == 1 spawns nothing. If any run throws, the remaining runs
+    // still execute and the first exception is rethrown afterward.
     template <typename ParallelFn>
     void MultiThread(int32_t    numRuns,
                      int32_t    numThreads,

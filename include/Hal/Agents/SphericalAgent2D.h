@@ -1,32 +1,18 @@
 #pragma once
 
 #include "Hal/Agents/AgentPT2D.h"
+#include "Hal/Grids/AgentGrid2D.h"
 #include "Hal/MathUtil.h"
 #include "Hal/Rand.h"
 
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <vector>
 
 namespace Hal
 {
-    // "Spherical cow" 2D physics agent — circular agents that repel or
-    // attract each other via a pluggable overlap-force law, ported from
-    // GridsAndAgents/SphericalAgent2D.java.
-    //
-    // NOTE: Java's zero-scratch-arg Divide() overload used a
-    // ThreadLocal<double[]> to lazily allocate per-thread scratch space.
-    // Since nothing here is threaded yet, and the scratch is only needed
-    // for the duration of one call, the port just uses a local stack array
-    // instead — simpler, and the ThreadLocal's whole purpose (avoiding a
-    // shared, contended buffer across threads) doesn't apply to a purely
-    // local variable.
-    //
-    // NOTE: the cross-grid SumForces overload (interacting with agents on
-    // a *different* AgentGrid2D) and the GetFreshAgentSearchArr scratch-
-    // buffer reuse pool are deferred — this covers the core force-law
-    // mechanism against agents on the agent's own grid.
+    // Circular off-lattice agent that repels or attracts other agents on
+    // its grid through a caller-supplied overlap-force law.
     template <typename TGrid>
     class SphericalAgent2D : public AgentPT2D<TGrid>
     {
@@ -80,11 +66,11 @@ namespace Hal
         // interactionRad is the max distance apart two interacting agent
         // centers can be. overlapFun(touchDist, otherAgent) -> force:
         // touchDist > 0 means the two agents overlap by that distance,
-        // < 0 means they're separated by that distance. A positive
-        // returned force repels the agent away from the overlap
-        // direction; negative pulls it toward that direction. Alters
-        // xVel/yVel for every other agent within interactionRad and
-        // returns the sum of positive (repulsive) force magnitudes.
+        // < 0 means they're separated by that distance. A positive force
+        // pushes this agent away from the other; negative pulls it closer.
+        // Adds to xVel/yVel for every other agent within interactionRad
+        // (agents at exactly the same position are skipped, having no
+        // direction) and returns the sum of positive (repulsive) forces.
         template <typename OverlapFn>
         double SumForces(double    interactionRad,
                          OverlapFn overlapFun)
@@ -99,7 +85,7 @@ namespace Hal
                     double xComp = this->Grid()->DispX(this->Xpt(), pOther->Xpt());
                     double yComp = this->Grid()->DispY(this->Ypt(), pOther->Ypt());
                     double dist = Norm(xComp, yComp);
-                    if (dist < interactionRad)
+                    if ((dist < interactionRad) && (dist > 0.0))
                     {
                         double touchDist = (m_radius + pOther->Radius()) - dist;
                         double force = overlapFun(touchDist, *pOther);
@@ -115,30 +101,24 @@ namespace Hal
             return sum;
         }
 
-        // Same force law as the interactionRad overload above, but against
-        // an already-computed neighbor list + per-neighbor displacement
-        // info ([dist, xDisp, yDisp] per entry, matching
-        // GridGeometry2D::GetAgentsRad's displacement-info output) rather
-        // than performing its own radius search.
+        // Same force law, over a neighbor list and displacement info from
+        // AgentGrid2D::GetAgentsRad queried at this agent's position.
         template <typename TNeighbor, typename OverlapFn>
-        double SumForces(const std::vector<TNeighbor *>           &neighbors,
-                         const std::vector<std::array<double, 3>> &displacementInfo,
-                         OverlapFn                                 overlapFun)
+        double SumForces(const std::vector<TNeighbor *>             &neighbors,
+                         const std::vector<AgentDisplacementInfo2D> &displacementInfo,
+                         OverlapFn                                   overlapFun)
         {
             double sum = 0;
             for (size_t i = 0; i < neighbors.size(); i++)
             {
-                TNeighbor *pOther = neighbors[i];
-                if (pOther != this)
+                TNeighbor                     *pOther = neighbors[i];
+                const AgentDisplacementInfo2D &info = displacementInfo[i];
+                if ((pOther != this) && (info.dist > 0.0))
                 {
-                    const std::array<double, 3> &info = displacementInfo[i];
-                    double dist = info[0];
-                    double xComp = info[1];
-                    double yComp = info[2];
-                    double touchDist = (m_radius + pOther->Radius()) - dist;
+                    double touchDist = (m_radius + pOther->Radius()) - info.dist;
                     double force = overlapFun(touchDist, *pOther);
-                    m_xVel += (xComp / dist) * force;
-                    m_yVel += (yComp / dist) * force;
+                    m_xVel -= (info.dispX / info.dist) * force;
+                    m_yVel -= (info.dispY / info.dist) * force;
                     if (force > 0)
                     {
                         sum += std::abs(force);
@@ -179,16 +159,8 @@ namespace Hal
         // from the parent along the axis in pScratchCoordArr (or, if pRand
         // is non-null, a random axis sampled into pScratchCoordArr first),
         // and moves the parent divRadius away in the opposite direction.
-        // Returns the daughter agent.
-        //
-        // NOTE: templated on TSelf (defaulted to TGrid, never meant to be
-        // overridden by callers) purely so the return type isn't spelled
-        // as `TGrid::AgentType*` directly in the declaration — same
-        // incomplete-type pitfall as GetAllOnSquare (see AgentPT2D.h):
-        // spelling it there would force eager lookup while TGrid is still
-        // incomplete. Making Divide itself a template defers that lookup
-        // to actual instantiation (i.e. when it's first called), by which
-        // point TGrid is complete.
+        // Returns the daughter agent. TSelf only defers naming the return
+        // type until TGrid is complete; leave it defaulted.
         template <typename TSelf = TGrid>
         typename TSelf::AgentType *Divide(double  divRadius,
                                           double *pScratchCoordArr,

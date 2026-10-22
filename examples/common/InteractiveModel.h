@@ -11,13 +11,9 @@ namespace Hal
 {
     namespace Examples
     {
-        // A reduced software port of Java's Tools/InteractiveModel — the
-        // "clinician simulator" driver. It shows an ITreatableTumor model in
-        // one window and its reported plot values over time in a second
-        // window, while the user toggles treatments on/off with the number
-        // keys (1..N for treatment 1..N). The full Java version is a
-        // mouse-driven treatment-timeline editor with scrubbing and scoring;
-        // this keeps the interactive-treatment core without that UI.
+        // The "clinician simulator" driver: shows an ITreatableTumor model in one
+        // window and its reported plot values over time in a second, while the
+        // user toggles treatments on/off with the number keys (1..N).
         //
         // Each Step advances the model under the current treatment intensities
         // and appends the plot values to the history charted by RefreshPlot.

@@ -1,8 +1,6 @@
-// Ported from LEARN_HERE/Agents/MultiwellExample: six independent BirthDeath
-// wells (one per named color) run side by side in a 3x2 grid via
-// MultiWellExperiment. The C++ MultiWellExperiment composites the wells into
-// one pixel buffer each frame (rather than driving a live Swing grid), which
-// we blit into a GridWindow.
+// Six independent BirthDeath wells (one per named color) run side by side
+// in a 3x2 layout via MultiWellExperiment, whose composite image is drawn
+// into a GridWindow each frame.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final composite to multiwellexample.png.

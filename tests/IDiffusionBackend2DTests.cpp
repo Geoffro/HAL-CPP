@@ -1,26 +1,25 @@
 #include <doctest/doctest.h>
 
+#include "GpuTestSupport.h"
+
 #include "Hal/Pde/CpuAdiDiffusionBackend2D.h"
 #include "Hal/Pde/CpuDiffusionBackend2D.h"
 #include "Hal/Pde/IAdiDiffusionBackend2D.h"
 #include "Hal/Pde/IDiffusionBackend2D.h"
+#include "Hal/Gpu/AdiKernel2D.h"
 #include "Hal/Gpu/ComputeContext.h"
 #include "Hal/Gpu/GpuAdiDiffusionBackend2D.h"
 #include "Hal/Gpu/GpuDiffusionBackend2D.h"
 
 #include <cmath>
+#include <cstdint>
+#include <memory>
 #include <stdexcept>
-#include <string>
 #include <vector>
 
-// Exercises Hal::IDiffusionBackend2D as the strategy interface it's meant
-// to be: the same call site (RunEigenmodeCheck below) runs unmodified
-// against whichever concrete backend it's handed — model code doesn't
-// need to know which backend it's using. Reuses the same
-// analytic eigenmode-decay ground truth as PDEGridTests.cpp/
-// DiffusionKernel2DTests.cpp rather than comparing backends to each
-// other, so a bug shared by both implementations wouldn't hide behind
-// their agreement.
+// One call site run against each backend through the interface, checked
+// against the analytic eigenmode decay rather than backend against
+// backend.
 static void RunEigenmodeCheck(Hal::IDiffusionBackend2D &backend)
 {
     const int32_t nx = 16;
@@ -62,23 +61,18 @@ TEST_CASE("Hal::CpuDiffusionBackend2D matches the analytic eigenmode decay facto
 
 TEST_CASE("Hal::Gpu::GpuDiffusionBackend2D matches the analytic eigenmode decay factor through the same IDiffusionBackend2D interface")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-        Hal::Gpu::GpuDiffusionBackend2D backend(context, 16, 20);
-        RunEigenmodeCheck(backend);
+        return;
     }
-    catch (const std::runtime_error &e)
-    {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
-    }
+    Hal::Gpu::ComputeContext &context = *pContext;
+    Hal::Gpu::GpuDiffusionBackend2D backend(context, 16, 20);
+    RunEigenmodeCheck(backend);
 }
 
-// The ADI strategy interface, checked the same way against the analytic
-// per-axis Crank-Nicolson amplification-factor product (the ground truth
-// PDEADITests.cpp uses) rather than against PDEGrid2D::DiffusionADI —
-// they share internals, so agreement with the grid method alone wouldn't
-// prove correctness.
+// The ADI interface, checked against the analytic per-axis Crank-Nicolson
+// factor product (as in PDEADITests.cpp).
 static void RunAdiEigenmodeCheck(Hal::IAdiDiffusionBackend2D &backend,
                                  double                       epsilon)
 {
@@ -131,17 +125,53 @@ TEST_CASE("Hal::CpuAdiDiffusionBackend2D matches the analytic ADI eigenmode deca
 // The GPU ADI backend (PCR tridiagonal solve per line — see
 // shaders/AdiSweep2D.comp) through the exact same call site, against the
 // same analytic ground truth, at float precision.
-TEST_CASE("Hal::Gpu::GpuAdiDiffusionBackend2D matches the analytic ADI eigenmode decay through the same call site, or reports why it can't")
+TEST_CASE("Hal::Gpu::GpuAdiDiffusionBackend2D matches the analytic ADI eigenmode decay through the same call site")
 {
-    try
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
     {
-        Hal::Gpu::ComputeContext context;
-        Hal::Gpu::GpuAdiDiffusionBackend2D backend(context, 12, 18);
-        RunAdiEigenmodeCheck(backend, 1e-4);
-        RunAdiEigenmodeCheck(backend, 1e-4);
+        return;
     }
-    catch (const std::runtime_error &e)
+    Hal::Gpu::ComputeContext &context = *pContext;
+    if (!Hal::Gpu::AdiKernel2D::IsSupported(context))
     {
-        MESSAGE("No usable Vulkan compute device in this environment: ", std::string(e.what()));
+        MESSAGE("Skipped: device workgroup limits are too small for AdiKernel2D");
+        return;
     }
+    Hal::Gpu::GpuAdiDiffusionBackend2D backend(context, 12, 18);
+    RunAdiEigenmodeCheck(backend, 1e-4);
+    RunAdiEigenmodeCheck(backend, 1e-4);
+}
+
+TEST_CASE("CPU diffusion backends reject field and delta arrays that don't match the dimensions")
+{
+    Hal::CpuDiffusionBackend2D explicitBackend;
+    Hal::CpuAdiDiffusionBackend2D adiBackend;
+    std::vector<double> field(12, 0.0);
+    std::vector<double> deltas(11, 0.0);
+    CHECK_THROWS_AS(explicitBackend.Diffuse(field, deltas, 0.1, 3, 4, false, false), std::invalid_argument);
+    CHECK_THROWS_AS(adiBackend.DiffuseADI(field, deltas, 0.1, 3, 4, false, false), std::invalid_argument);
+    deltas.resize(12);
+    CHECK_THROWS_AS(explicitBackend.Diffuse(field, deltas, 0.1, 4, 4, false, false), std::invalid_argument);
+    CHECK_NOTHROW(adiBackend.DiffuseADI(field, deltas, 0.1, 3, 4, false, false));
+}
+
+TEST_CASE("GPU diffusion backends reject field and delta arrays that don't match the dimensions")
+{
+    std::unique_ptr<Hal::Gpu::ComputeContext> pContext = TestHelpers::TryCreateComputeContext();
+    if (pContext == nullptr)
+    {
+        return;
+    }
+    Hal::Gpu::GpuDiffusionBackend2D explicitBackend(*pContext, 3, 4);
+    std::vector<double> field(12, 0.0);
+    std::vector<double> deltas(11, 0.0);
+    CHECK_THROWS_AS(explicitBackend.Diffuse(field, deltas, 0.1, 3, 4, false, false), std::invalid_argument);
+    if (!Hal::Gpu::AdiKernel2D::IsSupported(*pContext))
+    {
+        MESSAGE("Skipped the ADI backend: device workgroup limits are too small for AdiKernel2D");
+        return;
+    }
+    Hal::Gpu::GpuAdiDiffusionBackend2D adiBackend(*pContext, 3, 4);
+    CHECK_THROWS_AS(adiBackend.DiffuseADI(field, deltas, 0.1, 3, 4, false, false), std::invalid_argument);
 }

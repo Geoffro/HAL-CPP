@@ -1,7 +1,6 @@
-// Ported from LEARN_HERE/Agents/Mover3D: a single agent random-walking on a
-// 3D lattice, shown in a software 3D window (Scene3D) as a green sphere
-// inside a magenta wireframe box, alongside a 2D top-down view colored by
-// height. Demonstrates AgentSQ3Dunstackable movement + the 3D renderer.
+// A single agent random-walking on a 3D lattice, shown in a software 3D
+// window (Scene3D) as a green sphere inside a magenta wireframe box,
+// alongside a 2D top-down view colored by height.
 //
 // Live windows by default; pass "headless" to run a bounded number of steps
 // and dump the final 3D frame to mover3d.png. Drag the left mouse to orbit;

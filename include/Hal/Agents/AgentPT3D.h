@@ -9,11 +9,8 @@
 
 namespace Hal
 {
-    // Off-lattice 3D agent that can share a grid square with other agents,
-    // ported from GridsAndAgents/AgentPT3D.java. See AgentPT2D.h for the
-    // 2D version this mirrors, including the linked-list bucket structure
-    // and the incomplete-type pitfalls its member/field types have to
-    // avoid (see DESIGN.md).
+    // Off-lattice 3D agent that can share a voxel with other agents (see
+    // AgentPT2D.h).
     template <typename TGrid>
     class AgentPT3D : public AgentBase<TGrid>
     {

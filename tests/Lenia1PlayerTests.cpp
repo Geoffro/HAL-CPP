@@ -163,3 +163,19 @@ TEST_CASE("Hal::Lenia1Player: GetKernelVal returns the un-normalized kernel and 
     player.Update();
     CHECK(player.Get(0) == doctest::Approx(0.6).epsilon(1e-9));
 }
+
+TEST_CASE("Hal::Lenia1Player: ResetTick zeroes the tick and SetKernelFunction recomputes the kernel")
+{
+    Hal::Lenia1Player player(3, 0.5, DiscKernel, [](double /*potential*/)
+                             { return 0.0; });
+    player.Update();
+    player.Update();
+    CHECK(player.GetTick() == 2);
+    player.ResetTick();
+    CHECK(player.GetTick() == 0);
+
+    double center = player.GetKernelVal(player.Xdim() / 2, player.Ydim() / 2);
+    player.SetKernelFunction(DeltaKernel);
+    CHECK(player.GetKernelVal(player.Xdim() / 2, player.Ydim() / 2) == doctest::Approx(DeltaKernel(0.0)));
+    CHECK(center == doctest::Approx(DiscKernel(0.0)));
+}

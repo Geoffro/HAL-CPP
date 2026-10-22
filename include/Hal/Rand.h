@@ -11,10 +11,8 @@ namespace Hal
     class BinaryReader;
     class BinaryWriter;
 
-
-    // Facade for random value generation and distribution sampling, ported
-    // from HAL's Rand.java. Owns the core generator plus the Gaussian and
-    // binomial samplers, matching the Java class's composition (rn/gn/bn).
+    // Random value generation and distribution sampling: a core generator
+    // plus Gaussian and binomial samplers.
     class Rand
     {
     public:
@@ -37,7 +35,8 @@ namespace Hal
 
         bool Bool();
 
-        // Number of heads from n weighted coin flips with probability p of heads.
+        // Number of heads from n weighted coin flips with probability p of
+        // heads. Throws std::invalid_argument if p is outside [0, 1].
         int64_t Binomial(int64_t n,
                          double  p);
 
@@ -133,16 +132,9 @@ namespace Hal
             Shuffle(pArr, length, length);
         }
 
-        // Persists/restores the RNG stream state (Rng's 4-word state plus
-        // GaussianSampler's cached companion value) so a reloaded Rand
-        // reproduces the exact same future output as the original.
-        //
-        // NOTE: deliberately doesn't persist BinomialSampler's cached
-        // (n, p) memoized constants: unlike GaussianSampler's cache, they
-        // don't feed into the RNG's own output stream (m_binomial doesn't
-        // touch m_rng's state) — they only save recomputation on the next
-        // call with the same (n, p). Skipping them costs one recompute
-        // after a load, not a divergent output sequence.
+        // Persists/restores the generator and Gaussian state, so a reloaded
+        // Rand reproduces the same future output. BinomialSampler's cache
+        // only memoizes per-(n, p) constants and isn't saved.
         void Save(BinaryWriter &writer) const;
         void Load(BinaryReader &reader);
 

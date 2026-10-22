@@ -2,19 +2,19 @@
 
 #include "Hal/Agents/InternalAgentPool.h"
 #include "Hal/Grids/GridGeometry2D.h"
+#include "Hal/Log/Logger.h"
 #include "Hal/MathUtil.h"
 #include "Hal/Rand.h"
 
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace Hal
 {
-    // Per-found-agent distance/displacement record filled by the
-    // displacement-info GetAgentsRad overloads: entry i describes
-    // retAgentList[i] (Java's double[3] of [dist, xDisp, yDisp]).
-    // Displacements are from the query point to the agent, wrap-aware.
+    // Distance and wrap-aware displacement from a query point to a found
+    // agent, filled by the displacement-info GetAgentsRad overloads.
     struct AgentDisplacementInfo2D
     {
         double dist;
@@ -22,24 +22,12 @@ namespace Hal
         double dispY;
     };
 
-    // On-lattice/off-lattice 2D agent grid, ported from
-    // GridsAndAgents/AgentGrid2D.java. Supports both the unstackable
-    // single-agent-per-square path (AgentSQ2DUnstackable) and the
-    // stackable, off-lattice, linked-list-per-cell path (AgentPT2D) — the
-    // grid itself is agnostic to which; occupancy semantics come entirely
-    // from which agent base class TAgent derives from, exactly as in Java.
-    //
-    // TDerived is the concrete grid class deriving from this one (CRTP),
-    // e.g. `class GOLGrid : public AgentGrid2D<GOLAgent, GOLGrid>`. This is
-    // needed because agent types are written against their *concrete* grid
-    // (to reach grid-specific fields/methods, exactly like Java model code
-    // does — e.g. `G.mooreHood`), not the generic base — so the agent
-    // pool must construct new agents as `TAgent(TDerived*)`, not
-    // `TAgent(AgentGrid2D<TAgent,TDerived>*)`.
-    //
-    // TAgent must derive from AgentSQ2DUnstackable<TDerived> or
-    // AgentPT2D<TDerived>, and be constructible as TAgent(TDerived*).
-    //
+    // 2D agent grid. Occupancy semantics come from TAgent's base:
+    // AgentSQ2DUnstackable (one agent per square) or AgentPT2D (off-lattice,
+    // any number per square). TDerived is the concrete grid class (CRTP,
+    // e.g. `class GOLGrid : public AgentGrid2D<GOLAgent, GOLGrid>`), so
+    // agents are constructed as TAgent(TDerived*) and can reach the
+    // concrete grid's members.
     template <typename TAgent, typename TDerived>
     class AgentGrid2D : public GridGeometry2D
     {
@@ -201,23 +189,24 @@ namespace Hal
             m_agents.ShuffleAgents(rand);
         }
 
-        // Agent-pool serialization. The reflection-free replacement for
-        // Java's Serializable agent grids (see docs/DESIGN.md): the model
-        // supplies a per-agent Save/Load callback for its own agent fields;
-        // this writes the population and each agent's square index around it.
-        // Templated on the writer/reader type so this header stays decoupled
-        // from Hal::IO. LoadAgents assumes an empty grid of matching
-        // dimensions (typically freshly constructed).
+        // Saves the tick, then each agent's square index and birth tick
+        // around the model's own per-agent fields. Off-lattice agents are
+        // reloaded at their square's center, so loadAgent must restore
+        // exact positions itself. LoadAgents expects an empty grid of the
+        // same dimensions and throws std::runtime_error on a failed read, a
+        // negative population, or an out-of-range square index.
         //   saveAgent: void(TAgent &agent, Writer &writer)
         //   loadAgent: void(TAgent &agent, Reader &reader)
         template <typename Writer, typename SaveFn>
         void SaveAgents(Writer &writer,
                         SaveFn  saveAgent)
         {
+            writer.WriteInt32(m_tick);
             writer.WriteInt32(Pop());
             for (TAgent &agent : *this)
             {
                 writer.WriteInt32(agent.Isq());
+                writer.WriteInt32(agent.BirthTick());
                 saveAgent(agent, writer);
             }
         }
@@ -226,13 +215,20 @@ namespace Hal
         void LoadAgents(Reader &reader,
                         LoadFn  loadAgent)
         {
+            int32_t tick = reader.ReadInt32();
             int32_t pop = reader.ReadInt32();
+            CheckLoadedAgents(reader.IsGood() && (pop >= 0));
+            m_tick = tick;
             for (int32_t k = 0; k < pop; k++)
             {
                 int32_t iSq = reader.ReadInt32();
+                int32_t birthTick = reader.ReadInt32();
+                CheckLoadedAgents(reader.IsGood() && InDim(iSq, Length()));
                 TAgent &agent = NewAgentSQ(iSq);
+                agent.SetBirthTick(birthTick);
                 loadAgent(agent, reader);
             }
+            CheckLoadedAgents(reader.IsGood());
         }
 
         // Like MapHood, but keeps only the empty (unoccupied) neighbor
@@ -271,9 +267,7 @@ namespace Hal
             return MapOccupiedHood(pHood, hoodLength, this->ItoX(centerI), this->ItoY(centerI));
         }
 
-        // NOTE: lowercase begin()/end() to satisfy C++'s range-for
-        // protocol (see the fuller note in InternalAgentPool.h) — exempt
-        // from the CamelCase-for-functions convention for that reason.
+        // Lowercase for range-based for.
         typename InternalAgentPool<TAgent, TDerived>::Iterator begin()
         {
             return m_agents.begin();
@@ -374,10 +368,8 @@ namespace Hal
             }
         }
 
-        // Gets all agents within rad of (x,y) exactly, via the same
-        // bucket-grid scan as GetAgentsRadApprox plus a true distance
-        // check per candidate — this is the same cell-list neighbor
-        // search the GPU compute path builds on directly.
+        // Gets all agents within rad of (x,y): the GetAgentsRadApprox scan
+        // plus a wrap-aware distance check per candidate.
         void GetAgentsRad(std::vector<TAgent *> &retAgentList,
                           double                 x,
                           double                 y,
@@ -426,10 +418,7 @@ namespace Hal
             }
         }
 
-        // EvalAgent-filtered variant of the raw bucket scan: same
-        // over-inclusive square walk, keeping only agents the predicate
-        // accepts (evalAgent(pAgent) -> bool, a template callable per
-        // DESIGN.md's callback rule).
+        // GetAgentsRadApprox keeping only agents evalAgent(pAgent) accepts.
         template <typename EvalFn>
         void GetAgentsRadApprox(std::vector<TAgent *> &retAgentList,
                                 double                 x,
@@ -469,11 +458,10 @@ namespace Hal
             }
         }
 
-        // Exact radius search that also records each found agent's
-        // distance and wrap-aware displacement from the query point:
-        // displacementInfo[i] describes retAgentList[i]. Like Java, the
-        // info vector is padded so the indices line up even when
-        // retAgentList already held entries from an earlier query.
+        // GetAgentsRad that also records each found agent's distance and
+        // displacement: displacementInfo[i] describes retAgentList[i], and
+        // is grown as needed to keep that alignment when retAgentList
+        // already held entries.
         void GetAgentsRad(std::vector<TAgent *>                &retAgentList,
                           std::vector<AgentDisplacementInfo2D> &displacementInfo,
                           double                                x,
@@ -546,6 +534,16 @@ namespace Hal
         }
 
     private:
+        static void CheckLoadedAgents(bool valid)
+        {
+            if (!valid)
+            {
+                const char *pMessage = "AgentGrid2D::LoadAgents: failed read or invalid agent data";
+                Logger::Instance().Log(LogSeverity::Error, pMessage);
+                throw std::runtime_error(pMessage);
+            }
+        }
+
         int32_t m_tick;
         std::vector<TAgent *> m_grid;
         std::vector<int32_t> m_counts;

@@ -8,12 +8,10 @@
 
 namespace Hal
 {
-    // Free-function Save/Load pairs for the PDE grid family. Unlike
-    // GridSerialization.h's
-    // value grids, PDEGrid also persists the not-yet-committed deltas
-    // buffer and the update counter, via each class's SetState() —
-    // without deltas, a save taken between Set()/Add() calls and the
-    // next Update() would silently lose those pending changes on load.
+    // Save/Load for the PDE grids: dimensions, wrap flags, update count,
+    // field, and pending deltas (so a save between Add() and Update() loses
+    // nothing). Load throws std::runtime_error on a failed read or invalid
+    // dimensions.
     void SavePDEGrid1D(BinaryWriter    &writer,
                        const PDEGrid1D &grid);
     PDEGrid1D LoadPDEGrid1D(BinaryReader &reader);

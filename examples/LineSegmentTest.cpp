@@ -1,6 +1,5 @@
-// Ported from LEARN_HERE/Other/LineSegmentTest: draws a single red 3D line
-// segment across the diagonal of the domain, using the software Scene3D
-// renderer.
+// Draws a single red 3D line segment across the diagonal of the domain
+// with the software Scene3D renderer.
 //
 // Live window by default (drag to orbit); pass "headless" to render one
 // frame to linesegmenttest.png.

@@ -1,13 +1,10 @@
-// Ported from Examples/PhylogenyTracker/PhylogenyModel: a growing tumor
-// whose cells carry a Genome tracked in a PhylogenyTracker. On mutation a
-// cell forks a new child genome (recoloring slightly), so the clonal
-// structure is recorded as a tree. Cells are drawn by their genome color,
-// producing the characteristic clonal-sweep patches.
+// A growing tumor whose cells carry a Genome tracked in a
+// PhylogenyTracker. On mutation a cell forks a child genome (recolored
+// slightly), so the clonal structure is recorded as a tree; cells are
+// drawn by genome color, giving clonal-sweep patches. Clone sizes are
+// recorded each tick and written to clones.csv (a Muller-plot input).
 //
-// Genomes are created via tracker.NewGenome(pParent, ...) (not `new`, as in
-// Java) since the C++ tracker owns them. The run records clone sizes each
-// tick and writes them to clones.csv (a Muller-plot input); a live window
-// shows the clones, or pass "headless" to also dump phylogenymodel.png.
+// Live window by default; pass "headless" to also dump phylogenymodel.png.
 
 #include "Hal/Agents/AgentSQ2DUnstackable.h"
 #include "Hal/Color.h"

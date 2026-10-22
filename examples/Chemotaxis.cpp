@@ -1,7 +1,6 @@
-// Ported from Examples/Chemotaxis/ChemotaxisModel: off-lattice "cows" graze
-// a regrowing grass PDE field and climb its gradient (chemotaxis) toward
-// denser grass, while jostling each other via spherical contact forces.
-// Grass is drawn green; cows are white discs.
+// Off-lattice "cows" graze a regrowing grass PDE field and climb its
+// gradient (chemotaxis) toward denser grass, while jostling each other via
+// spherical contact forces. Grass is drawn green; cows are white discs.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final frame to chemotaxis.png.

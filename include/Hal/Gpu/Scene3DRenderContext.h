@@ -12,10 +12,8 @@ namespace Hal
 {
     namespace Gpu
     {
-        // One queued sphere, laid out exactly as SphereLambert.vert's
-        // per-instance vertex binding expects (vec4 center+radius,
-        // vec4 color) so the queue vector can be memcpy'd straight into
-        // the instance buffer.
+        // One queued sphere, laid out as SphereLambert.vert's per-instance
+        // binding (vec4 center+radius, vec4 color) so the queue uploads as is.
         struct SphereInstance
         {
             float centerX;
@@ -28,8 +26,8 @@ namespace Hal
             float a;
         };
 
-        // One line-list vertex, laid out as Line3D.vert's vertex binding
-        // expects (vec3 position, vec4 color).
+        // One line-list vertex, laid out as Line3D.vert's binding (vec3
+        // position, vec4 color).
         struct LineVertex
         {
             float x;
@@ -41,9 +39,7 @@ namespace Hal
             float a;
         };
 
-        // One unit-sphere mesh vertex. For a unit sphere centered at the
-        // origin the normal equals the position, so position is the only
-        // attribute the mesh needs.
+        // One unit-sphere mesh vertex; the position doubles as the normal.
         struct SphereMeshVertex
         {
             float x;
@@ -51,43 +47,18 @@ namespace Hal
             float z;
         };
 
-        // Hardware Vulkan 3D renderer — the GPU successor to the software
-        // examples/common/Scene3D rasterizer, replacing the
-        // painter's-algorithm CPU pixel loop with a real depth-tested
-        // pipeline. Mirrors Scene3D's per-frame usage
-        // shape so models read the same against either renderer: an orbit
-        // camera looks at the center of the domain box
-        // [0,xDim]x[0,yDim]x[0,zDim]; each frame, HandleInput() (left-drag
-        // orbits, scroll zooms — polled through Window, no direct GLFW
-        // use), ClearBox()/Clear(), queue Sphere()/Line() primitives, then
-        // Render() draws and presents them.
+        // Depth-tested 3D renderer with the same per-frame usage as the software
+        // examples/common/Scene3D: an orbit camera looks at the center of the box
+        // [0,xDim]x[0,yDim]x[0,zDim]; each frame call HandleInput() (left-drag
+        // orbits, scroll zooms), Clear()/ClearBox(), queue Sphere()/Line()/
+        // SphereGlow() primitives, then Render(). Spheres are an instanced
+        // unit-sphere mesh with Lambert shading; lines are unlit.
         //
-        // What is hardware here, per the Phase 9 scope: a second render
-        // pipeline pair with a depth attachment + depth testing (no
-        // painter's sort — intersecting spheres resolve per pixel), a real
-        // vertex/index-buffered unit-sphere mesh drawn instanced (one
-        // instance per queued sphere), line-list geometry for wireframes,
-        // a model-view-projection push constant built with Hal::Gpu::Mat4
-        // (hand-rolled, no GLM), and Lambert-lit sphere shading
-        // (SphereLambert.vert/.frag; Line3D.vert/.frag for unlit lines).
-        //
-        // Same architectural stance as WindowRenderContext, which is a
-        // deliberately parallel class (that one is a fixed 2D
-        // textured-quad blitter — 3D needed its own pipelines, render
-        // pass, and depth resources, not an extension): owns its own
-        // instance/device/swapchain, host-visible/coherent buffers
-        // (device-local + staging remains VMA-era polish), and a single
-        // frame in flight. Window resizes are handled the same way as
-        // the 2D path: the swapchain-sized resources (swapchain, image
-        // views, depth image, framebuffers) are rebuilt when the window
-        // reports a resize or an acquire/present returns OUT_OF_DATE,
-        // frames are skipped while minimized, and the pipelines use
-        // dynamic viewport/scissor so they never need recreating.
-        //
-        // Colors are HAL's packed ARGB int32_t values (see Hal/Color.h).
-        // Instance/line buffers grow on demand (the device idles briefly
-        // when a frame first exceeds the current capacity, then the
-        // doubled buffer is reused thereafter).
+        // Owns its own Vulkan instance and device, with one frame in flight. The
+        // swapchain-sized resources are rebuilt on resize or OUT_OF_DATE, and
+        // frames are skipped while minimized. Colors are packed ARGB. Geometry
+        // buffers double in size when a frame outgrows them (idling the device
+        // once).
         class Scene3DRenderContext
         {
         public:
@@ -100,39 +71,33 @@ namespace Hal
             Scene3DRenderContext(const Scene3DRenderContext &other) = delete;
             Scene3DRenderContext &operator=(const Scene3DRenderContext &other) = delete;
 
-            // Camera controls (radians for yaw/pitch; distance in world
-            // units from the domain center). Defaults match the software
-            // Scene3D so the two renderers open on the same view.
+            // Camera orbit in radians (yaw/pitch) and distance from the domain
+            // center. Defaults match the software Scene3D.
             void SetCamera(double yaw,
                            double pitch,
                            double distance);
 
-            // Poll the window's mouse/scroll state: left-drag orbits
-            // (yaw/pitch), scroll wheel zooms (distance).
+            // Polls the window: left-drag orbits, scroll zooms.
             void HandleInput();
 
-            // Set the background color the next Render() clears to.
+            // Sets the background color the next Render() clears to.
             void Clear(int32_t bgColor);
 
-            // Clear plus the domain bounding-box wireframe (12 queued
-            // line segments).
+            // Clear plus the domain bounding-box wireframe.
             void ClearBox(int32_t bgColor,
                           int32_t lineColor);
 
-            // Queue primitives (drawn and consumed by the next Render()).
+            // Queues primitives, drawn and consumed by the next Render().
             void Sphere(double  x,
                         double  y,
                         double  z,
                         double  radius,
                         int32_t color);
 
-            // Queue a soft additive glow puff: no hard silhouette (the
-            // glow fades to nothing at the sphere's edge), drawn with
-            // depth writes off and additive blending AFTER the opaque
-            // primitives, so overlapping puffs accumulate like fog or
-            // fire glow in any order. intensity scales the added light
-            // (keep it small when many puffs overlap). This is the
-            // volumetric-media answer to Sphere()'s hard surfaces.
+            // Queues a soft additive glow that fades to nothing at the sphere's
+            // edge, drawn after opaque primitives without depth writes, so
+            // overlapping glows accumulate in any order (fog, fire). Keep intensity
+            // small when many overlap.
             void SphereGlow(double  x,
                             double  y,
                             double  z,
@@ -148,35 +113,26 @@ namespace Hal
                       double  z2,
                       int32_t color);
 
-            // Draw the queued primitives depth-tested and present.
-            // Returns true if a frame was presented; false if this frame
-            // was skipped because the swapchain had to be recreated
-            // (window resize) or the window is minimized — keep calling,
-            // the next frame draws normally. The queued primitives are
-            // consumed either way.
+            // Draws the queued primitives and presents. Returns false if the frame
+            // was skipped (swapchain recreated or window minimized); keep calling.
+            // The queue is consumed either way.
             bool Render();
 
-            // Frame capture (opt-in). When enabled, each Render() also
-            // copies the presented image into a host-visible buffer so
-            // ReadCapturedFrame can hand the pixels to a PNG/video encoder.
-            // This is what lets an otherwise present-to-screen-only renderer
-            // record a clip; it is gated because the readback forces a
-            // CPU/GPU sync (a per-frame stall) that a live interactive run
-            // should not pay — leave it disabled and Render() is unchanged.
-            // Enabling allocates the capture buffer at the current
-            // swapchain size (and it is rebuilt across resizes).
+            // Opt-in frame capture: each Render() also copies the presented image
+            // to a host-visible buffer for ReadCapturedFrame. Off by default because
+            // the readback stalls each frame.
             void SetCaptureEnabled(bool enabled);
 
-            // Read the most recently presented frame's pixels as RGBA8
-            // (row-major, top-to-bottom, size width*height*4), matching the
-            // image on screen. Waits for that frame's GPU work to finish.
-            // Returns false if capture is not enabled. Call after a Render()
-            // that returned true.
+            // Copies the most recently presented frame as RGBA8 (row 0 at the top,
+            // width*height*4 bytes), waiting for its GPU work. Returns false if
+            // capture is disabled.
             bool ReadCapturedFrame(std::vector<uint8_t> &outRgba,
                                    int32_t              &outWidth,
                                    int32_t              &outHeight);
 
         private:
+            void Destroy();
+
             void CreateInstance();
             void CreateSurface();
             void SelectPhysicalDevice();
@@ -192,11 +148,9 @@ namespace Hal
 
             VkShaderModule CreateShaderModule(const char *pShaderName);
 
-            // Rebuilds the swapchain-sized resources (swapchain, image
-            // views, depth image, framebuffers) after a resize. Returns
-            // false without recreating anything while the framebuffer is
-            // zero-sized (minimized) — Render() skips the frame and
-            // retries later.
+            // Rebuilds the swapchain, image views, depth image, and framebuffers.
+            // Returns false without rebuilding while the framebuffer is zero-sized
+            // (minimized).
             bool RecreateSwapchain();
 
             // Grow the per-frame geometry buffers when a frame queues

@@ -1,13 +1,11 @@
-// Ported from LEARN_HERE/Agents/SaveLoadModel: shows saving and restoring an
-// entire model's state (all agents + RNG stream) mid-run. Java uses native
-// object serialization (`SerializableModel` + `SaveState`/`LoadState`); this
-// port uses the reflection-free equivalent — `AgentGrid2D::SaveAgents`/
-// `LoadAgents` with a per-agent field callback, plus `Rand::Save`/`Load` for
-// the RNG stream — written to a binary file (see docs/DESIGN.md).
+// Saving and restoring a whole model's state (all agents and the RNG
+// stream) mid-run with AgentGrid2D::SaveAgents/LoadAgents, a per-agent
+// field callback, and Rand::Save/Load, written to a binary file.
 //
 // Live window: press S to save the current state, L to reload it. Pass
-// "headless" to instead run a scripted save -> keep-stepping -> reload cycle
-// and confirm the reload restores the saved population; dumps saveloadmodel.png.
+// "headless" to run a scripted save -> keep-stepping -> reload cycle that
+// confirms the reload restores the saved population; dumps
+// saveloadmodel.png.
 
 #include "Hal/Color.h"
 #include "Hal/IO/BinaryReader.h"

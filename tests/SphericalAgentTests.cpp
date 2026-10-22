@@ -4,11 +4,7 @@
 #include "Hal/Grids/AgentGrid2D.h"
 #include "Hal/MathUtil.h"
 
-// ---------------------------------------------------------------------
-// "Spherical cow" 2D physics agents, ported from SphericalAgent2D.java.
-// See AgentGridTests.cpp for why CellAgent/CellGrid need the forward-
-// declare-both / define-agent-first pattern.
-// ---------------------------------------------------------------------
+// Spherical off-lattice agents with overlap forces.
 
 class CellGrid;
 
@@ -121,4 +117,50 @@ TEST_CASE("SphericalAgent2D: Divide places the daughter divRadius away and moves
     CHECK(parent.Xpt() == doctest::Approx(8.0));
     CHECK(parent.Ypt() == doctest::Approx(10.0));
     CHECK(grid.Pop() == 2);
+}
+
+static double LinearOverlap(double     touchDist,
+                            CellAgent &other)
+{
+    (void)other;
+    return (touchDist > 0) ? (touchDist * 0.5) : 0.0;
+}
+
+TEST_CASE("SphericalAgent2D: the displacement-info SumForces overload matches the radius-search overload")
+{
+    CellGrid grid(20, 20);
+    CellAgent &a = grid.NewAgentPT(9.0, 10.0);
+    CellAgent &b = grid.NewAgentPT(11.0, 10.5);
+    CellAgent &c = grid.NewAgentPT(8.0, 11.0);
+    a.DefaultInit(2.0);
+    b.DefaultInit(2.0);
+    c.DefaultInit(1.0);
+
+    double sumRadius = a.SumForces(10.0, LinearOverlap);
+    double xVelRadius = a.XVel();
+    double yVelRadius = a.YVel();
+
+    a.SetVelocity(0.0, 0.0);
+    std::vector<CellAgent *> neighbors;
+    std::vector<Hal::AgentDisplacementInfo2D> info;
+    grid.GetAgentsRad(neighbors, info, a.Xpt(), a.Ypt(), 10.0);
+    double sumInfo = a.SumForces(neighbors, info, LinearOverlap);
+
+    CHECK(sumInfo == doctest::Approx(sumRadius));
+    CHECK(a.XVel() == doctest::Approx(xVelRadius));
+    CHECK(a.YVel() == doctest::Approx(yVelRadius));
+    CHECK(a.XVel() < 0.0);
+}
+
+TEST_CASE("SphericalAgent2D: agents at the same position exert no force instead of producing NaN")
+{
+    CellGrid grid(10, 10);
+    CellAgent &a = grid.NewAgentPT(5.0, 5.0);
+    CellAgent &b = grid.NewAgentPT(5.0, 5.0);
+    a.DefaultInit(1.0);
+    b.DefaultInit(1.0);
+
+    a.SumForces(3.0, LinearOverlap);
+    CHECK(a.XVel() == 0.0);
+    CHECK(a.YVel() == 0.0);
 }

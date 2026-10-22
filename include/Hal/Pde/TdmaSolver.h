@@ -5,17 +5,11 @@
 
 namespace Hal
 {
-    // Tridiagonal matrix solver (Thomas algorithm), ported from
-    // Tools/TdmaSolver.java. Used by the ADI implicit diffusion solver to
-    // solve one row/column/pencil at a time. TDMAperiodic handles the
-    // cyclic (periodic/wraparound) case via the Sherman-Morrison
-    // decomposition of the corner entries into a rank-1 update of a
-    // plain tridiagonal system, solved with two ordinary TDMA calls.
-    //
-    // Row accessors (getIn/getB/getC/getA) and the output sink (setOut)
-    // are template parameters (deduced from the call site) rather than
-    // std::function, per docs/DESIGN.md's callback-style note — this is
-    // called once per row/column/pencil per diffusion step, a hot loop.
+    // Tridiagonal matrix solver (Thomas algorithm), used by ADI diffusion
+    // one line at a time. getB/getC/getA give the diagonal, super-diagonal,
+    // and sub-diagonal; getIn the right-hand side; setOut receives the
+    // solution. TDMAperiodic handles the cyclic system (corner entries) via
+    // a Sherman-Morrison rank-1 update solved with two ordinary TDMA calls.
     class TdmaSolver
     {
     public:
@@ -30,12 +24,12 @@ namespace Hal
         }
 
         template <typename GetInFn, typename SetOutFn, typename GetBFn, typename GetCFn, typename GetAFn>
-        void TDMA(int32_t   lenToSolve,
-                 GetInFn    getIn,
-                 SetOutFn   setOut,
-                 GetBFn     getB,
-                 GetCFn     getC,
-                 GetAFn     getA)
+        void TDMA(int32_t  lenToSolve,
+                  GetInFn  getIn,
+                  SetOutFn setOut,
+                  GetBFn   getB,
+                  GetCFn   getC,
+                  GetAFn   getA)
         {
             EnsureScratch(lenToSolve);
             int32_t as = 0;
@@ -72,12 +66,12 @@ namespace Hal
         }
 
         template <typename GetInFn, typename SetOutFn, typename GetBFn, typename GetCFn, typename GetAFn>
-        void TDMAperiodic(int32_t   lenToSolve,
-                          GetInFn    getIn,
-                          SetOutFn   setOut,
-                          GetBFn     getB,
-                          GetCFn     getC,
-                          GetAFn     getA)
+        void TDMAperiodic(int32_t  lenToSolve,
+                          GetInFn  getIn,
+                          SetOutFn setOut,
+                          GetBFn   getB,
+                          GetCFn   getC,
+                          GetAFn   getA)
         {
             EnsureScratch(lenToSolve);
             int32_t ys = m_scratchLen * 5;

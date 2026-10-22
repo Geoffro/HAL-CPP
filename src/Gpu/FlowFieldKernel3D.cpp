@@ -44,13 +44,26 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipeline();
-            CreateCommandObjects();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipeline();
+                CreateCommandObjects();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         FlowFieldKernel3D::~FlowFieldKernel3D()
+        {
+            Destroy();
+        }
+
+        void FlowFieldKernel3D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -223,6 +236,7 @@ namespace Hal
                                          float               c,
                                          float               dt)
         {
+            Internal::CheckSize(positions.size(), static_cast<size_t>(m_particleCount) * 4, "FlowFieldKernel3D::RunSteps positions");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_particleCount) * 4 * sizeof(float);
             std::memcpy(m_pStagingMapped, positions.data(), static_cast<size_t>(size));
 

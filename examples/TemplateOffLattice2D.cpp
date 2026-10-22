@@ -1,7 +1,6 @@
-// Ported from Examples/Template_Models/TemplateOffLattice2D: the minimal
-// off-lattice agent skeleton — a single SphericalAgent2D that recolors,
-// resizes, and jitters its velocity each step, moving under its own
-// momentum with friction. Meant as a starting point to copy from.
+// Minimal off-lattice agent skeleton: a single SphericalAgent2D that
+// recolors, resizes, and jitters its velocity each step, moving under its
+// own momentum with friction. A starting point to copy from.
 //
 // Live window by default; pass "headless" to run a bounded number of steps
 // and dump the final frame to templateofflattice2d.png.

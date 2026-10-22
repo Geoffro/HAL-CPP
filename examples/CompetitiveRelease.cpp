@@ -1,9 +1,8 @@
-// Ported from Examples/_6CompetitiveRelease: three side-by-side copies of a
-// drug-treated tumor of sensitive (blue) and resistant (green) cells,
-// differing only in dosing schedule (none / constant / periodic). A drug
-// PDE diffuses in from the boundary during dosing; sensitive cells die in
-// proportion to local drug, illustrating competitive release of the
-// resistant clone under aggressive dosing.
+// Three side-by-side copies of a drug-treated tumor of sensitive (blue)
+// and resistant (green) cells, differing only in dosing schedule (none /
+// constant / periodic). A drug PDE diffuses in from the boundary during
+// dosing; sensitive cells die in proportion to local drug, illustrating
+// competitive release of the resistant clone under aggressive dosing.
 //
 // Live window by default; pass "headless" to run fewer steps and dump the
 // final three-panel state to competitiverelease.png (and populations.csv).
@@ -119,7 +118,7 @@ public:
     int32_t        *DivHoodData() { return m_divHood.data(); }
     int32_t         DivHoodSize() const { return static_cast<int32_t>(m_divHood.size()); }
 
-    // Time-scaled rates (2 hours per timestep), matching the Java model.
+    // Rates scaled to 2 hours per timestep.
     static constexpr double TIMESTEP = 2.0 / 24;
     static constexpr double SPACE_STEP = 20;
     const double            DIV_PROB_SEN = Hal::ProbScale(0.5, TIMESTEP);

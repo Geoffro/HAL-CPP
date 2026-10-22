@@ -1,6 +1,5 @@
-// Headless port of LEARN_HERE/Diffusibles/Gradient3D.java: fill a PDEGrid3D
-// with a ramp along z, then read the finite-difference gradient at an
-// interior cell along each axis.
+// Headless: fills a PDEGrid3D with a ramp along z, then prints the
+// finite-difference gradient at an interior cell along each axis.
 
 #include "Hal/Grids/PDEGrid3D.h"
 

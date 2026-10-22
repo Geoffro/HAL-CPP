@@ -1,17 +1,9 @@
 #version 450
 
-// GPU field pass of the volumetric Physarum (GpuSlimeMold3D). The chemical
-// field the agents deposit into is blurred and faded here so nearby agents
-// reinforce each other's trails and unused ones evaporate — the coupling
-// that turns local agent rules into a coherent 3D network. One invocation
-// per voxel: a 7-point 3D Laplacian diffusion (six face neighbours), a
-// multiplicative decay, and then this step's fresh deposit folded in.
-//
-// The deposit buffer is the uint fixed-point accumulator the agent pass
-// (SlimeMold3DAgents.comp) atomically adds into; this pass divides it back
-// to float, adds it, and clears it to zero for the next step. The field
-// ping-pongs between two buffers (src -> dst) and stays resident on the GPU
-// across frames — only the agents round-trip to the host to be rendered.
+// Field pass of 3D Physarum, one invocation per voxel: 7-point diffusion,
+// multiplicative decay, then this step's deposit (converted from the uint
+// fixed-point accumulator, which is cleared). The field ping-pongs between
+// two buffers.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 

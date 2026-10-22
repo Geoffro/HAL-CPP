@@ -1,10 +1,7 @@
 #version 450
 
-// Basic Lambert shading for the instanced spheres: a single directional
-// light (pc.lightDir, pointing from the surface toward the light — the
-// renderer passes a "headlight" direction derived from the camera each
-// frame) plus a constant ambient floor so back faces never go fully
-// black.
+// Lambert shading with one directional light (pc.lightDir, from the
+// surface toward the light) plus a constant ambient term.
 
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec4 inColor;

@@ -100,14 +100,27 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipelines();
-            CreateCommandObjects();
-            ZeroInitBuffers();
+            try
+            {
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipelines();
+                CreateCommandObjects();
+                ZeroInitBuffers();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
         }
 
         FluidKernel3D::~FluidKernel3D()
+        {
+            Destroy();
+        }
+
+        void FluidKernel3D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -475,6 +488,7 @@ namespace Hal
                                      int32_t             steps,
                                      const FluidParams  &params)
         {
+            Internal::CheckSize(scalars.size(), static_cast<size_t>(m_length) * 2, "FluidKernel3D::RunSteps scalars");
             VkDeviceSize scalSize = static_cast<VkDeviceSize>(m_length) * 2 * sizeof(float);
 
             std::memcpy(m_pStagingMapped, scalars.data(), scalSize);

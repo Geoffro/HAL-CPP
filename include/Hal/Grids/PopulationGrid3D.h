@@ -7,9 +7,7 @@
 
 namespace Hal
 {
-    // Mean-field/count-based 3D population grid — see PopulationGrid2D.h
-    // for the rationale behind the TCount template and the deferred
-    // Diffusion() method.
+    // 3D count-based population grid (see PopulationGridBase.h).
     template <typename TCount>
     class PopulationGrid3D : public GridGeometry3D, public PopulationGridBase<TCount>
     {
@@ -35,6 +33,8 @@ namespace Hal
         ~PopulationGrid3D()
         {
         }
+
+        using GridGeometry3D::Length;
 
         TCount Get(int32_t x,
                    int32_t y,

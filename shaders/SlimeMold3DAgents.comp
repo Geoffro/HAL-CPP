@@ -1,21 +1,11 @@
 #version 450
 
-// GPU agent pass of a VOLUMETRIC Physarum ("slime mold") — the 3D
-// counterpart of the 2D GpuSlimeMold showcase, but with the agents living on
-// the GPU too, not just the trail field. Each invocation is one agent: it
-// senses the chemical field in a forward cone (a forward sample plus four
-// samples tilted by sensorAngle around the heading), steers toward whichever
-// direction is strongest, adds a little random wander, steps forward, and
-// deposits a bit of chemical at its new voxel. Out of those trivial local
-// rules a living 3D transport network organizes itself. This is the agent
-// half of the GpuSlimeMold3D hybrid; the field half (diffuse/decay) is
-// SlimeMold3DField.comp.
-//
-// The field is read-only here (agents only sense it); deposits go into a
-// separate uint buffer via atomicAdd (fixed-point, since GLSL storage-image
-// float atomics are not universally available on MoltenVK), which the field
-// pass consumes and clears. No inter-agent buffer coupling beyond the shared
-// field, so this is a near-embarrassingly-parallel map over the agent array.
+// Agent pass of 3D Physarum. Each invocation is one agent: it samples the
+// field ahead and at four directions tilted by sensorAngle, steers toward
+// the strongest, adds random wander, steps, and deposits at its new voxel.
+// Deposits go to a separate uint buffer via atomicAdd (fixed point, since
+// float atomics aren't universally available), which the field pass
+// consumes and clears.
 
 layout(local_size_x = 256) in;
 

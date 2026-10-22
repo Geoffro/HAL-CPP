@@ -5,13 +5,9 @@
 #include <cmath>
 #include <vector>
 
-// ---------------------------------------------------------------------
-// Ported from Tools/ODESolver/ODESolver.java. Verified against exact
-// closed-form solutions rather than eyeballed trajectories: dy/dt = y has
-// solution e^t; the linear system (y0'=y1, y1'=-y0) with y0(0)=1,y1(0)=0
-// has solution (cos t, -sin t). These give a real ground truth for the
-// integrators' accuracy and order.
-// ---------------------------------------------------------------------
+// Checked against closed-form solutions: dy/dt = y gives e^t,
+// (y0' = y1, y1' = -y0) from (1, 0) gives (cos t, -sin t), and
+// dy/dt = cos t from 0 gives sin t.
 
 static void ExpDerivative(double /*t*/, const double *pState, double *pOut)
 {
@@ -90,13 +86,8 @@ TEST_CASE("OdeSolver::Runge4 conserves the harmonic oscillator over a full perio
     CHECK(state[1] == doctest::Approx(0.0).epsilon(1e-6));
 }
 
-// Regression test for a Java bug fixed in this port: Java's separate-out
-// Runge45 overload re-evaluates the derivative at the *original* state
-// array every step (rather than the running output), so it only
-// integrates correctly when state and out alias — which Java's own
-// convenience overloads always do, masking the bug. This port evaluates
-// at the current state, so integrating in place and integrating into a
-// separate output buffer must give identical results.
+// Each step must evaluate the derivative at the running state, so
+// integrating in place and into a separate buffer must agree.
 TEST_CASE("OdeSolver::Runge45 into a separate output buffer matches in-place integration")
 {
     Hal::OdeSolver solver;
@@ -189,4 +180,29 @@ TEST_CASE("OdeSolver trajectory recording rejects a missing start state")
     std::vector<std::vector<double>> states;
     std::vector<double> ts;
     CHECK_THROWS_AS(solver.Runge4Record(ExpDerivative, states, ts, 1.0, 0.1, 0), std::invalid_argument);
+}
+
+static void CosineDerivative(double        t,
+                             const double *pState,
+                             double       *pOut)
+{
+    (void)pState;
+    pOut[0] = std::cos(t);
+}
+
+TEST_CASE("OdeSolver::Runge4 is 4th-order accurate for a time-dependent derivative")
+{
+    Hal::OdeSolver solver;
+    double target = std::sin(2.0);
+
+    std::vector<double> coarse = {0.0};
+    solver.Runge4Integrate(CosineDerivative, coarse.data(), 1, 0.0, 2.0, 0.1);
+    double errorCoarse = std::abs(coarse[0] - target);
+
+    std::vector<double> fine = {0.0};
+    solver.Runge4Integrate(CosineDerivative, fine.data(), 1, 0.0, 2.0, 0.05);
+    double errorFine = std::abs(fine[0] - target);
+
+    CHECK(errorCoarse < 1e-5);
+    CHECK((errorCoarse / errorFine) > 8.0);
 }

@@ -7,20 +7,9 @@
 
 namespace Hal
 {
-    // Minimal MPEG-1 video export, replacing Java's UIGrid.ToGIF with a
-    // built-in video encoder rather than an external GIF/ffmpeg
-    // dependency — see docs/DESIGN.md's "GIF export vs. MP4/frame-dump"
-    // note. Wraps the vendored jo_mpeg encoder (third_party/jo_mpeg,
-    // public domain, Jon Olick) behind a small RAII class so callers never
-    // touch its C API directly.
-    //
-    // width/height/fps are fixed for the life of one VideoWriter, matching
-    // jo_mpeg's own per-file constraints (every frame in an MPEG-1
-    // sequence must share dimensions and frame rate). Quality is modest
-    // (MPEG-1, no motion estimation) — a deliberate simplification to
-    // avoid a heavyweight codec dependency, not a correctness issue; a
-    // higher-quality encoder is a legitimate follow-up if this becomes a
-    // bottleneck for actual use.
+    // MPEG-1 video writer over the vendored jo_mpeg encoder (no external
+    // codec dependency; modest quality, no motion estimation). Size and
+    // frame rate are fixed for the file's lifetime.
     class VideoWriter
     {
     public:
@@ -35,11 +24,11 @@ namespace Hal
 
         bool IsOpen() const;
 
-        // pixelsRgba must be width*height RGBA8 (4 bytes/pixel, row-major,
-        // top-to-bottom); alpha is ignored by the encoder. Flushes to disk
-        // before returning, so the file is inspectable/resumable-in-spirit
-        // after every frame rather than only once the writer is destroyed.
-        void AddFrame(const std::vector<uint8_t> &pixelsRgba);
+        // pixelsRgba must be width*height RGBA8 (row 0 at the top); alpha is
+        // ignored. Flushes to disk after each frame. Returns false if the
+        // file isn't open (the constructor logged that) and logs and returns
+        // false for a wrong-size buffer or a failed write.
+        bool AddFrame(const std::vector<uint8_t> &pixelsRgba);
 
     private:
         std::FILE *m_pFile;

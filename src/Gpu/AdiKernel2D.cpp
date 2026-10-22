@@ -55,28 +55,46 @@ namespace Hal
               m_commandBuffer(VK_NULL_HANDLE),
               m_fence(VK_NULL_HANDLE)
         {
-            if ((xDim > kMaxLine) || (yDim > kMaxLine))
+            try
             {
-                Logger::Instance().Log(LogSeverity::Error, "AdiKernel2D: grid dimensions exceed the per-workgroup line cap of " + std::to_string(kMaxLine));
-                throw std::invalid_argument("AdiKernel2D: grid dimension exceeds the PCR line cap");
-            }
+                if ((xDim > kMaxLine) || (yDim > kMaxLine))
+                {
+                    Logger::Instance().Log(LogSeverity::Error, "AdiKernel2D: grid dimensions exceed the per-workgroup line cap of " + std::to_string(kMaxLine));
+                    throw std::invalid_argument("AdiKernel2D: grid dimension exceeds the PCR line cap");
+                }
 
+                if (!IsSupported(m_context))
+                {
+                    Logger::Instance().Log(LogSeverity::Error, "AdiKernel2D: device workgroup limits too small for the PCR solve (needs 1024 invocations and 20KB shared memory)");
+                    throw std::runtime_error("AdiKernel2D: device workgroup limits too small for the PCR solve");
+                }
+
+                CreateBuffers();
+                CreateDescriptorObjects();
+                CreatePipeline();
+                CreateCommandObjects();
+            }
+            catch (...)
+            {
+                Destroy();
+                throw;
+            }
+        }
+
+        bool AdiKernel2D::IsSupported(ComputeContext &context)
+        {
             VkPhysicalDeviceProperties properties;
-            vkGetPhysicalDeviceProperties(m_context.PhysicalDevice(), &properties);
-            if ((properties.limits.maxComputeWorkGroupInvocations < g_adiWorkgroupSize) ||
-                (properties.limits.maxComputeSharedMemorySize < g_adiSharedBytes))
-            {
-                Logger::Instance().Log(LogSeverity::Error, "AdiKernel2D: device workgroup limits too small for the PCR solve (needs 1024 invocations and 20KB shared memory)");
-                throw std::runtime_error("AdiKernel2D: device workgroup limits too small for the PCR solve");
-            }
-
-            CreateBuffers();
-            CreateDescriptorObjects();
-            CreatePipeline();
-            CreateCommandObjects();
+            vkGetPhysicalDeviceProperties(context.PhysicalDevice(), &properties);
+            return (properties.limits.maxComputeWorkGroupInvocations >= g_adiWorkgroupSize) &&
+                   (properties.limits.maxComputeSharedMemorySize >= g_adiSharedBytes);
         }
 
         AdiKernel2D::~AdiKernel2D()
+        {
+            Destroy();
+        }
+
+        void AdiKernel2D::Destroy()
         {
             VkDevice device = m_context.Device();
             if (m_fence != VK_NULL_HANDLE)
@@ -281,6 +299,7 @@ namespace Hal
                                    bool                wrapX,
                                    bool                wrapY)
         {
+            Internal::CheckSize(field.size(), static_cast<size_t>(m_length), "AdiKernel2D::RunSteps field");
             VkDeviceSize size = static_cast<VkDeviceSize>(m_length) * sizeof(float);
             std::memcpy(m_pStagingMapped, field.data(), static_cast<size_t>(size));
 

@@ -1,10 +1,8 @@
 #version 450
 
-// Samples the live pixel-grid texture (updated per frame by
-// WindowRenderContext::UpdateTexture, from e.g. Hal::RenderGrid2DToRgba)
-// and writes it straight to the fullscreen triangle from
-// FullscreenQuad.vert — this is Phase 6's live `UIGrid`-equivalent
-// render surface (see docs/PHASED_PORT.md).
+// Samples the pixel-grid texture (updated by
+// WindowRenderContext::UpdateTexture) across the fullscreen triangle from
+// FullscreenQuad.vert.
 
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
